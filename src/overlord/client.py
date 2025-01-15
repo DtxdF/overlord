@@ -682,14 +682,14 @@ class OverlordClient(httpx.AsyncClient):
 
             return
 
-        for _chain in chains:
-            if chain is None:
-                chain = []
+        if chain is None:
+            first_chain = []
 
-            else:
-                chain = [chain]
+        else:
+            first_chain = [chain]
 
-            chain = overlord.chains.join_chain(chain + [_chain])
+        for chain in chains:
+            chain = overlord.chains.join_chain(first_chain + [chain])
 
             yield chain
 
