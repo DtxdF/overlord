@@ -1,0 +1,270 @@
+.\"Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+.\"All rights reserved.
+.\"
+.\"Redistribution and use in source and binary forms, with or without
+.\"modification, are permitted provided that the following conditions are met:
+.\"
+.\"* Redistributions of source code must retain the above copyright notice, this
+.\"  list of conditions and the following disclaimer.
+.\"
+.\"* Redistributions in binary form must reproduce the above copyright notice,
+.\"  this list of conditions and the following disclaimer in the documentation
+.\"  and/or other materials provided with the distribution.
+.\"
+.\"* Neither the name of the copyright holder nor the names of its
+.\"  contributors may be used to endorse or promote products derived from
+.\"  this software without specific prior written permission.
+.\"
+.\"THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+.\"AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\"IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+.\"DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+.\"FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\"DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+.\"SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+.\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+.\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+.\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+.Dd January 13, 2025
+.Dt OVERLORD 1
+.Os
+.Sh NAME
+.Nm overlord
+.Nd Deploy FreeBSD jails as fast as you code
+.Sh SYNOPSIS
+.Nm
+.Fl Fl Cm version
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm apply
+.Fl Fl file Ar file
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm print-config
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm destroy-project
+.Fl Fl file Ar file
+.Op Fl Fl filter-chain Ar filter
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm gen-token
+.Op Fl Fl metadata Ar key Ns Oo Ns = Ns Ar value Oc
+.Op Fl Fl expire Ar expire
+.Op Fl Fl expire-type Ar type
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm get-info
+.Fl Fl file Ar file
+.Fl Fl type Ar type
+.Op Fl Fl jail-item Ar item
+.Op Fl Fl all-labels
+.Op Fl Fl filter Ar filter
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm get-project-log
+.Fl Fl file Ar file
+.Fl Fl date Ar date
+.Fl Fl service Ar service
+.Fl Fl log Ar log
+.Ar entrypoint
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm get-jail-log
+.Fl Fl file Ar file
+.Fl Fl type Ar type
+.Fl Fl entity Ar entity
+.Fl Fl subtype Ar subtype
+.Fl Fl log Ar log
+.Ar entrypoint
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm poll-jails
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm poll-jail-info
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm poll-jail-extras
+.Op Fl Fl item Ar item
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm poll-jail-stats
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm poll-projects
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm poll-project-info
+.Sh DESCRIPTION
+.Sy Overlord
+is a fast, distributed orchestrator for FreeBSD jails oriented to GitOps.
+You define a file with the service intended to run on your cluster and deployment
+takes seconds to minutes.
+.Pp
+.Bl -tag -width xxx
+.It Cm apply Fl Fl file Ar file
+Applies a file containing a deployment, or in other words, this command is to deploy something depending on the deployment type specified in
+.Xr overlord-spec 5 Ns "."
+.Bl -tag -width xx
+.It Fl f Ar file Ns , No Fl Fl file Ar file
+Deployment file.
+.El
+.It Cm print-config
+Prints the configuration in JSON format. This includes the default values.
+.It Cm destroy-project Fl Fl file Ar file Oo Fl Fl filter-chain Ar filter Oc
+Destroys a project.
+.Bl -tag -width xx
+.It Fl f Ar file Ns , No Fl Fl file Ar file
+Deployment file.
+.It Fl Fl filter-chain Ar filter
+Destroy the project that matches with this chain.
+.Pp
+This parameter can be specified multiple times.
+.El
+.It Cm gen-token Oo Fl Fl metadata Ar key Ns Oo Ns = Ns Ar value Oc Oc Oo Fl Fl expire Ar expire Oc Oo Fl Fl expire-type Ar type Oc
+Generate a new token.
+.Bl -tag -width xx
+.It Fl Fl metadata Ar key Ns Oo Ns = Ns Ar value Oc
+Additional metadata. They can be used for additional functions or third-party tools.
+.It Fl Fl expire Ar expire
+If this parameter is set, an expiration date is set on the token, which by default never expires.
+.It Fl Fl expire-type Ar type
+Set the expiration date in seconds, minutes, hours, days or weeks.
+.El
+.It Cm get-info Fl Fl file Ar file Fl Fl type Ar type Oo Fl Fl jail-item Ar item Oc Oo Fl Fl all-labels Oc Oo Fl Fl filter Ar filter Oc
+Gets information about an entity specified with
+.Fl Fl type Ns "."
+.Bl -tag -width xx
+.It Fl f Ar file Ns , No Fl Fl file Ar file
+Deployment file.
+.It Fl t Ar type Ns , No Fl Fl type Ar type
+What kind of information to get. The elements are
+.Sy jails Ns ,
+to get information about jails,
+.Sy projects
+to get information about projects
+.Sy chains
+to simply display chains recursively,
+.Sy projects:logs
+for logs created by Director and
+.Sy jails:logs
+for logs created by AppJail.
+.It Fl Fl jail-item Ar item
+When the
+.Fl Fl type
+parameter is set to
+.Sy jails Ns ,
+this parameter can be used to control how much information to display from the
+jails. Valid values are
+.Sy stats Ns ,
+.Sy info Ns ,
+.Sy cpuset Ns ,
+.Sy devfs Ns ,
+.Sy expose Ns ,
+.Sy healthcheck Ns ,
+.Sy limits Ns ,
+.Sy fstab Ns ,
+.Sy labels Ns ,
+.Sy nat
+and
+.Sy volumes Ns "." No If this parameter is not specified, all elements are used.
+.Pp
+This parameter can be specified multiple times.
+.It Fl Fl all-labels
+By default, the information is displayed according to the labels specified in the
+deployment file. This parameter displays all information ignoring the labels.
+.It Fl Fl filter Ar filter
+Depending on the value specified with
+.Fl Fl type Ns ,
+it can be used to filter the information to be displayed. The value of this parameter
+is a valid regular expression. The value to compare can be the jail name, the project
+name, a chain or a log file name.
+.Pp
+This parameter can be specified multiple times.
+.El
+.It Cm get-project-log Fl Fl file Ar file Fl Fl date Ar date Fl Fl service Ar service Fl Fl log Ar log Ar entrypoint
+Gets the content of a log created by Director.
+.Bl -tag -width xx
+.It Fl f Ar file Ns , No Fl Fl file Ar file
+Deployment file.
+.It Fl d Ar date Ns , No Fl Fl date Ar date
+Log date.
+.It Fl s Ar service Ns , No Fl Fl service Ar service
+Service name.
+.It Fl l Ar log Ns , No Fl Fl log Ar log
+Log file name.
+.It Ar entrypoint
+An entry point that must exist in the deployment file. After the entry point, a
+chain can be specified
+.Po e.g.: main.delta.echo Pc Ns "."
+.El
+.It Cm get-jail-log Fl Fl file Ar file Fl Fl type Ar type Fl Fl entity Ar entity Fl Fl subtype Ar subtype Fl Fl log Ar log Ar entrypoint
+Gets the content of a log created by AppJail.
+.Bl -tag -width xx
+.It Fl f Ar file Ns , No Fl Fl file Ar file
+Deployment file.
+.It Fl t Ar type Ns , No Fl Fl type Ar type
+Group of entities.
+.It Fl e Ar entity Ns , No Fl Fl entity Ar entity
+Individual in a group.
+.It Fl s Ar subtype Ns , No Fl Fl subtype Ar subtype
+Group of logs.
+.It Fl l Ar log Ns , No Fl Fl log Ar log
+Log file name.
+.It Ar entrypoint
+An entry point that must exist in the deployment file. After the entry point, a
+chain can be specified
+.Po e.g.: main.delta.echo Pc Ns "."
+.El
+.It Cm poll-jails
+Collects the list of jails from the system and stores them in the cache server.
+Indispensable for other polling operations.
+.It Cm poll-jail-info
+Using the list of jails stored in the cache server, this command will collect the
+information of each jail to be stored in the cache server.
+.It Cm poll-jail-extras Oo Fl Fl item Ar item Oc
+Like
+.Cm poll-jail-info
+but for more information depending on the
+.Fl Fl item
+parameter.
+.Bl -tag -width xx
+.It Fl Fl item Ar item
+The reason for having this parameter is to allow more processes to be separated
+to collect information in parallel and decide exactly what information to obtain.
+.Pp
+Valid values are
+.Sy cpuset Ns ,
+.Sy devfs Ns ,
+.Sy expose Ns ,
+.Sy healthcheck Ns ,
+.Sy limits Ns ,
+.Sy fstab Ns ,
+.Sy label Ns ,
+.Sy nat Ns
+and
+.Sy volume Ns "."
+.El
+.It Cm poll-jail-stats
+Collects the statistics provided by the
+.Xr rctl 4
+framework on the jails and stores them in the cache server.
+.It Cm poll-projects
+Collects the list of projects from the system and stores them in the cache server.
+Indispensable for other polling operations.
+.It Cm poll-project-info
+Using the list of projects stored in the cache server, this command will collect the
+information of each project to be stored in the cache server.
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width xxx
+.It OVERLORD_CONFIG
+The configuration file to load if it exists. The default is
+.Sy .overlord.yml Ns "."
+.El
+.Sh SEE ALSO
+.Xr appjail 1
+.Xr overlord-spec 5
+.Sh AUTHORS
+.An Jesús Daniel Colmenares Oviedo Aq Mt DtxdF@disroot.org

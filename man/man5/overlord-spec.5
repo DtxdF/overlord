@@ -1,0 +1,334 @@
+.\"Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+.\"All rights reserved.
+.\"
+.\"Redistribution and use in source and binary forms, with or without
+.\"modification, are permitted provided that the following conditions are met:
+.\"
+.\"* Redistributions of source code must retain the above copyright notice, this
+.\"  list of conditions and the following disclaimer.
+.\"
+.\"* Redistributions in binary form must reproduce the above copyright notice,
+.\"  this list of conditions and the following disclaimer in the documentation
+.\"  and/or other materials provided with the distribution.
+.\"
+.\"* Neither the name of the copyright holder nor the names of its
+.\"  contributors may be used to endorse or promote products derived from
+.\"  this software without specific prior written permission.
+.\"
+.\"THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+.\"AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\"IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+.\"DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+.\"FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\"DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+.\"SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+.\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+.\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+.\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+.Dd January 13, 2025
+.Dt OVERLORD-SPEC 5
+.Os
+.Sh NAME
+.Nm overlord-spec
+.Nd Overlord specification for configuration files
+.Sh CONFIGURATION
+.Bl -tag -width xxx
+.It Sy port
+Specify the source port Overlord's API server should use.
+.It Sy debug
+Shorthand for several debug mode settings. 
+.Pp
+See also
+.Lk https://www.tornadoweb.org/en/stable/web.html#tornado.web.Application.settings "Application configuration"
+.It Sy compress_response
+If True, responses in textual formats will be compressed automatically.
+.Pp
+See also
+.Lk https://www.tornadoweb.org/en/stable/web.html#tornado.web.Application.settings "Application configuration"
+.It Sy polling
+Polling configuration.
+.It Sy polling.jail_stats
+How long to sleep after re-collecting
+.Xr rctl 4
+statistics.
+.It Sy polling.jail_info
+How much time to sleep after collecting information from the jails again.
+.It Sy polling.projects
+How long to sleep afterwards to get the project list back.
+.It Sy polling.jails
+How long to sleep afterwards to get the jail list back.
+.It Sy polling.jail_extras
+How much time to sleep after collecting additional information from the jails again.
+.It Sy polling.project_info
+How much time to sleep after collecting information from the projects again.
+.It Sy polling.skew
+After repeating the polling operation, a random number will be added to the previous
+numbers. The random number will be generated using the range specified in this parameter.
+.It Sy polling.keywords
+Keywords to use to get information.
+.It Sy polling.keywords.stats
+See the
+.Sx KEYWORDS
+section in
+.Xr appjail-limits 1
+for details.
+.It Sy polling.keywords.jail
+See the
+.Sx KEYWORDS
+section in
+.Xr appjail-jail 1
+for details.
+.It Sy polling.keywords.devfs
+See the
+.Sx KEYWORDS
+section in
+.Xr appjail-devfs 1
+for details.
+.It Sy polling.keywords.expose
+See the
+.Sx KEYWORDS
+section in
+.Xr appjail-expose 1
+for details.
+.It Sy polling.keywords.healthcheck
+See the
+.Sx KEYWORDS
+section in
+.Xr appjail-healthcheck 1
+for details.
+.It Sy polling.keywords.label
+See the
+.Sx KEYWORDS
+section in
+.Xr appjail-label 1
+for details.
+.It Sy polling.keywords.limits
+See the
+.Sx KEYWORDS
+section in
+.Xr appjail-limits 1
+for details.
+.It Sy polling.keywords.nat
+See the
+.Sx KEYWORDS
+section in
+.Xr appjail-nat 1
+for details.
+.It Sy polling.keywords.volume
+See the
+.Sx KEYWORDS
+section in
+.Xr appjail-volume 1
+for details.
+.It Sy polling.keywords.fstab
+See the
+.Sx KEYWORDS
+section in
+.Xr appjail-fstab 1
+for details.
+.It Sy memcache
+Configuration for the memcache client.
+.Pp
+See also
+.Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.hash.html#pymemcache.client.hash.HashClient "pymemcache.client.hash module"
+.It Sy memcache.connections
+An array of addresses pointing to memcache servers.
+.It Sy memcache.max_pool_size
+maximum pool size to use.
+.Pp
+See also
+.Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.PooledClient "pymemcache.client.base.PooledClient"
+.It Sy memcache.pool_idle_timeout
+pooled connections are discarded if they have been unused for this many seconds.
+A value of 0 indicates that pooled connections are never discarded.
+.Pp
+See also
+.Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.PooledClient "pymemcache.client.base.PooledClient"
+.It Sy memcache.retry_attempts
+Amount of times a client should be tried before it is marked dead and removed from the pool.
+.Pp
+See also
+.Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.hash.html#pymemcache.client.hash.HashClient "pymemcache.client.hash module"
+.It Sy memcache.retry_timeout
+Time in seconds that should pass between retry attempts.
+.Pp
+Use 0 to use the default timeout, or -1 to disable it.
+.Pp
+See also
+.Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.hash.html#pymemcache.client.hash.HashClient "pymemcache.client.hash module"
+.It Sy memcache.dead_timeout
+Time in seconds before attempting to add a node back in the pool.
+.Pp
+Use 0 to use the default timeout, or -1 to disable it.
+.Pp
+See also
+.Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.hash.html#pymemcache.client.hash.HashClient "pymemcache.client.hash module"
+.It Sy memcache.connect_timeout
+Seconds to wait for a connection to the memcached server.
+.Pp
+Use 0 to use the default timeout, or -1 to disable it.
+.Pp
+See also
+.Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.Client "pymemcache.client.base.Client"
+.It Sy memcache.timeout
+Seconds to wait for send or recv calls on the socket connected to memcached.
+.Pp
+See also
+.Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.Client "pymemcache.client.base.Client"
+.It Sy memcache.no_delay
+Set the
+.Sy TCP_NODELAY
+flag, which may help with performance in some cases.
+.Pp
+See also
+.Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.Client "pymemcache.client.base.Client"
+.It Sy memcache.id
+When you have multiple Overlord instances sharing the same memcache servers, you
+need to set this value to avoid race conditions.
+.It Sy secret_key
+Secret key for signing the JWT.
+.It Sy log_config
+Logging configuration.
+.Pp
+See also
+.Lk https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig "logging.conf.dictConfig"
+.It Sy chains
+Chain configuration.
+.It Sy chains.{chain}.entrypoint
+URL to connect to.
+.It Sy chains.{chain}.access_token
+Access token.
+.It Sy chains.{chain}.timeout
+Timeout for all operations.
+.Pp
+See also
+.Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
+.It Sy chains.{chain}.read_timeout
+Specified the maximum duration to wait for a chunk of data to be received
+.Po for example, a chunk of the response body). If HTTPX is unable to receive data within this time frame Pc Ns ,
+a
+.Sy httpx.ReadTimeout
+exception is raised.
+.Pp
+See also
+.Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
+.It Sy chains.{chain}.write_timeout
+Specifies the maximum duration to wait for a chunk of data to be sent
+.Po for example, a chunk of the request body Pc Ns "."
+If HTTPX is unable to send data within this time frame, a
+.Sy httpx.WriteTimeout
+exception is raised.
+.Pp
+See also
+.Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
+.It Sy chains.{chain}.connect_timeout
+Specifies the maximum amount of time to wait until a socket connection to the requested host is established. If HTTPX is unable to connect within this time frame, a
+.Sy httpx.ConnectTimeout
+exception is raised.
+.Pp
+See also
+.Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
+.It Sy chains.{chain}.pool_timeout
+Specifies the maximum duration to wait for acquiring a connection from the connection pool. If HTTPX is unable to acquire a connection within this time frame, a PoolTimeout exception is raised. A related configuration here is the maximum number of allowable connections in the connection pool, which is configured by the limits argument.
+.Pp
+See also
+.Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
+.It Sy chains.{chain}.max_keepalive_connections
+Number of allowable keep-alive connections.
+.Pp
+See also
+.Lk https://www.python-httpx.org/advanced/resource-limits "Resource Limits"
+.It Sy chains.{chain}.max_connections
+Maximum number of allowable connections.
+.Pp
+.Lk https://www.python-httpx.org/advanced/resource-limits "Resource Limits"
+.It Sy chains.{chain}.keepalive_expiry
+Time limit on idle keep-alive connections in seconds.
+.Pp
+.Lk https://www.python-httpx.org/advanced/resource-limits "Resource Limits"
+.It Sy labels
+List of labels for the API server.
+.It Sy director
+Director configuration.
+.It Sy director.logs
+Path to the logs directory created by Director.
+.It Sy appjail
+AppJail configuration.
+.It Sy appjail.logs
+Path to the logs directory created by AppJail.
+.It Sy beanstalkd_addr
+Beanstalkd address to connect to. Use the
+.Sy unix:
+prefix to connect to a UNIX socket. If the port is not specified,
+.Sy 11300
+will be used.
+.It Sy execution_time
+Maximum time to execute a command or
+.Sy null
+to not set a timeout.
+.El
+.Sh DEPLOYMENT
+.Bl -tag -compact -width xxx
+.It Sy kind
+What kind of deployment is this file.
+.Pp
+Only
+.Sy directorProject
+is valid at this time.
+.Pp
+.It Sy datacenters
+Servers to perform HTTP requests.
+.Pp
+.It Sy datacenters.{datacenter}.entrypoint
+.It Sy datacenters.{datacenter}.access_token
+.It Sy datacenters.{datacenter}.timeout
+.It Sy datacenters.{datacenter}.read_timeout
+.It Sy datacenters.{datacenter}.write_timeout
+.It Sy datacenters.{datacenter}.connect_timeout
+.It Sy datacenters.{datacenter}.pool_timeout
+.It Sy datacenters.{datacenter}.max_keepalive_connections
+.It Sy datacenters.{datacenter}.max_connections
+.It Sy datacenters.{datacenter}.keepalive_expiry
+See
+.Sy chains.{chain}.*
+in
+.Sx CONFIGURATION
+for details.
+.Pp
+.It Sy deployIn
+Specify where to deploy.
+.Pp
+.It Sy deployIn.entrypoints
+List of entry points to connect to that may have the chain with a syntax such as
+.Sy {datacenter}.{chainA}.{chainB}.
+.Pp
+By default, when no entry point is specified, data centers will be used as the
+entry points.
+.Pp
+.It Sy deployIn.labels
+Deploy to servers with these labels. When no labels are specified, the
+.Sy all
+label is used.
+.Pp
+.It Sy projectName
+Project name.
+.Pp
+Valid only for
+.Sy deployProject Ns "."
+.Pp
+.It Sy projectFile
+Content of the project.
+.Pp
+Valid only for
+.Sy deployProject Ns "."
+.Pp
+.It Sy environment
+A dictionary with each key-value environment. Both the key and the value must be a string.
+.Pp
+Valid only for
+.Sy deployProject Ns "."
+.El
+.Sh SEE ALSO
+.Xr overlord 1
+.Sh AUTHORS
+.An Jesús Daniel Colmenares Oviedo Aq Mt DtxdF@disroot.org
