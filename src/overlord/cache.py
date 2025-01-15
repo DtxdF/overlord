@@ -62,7 +62,7 @@ def connect():
 def _get_key(key):
     id = overlord.config.get_memcache_id()
 
-    if id is None:
+    if id is not None:
         key = "%s_%s" % (id, key)
 
     return key
