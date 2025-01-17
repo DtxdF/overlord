@@ -40,7 +40,8 @@ setup(
         "psutil",
         "pymemcache",
         "pyjwt",
-        "aiofiles"
+        "aiofiles",
+        "humanfriendly"
     ],
     entry_points={
         "console_scripts" : [

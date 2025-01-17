@@ -35,6 +35,7 @@ import time
 
 import click
 import httpx
+import humanfriendly
 
 import overlord.client
 import overlord.commands
@@ -259,7 +260,25 @@ async def print_info_jails(client, chain, api_info, items, patterns):
                 print(f"      {info_name}:")
 
                 for key, value in result.items():
+                    if info_name == "stats":
+                        value = _get_rctl_humanvalue(key, value)
+
                     print(f"        {key}: {value}")
+
+def _get_rctl_humanvalue(key, value):
+    if key == "datasize" \
+            or key == "stacksize" \
+            or key == "coredumpsize" \
+            or key == "memoryuse" \
+            or key == "memorylocked" \
+            or key == "vmemoryuse" \
+            or key == "swapuse" \
+            or key == "shmsize" \
+            or key == "readbps" \
+            or key == "writebps":
+        value = "%d (%s)" % (value, humanfriendly.format_size(value, binary=True))
+
+    return value
 
 async def print_info_projects(client, chain, api_info, patterns):
     info = {}
