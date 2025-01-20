@@ -421,11 +421,11 @@ def validate_deployIn_entrypoints(document):
         return
 
     if not isinstance(entrypoints, list):
-        raise overlord.exceptions.InvalidSpec("'entrypoints' is invalid.")
+        raise overlord.exceptions.InvalidSpec("'deployIn.entrypoints' is invalid.")
 
     for index, entry in enumerate(entrypoints):
         if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'entrypoints.{index}'")
+            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'deployIn.entrypoints.{index}'")
 
         # Check for invalid chains.
         overlord.chains.get_chain(entry)
@@ -433,7 +433,7 @@ def validate_deployIn_entrypoints(document):
     length = len(entrypoints)
 
     if length < 1:
-        raise overlord.exceptions.InvalidSpec(f"'entrypoints': at least one entrypoint must be specified.")
+        raise overlord.exceptions.InvalidSpec(f"'deployIn.entrypoints': at least one entrypoint must be specified.")
 
 def validate_deployIn_labels(document):
     labels = document.get("labels")
@@ -442,19 +442,19 @@ def validate_deployIn_labels(document):
         return
 
     if not isinstance(labels, list):
-        raise overlord.exceptions.InvalidSpec("'labels' is invalid.")
+        raise overlord.exceptions.InvalidSpec("'deployIn.labels' is invalid.")
 
     for index, entry in enumerate(labels):
         if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'labels.{index}'")
+            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'deployIn.labels.{index}'")
 
         if not overlord.chains.check_chain_label(entry):
-            raise overlord.exceptions.InvalidSpec(f"'labels.{index}.{entry}': invalid label.")
+            raise overlord.exceptions.InvalidSpec(f"'deployIn.labels.{index}.{entry}': invalid label.")
 
     length = len(labels)
 
     if length < 1:
-        raise overlord.exceptions.InvalidSpec("'labels': at least one label must be specified.")
+        raise overlord.exceptions.InvalidSpec("'deployIn.labels': at least one label must be specified.")
 
 def validate_deployIn_exclude(document):
     exclude = document.get("exclude")
@@ -463,19 +463,19 @@ def validate_deployIn_exclude(document):
         return
 
     if not isinstance(exclude, list):
-        raise overlord.exceptions.InvalidSpec("'exclude' is invalid.")
+        raise overlord.exceptions.InvalidSpec("'deployIn.exclude' is invalid.")
 
     for index, entry in enumerate(exclude):
         if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'exclude.{index}'")
+            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'deployIn.exclude.{index}'")
 
         if not overlord.chains.check_chain_label(entry):
-            raise overlord.exceptions.InvalidSpec(f"'exclude.{index}.{entry}': invalid label.")
+            raise overlord.exceptions.InvalidSpec(f"'deployIn.exclude.{index}.{entry}': invalid label.")
 
     length = len(exclude)
 
     if length < 1:
-        raise overlord.exceptions.InvalidSpec("'exclude': at least one label must be specified.")
+        raise overlord.exceptions.InvalidSpec("'deployIn.exclude': at least one label must be specified.")
 
 def validate_maximumDeployments(document):
     maximumDeployments = document.get("maximumDeployments")
