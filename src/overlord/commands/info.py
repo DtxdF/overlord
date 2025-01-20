@@ -39,6 +39,7 @@ import humanfriendly
 
 import overlord.client
 import overlord.commands
+import overlord.process
 import overlord.util
 
 from overlord.sysexits import EX_NOINPUT, EX_SOFTWARE
@@ -56,6 +57,8 @@ def get_info(*args, **kwargs):
 
 async def _get_info(file, type, jail_item, all_labels, filter):
     try:
+        overlord.process.init()
+
         overlord.spec.load(file)
 
         exclude_labels = overlord.spec.get_deployIn_exclude()

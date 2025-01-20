@@ -37,6 +37,7 @@ import httpx
 import overlord.chains
 import overlord.client
 import overlord.commands
+import overlord.process
 import overlord.util
 
 from overlord.sysexits import EX_NOINPUT, EX_SOFTWARE
@@ -54,6 +55,8 @@ def get_project_log(*args, **kwargs):
 
 async def _get_project_log(file, date, service, log, entrypoint):
     try:
+        overlord.process.init()
+
         overlord.spec.load(file)
 
         (entrypoint, chain) = overlord.chains.get_chain(entrypoint)
@@ -116,6 +119,8 @@ def get_jail_log(*args, **kwargs):
 
 async def _get_jail_log(file, type, entity, subtype, log, entrypoint):
     try:
+        overlord.process.init()
+
         overlord.spec.load(file)
 
         (entrypoint, chain) = overlord.chains.get_chain(entrypoint)
