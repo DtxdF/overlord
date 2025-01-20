@@ -222,6 +222,9 @@ def get_deployIn_entrypoints():
 def get_deployIn_labels():
     return get_deployIn().get("labels", [])
 
+def get_deployIn_exclude():
+    return get_deployIn().get("exclude", [])
+
 def get_maximumDeployments():
     return get_default(CONFIG.get("maximumDeployments"), overlord.default.MAXIMUM_DEPLOYMENTS)
 
@@ -396,7 +399,8 @@ def validate_deployIn(document):
 
     keys = (
         "entrypoints",
-        "labels"
+        "labels",
+        "exclude"
     )
 
     if len(deployIn) == 0:
@@ -408,6 +412,7 @@ def validate_deployIn(document):
 
     validate_deployIn_entrypoints(deployIn)
     validate_deployIn_labels(deployIn)
+    validate_deployIn_exclude(deployIn)
 
 def validate_deployIn_entrypoints(document):
     entrypoints = document.get("entrypoints")
@@ -450,6 +455,27 @@ def validate_deployIn_labels(document):
 
     if length < 1:
         raise overlord.exceptions.InvalidSpec("'labels': at least one label must be specified.")
+
+def validate_deployIn_exclude(document):
+    exclude = document.get("exclude")
+
+    if exclude is None:
+        return
+
+    if not isinstance(exclude, list):
+        raise overlord.exceptions.InvalidSpec("'exclude' is invalid.")
+
+    for index, entry in enumerate(exclude):
+        if not isinstance(entry, str):
+            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'exclude.{index}'")
+
+        if not overlord.chains.check_chain_label(entry):
+            raise overlord.exceptions.InvalidSpec(f"'exclude.{index}.{entry}': invalid label.")
+
+    length = len(exclude)
+
+    if length < 1:
+        raise overlord.exceptions.InvalidSpec("'exclude': at least one label must be specified.")
 
 def validate_maximumDeployments(document):
     maximumDeployments = document.get("maximumDeployments")

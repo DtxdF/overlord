@@ -59,6 +59,8 @@ async def _apply(file):
 
         maximumDeployments = overlord.spec.get_maximumDeployments()
 
+        exclude_labels = overlord.spec.get_deployIn_exclude()
+
         labels = overlord.spec.get_deployIn_labels()
 
         if len(labels) == 0:
@@ -142,13 +144,28 @@ async def _apply(file):
                                    client.base_url, chain, error_type, error_message)
                     continue
 
+                exclude = False
+
+                for label in entrypoint_labels:
+                    if label in exclude_labels:
+                        exclude = True
+
+                        logger.debug("Entrypoint '%s' (chain:%s) will be excluded because it matches the label '%s'", datacenter, chain, label)
+
+                        break
+
+                if exclude:
+                    logger.debug("Ignoring entrypoint '%s' (chain:%s)", datacenter, chain)
+
+                    continue
+
                 match = False
 
                 for label in entrypoint_labels:
                     if label in labels:
                         match = True
 
-                        logger.debug("Entrypoint '%s' (chain:%s) matches with label '%s'", datacenter, chain, label)
+                        logger.debug("Entrypoint '%s' (chain:%s) matches the label '%s'", datacenter, chain, label)
 
                         break
 
