@@ -42,7 +42,7 @@ import overlord.process
 import overlord.spec
 import overlord.util
 
-from overlord.sysexits import EX_NOINPUT, EX_SOFTWARE
+from overlord.sysexits import EX_OK, EX_NOINPUT, EX_SOFTWARE
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,8 @@ async def _apply(file):
         deployments = 0
 
         overlord.spec.load(file)
+
+        maximumDeployments = overlord.spec.get_maximumDeployments()
 
         labels = overlord.spec.get_deployIn_labels()
 
@@ -178,6 +180,11 @@ async def _apply(file):
                     job_id = response.get("job_id")
 
                     logger.debug("Job ID is '%d'", job_id)
+
+                if maximumDeployments > 0 \
+                        and deployments >= maximumDeployments:
+                    logger.warning("Maximum deployments has been reached! (%d/%d)", deployments, maximumDeployments)
+                    sys.exit(EX_OK)
 
         if deployments == 0:
             logger.warning("The specified project hasn't been deployed!")

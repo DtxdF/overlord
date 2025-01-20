@@ -50,6 +50,7 @@ def validate(document):
         "kind",
         "datacenters",
         "deployIn",
+        "maximumDeployments",
         "projectName",
         "projectFile",
         "environment"

@@ -59,7 +59,8 @@ def get_config():
     config = {
         "kind" : kind,
         "datacenters" : get_datacenters(),
-        "deployIn" : get_deployIn()
+        "deployIn" : get_deployIn(),
+        "maximumDeployments" : get_maximumDeployments()
     }
 
     if kind == OverlordKindTypes.PROJECT.value:
@@ -215,6 +216,9 @@ def get_deployIn_entrypoints():
 def get_deployIn_labels():
     return get_deployIn().get("labels", [])
 
+def get_maximumDeployments():
+    return CONFIG.get("maximumDeployments", overlord.default.MAXIMUM_DEPLOYMENTS)
+
 def validate(document):
     if not isinstance(document, dict):
         raise overlord.exceptions.InvalidSpec("The document is invalid.")
@@ -222,12 +226,14 @@ def validate(document):
     keys = (
         "kind",
         "datacenters",
-        "deployIn"
+        "deployIn",
+        "maximumDeployments"
     )
 
     validate_kind(document)
     validate_datacenters(document)
     validate_deployIn(document)
+    validate_maximumDeployments(document)
 
 def validate_kind(document):
     kind = document.get("kind")
@@ -445,3 +451,13 @@ def validate_deployIn_labels(document):
 
     if length < 1:
         raise overlord.exceptions.InvalidSpec("'labels': at least one label must be specified.")
+
+def validate_maximumDeployments(document):
+    maximumDeployments = document.get("maximumDeployments")
+    
+    if maximumDeployments is None:
+        return
+
+    if not isinstance(maximumDeployments, int) \
+            or maximumDeployments < 0:
+        raise overlord.exceptions.InvalidSpec(f"{maximumDeployments}: invalid value type for 'maximumDeployments'")
