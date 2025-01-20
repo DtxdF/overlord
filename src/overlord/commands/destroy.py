@@ -53,6 +53,8 @@ async def _destroy_project(file, filter_chain):
     try:
         overlord.spec.load(file)
 
+        exclude_labels = overlord.spec.get_deployIn_exclude()
+
         labels = overlord.spec.get_deployIn_labels()
 
         if len(labels) == 0:
@@ -139,6 +141,21 @@ async def _destroy_project(file, filter_chain):
 
                     logger.warning("Error obtaining the labels of entrypoint URL '%s' (chain:%s): %s: %s",
                                    client.base_url, chain, error_type, error_message)
+                    continue
+
+                exclude = False
+
+                for label in entrypoint_labels:
+                    if label in exclude_labels:
+                        exclude = True
+
+                        logger.debug("Entrypoint '%s' (chain:%s) will be excluded because it matches the label '%s'", datacenter, chain, label)
+
+                        break
+
+                if exclude:
+                    logger.debug("Ignoring entrypoint '%s' (chain:%s)", datacenter, chain)
+
                     continue
 
                 match = False

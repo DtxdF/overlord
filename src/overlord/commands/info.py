@@ -58,6 +58,8 @@ async def _get_info(file, type, jail_item, all_labels, filter):
     try:
         overlord.spec.load(file)
 
+        exclude_labels = overlord.spec.get_deployIn_exclude()
+
         labels = overlord.spec.get_deployIn_labels()
 
         if len(labels) == 0:
@@ -119,6 +121,21 @@ async def _get_info(file, type, jail_item, all_labels, filter):
 
                         logger.warning("Error obtaining the labels of entrypoint URL '%s' (chain:%s): %s: %s",
                                        client.base_url, chain, error_type, error_message)
+                        continue
+
+                    exclude = False
+
+                    for label in entrypoint_labels:
+                        if label in exclude_labels:
+                            exclude = True
+
+                            logger.debug("Entrypoint '%s' (chain:%s) will be excluded because it matches the label '%s'", main_entrypoint, chain, label)
+
+                            break
+
+                    if exclude:
+                        logger.debug("Ignoring entrypoint '%s' (chain:%s)", main_entrypoint, chain)
+
                         continue
 
                     match = False
