@@ -53,6 +53,8 @@ def apply(*args, **kwargs):
 
 async def _apply(file):
     try:
+        deployments = 0
+
         overlord.spec.load(file)
 
         labels = overlord.spec.get_deployIn_labels()
@@ -161,6 +163,8 @@ async def _apply(file):
                     try:
                         response = await client.up(project_name, project_file, environment, chain=chain)
 
+                        deployments += 1
+
                     except Exception as err:
                         error = overlord.util.get_error(err)
                         error_type = error.get("type")
@@ -174,6 +178,9 @@ async def _apply(file):
                     job_id = response.get("job_id")
 
                     logger.debug("Job ID is '%d'", job_id)
+
+        if deployments == 0:
+            logger.warning("The specified project hasn't been deployed!")
 
     except Exception as err:
         error = overlord.util.get_error(err)
