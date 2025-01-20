@@ -223,13 +223,6 @@ def validate(document):
     if not isinstance(document, dict):
         raise overlord.exceptions.InvalidSpec("The document is invalid.")
 
-    keys = (
-        "kind",
-        "datacenters",
-        "deployIn",
-        "maximumDeployments"
-    )
-
     validate_kind(document)
     validate_datacenters(document)
     validate_deployIn(document)
