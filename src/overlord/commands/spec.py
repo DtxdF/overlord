@@ -27,20 +27,26 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import json
+
+import click
+
 import overlord.commands
-import overlord.commands.serve
-import overlord.commands.apply
-import overlord.commands.poll
-import overlord.commands.token
-import overlord.commands.config
-import overlord.commands.watch
-import overlord.commands.info
-import overlord.commands.destroy
-import overlord.commands.logs
-import overlord.commands.spec
+import overlord.spec
 
-def cli():
-    overlord.commands.cli()
+@overlord.commands.cli.command(add_help_option=False)
+@click.option("-f", "--file", required=True)
+def print_spec(file):
+    try:
+        overlord.spec.load(file)
 
-if __name__ == "__main__":
-    overlord.commands.cli()
+        print(json.dumps(overlord.spec.get_config(), indent=4))
+
+    except Exception as err:
+        error = overlord.util.get_error(err)
+        error_type = error.get("type")
+        error_message = error.get("message")
+
+        logger.exception("%s: %s", error_type, error_message)
+
+        sys.exit(EX_SOFTWARE)

@@ -43,6 +43,9 @@
 .Cm print-config
 .Nm
 .Op Fl Fl env-file Ar file
+.Cm print-spec
+.Nm
+.Op Fl Fl env-file Ar file
 .Cm destroy-project
 .Fl Fl file Ar file
 .Op Fl Fl filter-chain Ar filter
@@ -112,6 +115,9 @@ Deployment file.
 .El
 .It Cm print-config
 Prints the configuration in JSON format. This includes the default values.
+.It Cm print-spec
+Prints the specification of a deployment file in JSON format. This includes the
+default values.
 .It Cm destroy-project Fl Fl file Ar file Oo Fl Fl filter-chain Ar filter Oc
 Destroys a project.
 .Bl -tag -width xx
