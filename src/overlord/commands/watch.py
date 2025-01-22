@@ -202,6 +202,8 @@ async def run_special_labels(project, type):
                 error_type = error.get("type")
                 error_message = error.get("message")
 
+                logger.exception("Exception in load-balancer: %s: %s", error_type, error_message)
+
                 response["load-balancer"][name] = {
                     "error" : True,
                     "message" : "Exception %s: %s" % (error_type, error_message)
@@ -215,7 +217,10 @@ async def run_special_label_load_balancer(project, type, service, labels):
     use_load_balancer = labels.get("overlord.load-balancer")
 
     if use_load_balancer is None:
-        return
+        error = False
+        message = None
+
+        return (error, message)
 
     limits_settings = {
         "max_keepalive_connections" : overlord.config.get_dataplaneapi_max_keepalive_connections(),
