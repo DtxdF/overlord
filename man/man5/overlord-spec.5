@@ -194,16 +194,16 @@ See also
 .Lk https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig "logging.conf.dictConfig"
 .It Sy chains
 Chain configuration.
-.It Sy chains.{chain}.entrypoint
+.It Sy chains. Ns Ar chain Ns Sy .entrypoint
 URL to connect to.
-.It Sy chains.{chain}.access_token
+.It Sy chains. Ns Ar chain Ns Sy .access_token
 Access token.
-.It Sy chains.{chain}.timeout
+.It Sy chains. Ns Ar chain Ns Sy .timeout
 Timeout for all operations.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
-.It Sy chains.{chain}.read_timeout
+.It Sy chains. Ns Ar chain Ns Sy .read_timeout
 Specified the maximum duration to wait for a chunk of data to be received
 .Po for example, a chunk of the response body). If HTTPX is unable to receive data within this time frame Pc Ns ,
 a
@@ -212,7 +212,7 @@ exception is raised.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
-.It Sy chains.{chain}.write_timeout
+.It Sy chains. Ns Ar chain Ns Sy .write_timeout
 Specifies the maximum duration to wait for a chunk of data to be sent
 .Po for example, a chunk of the request body Pc Ns "."
 If HTTPX is unable to send data within this time frame, a
@@ -221,28 +221,28 @@ exception is raised.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
-.It Sy chains.{chain}.connect_timeout
+.It Sy chains. Ns Ar chain Ns Sy .connect_timeout
 Specifies the maximum amount of time to wait until a socket connection to the requested host is established. If HTTPX is unable to connect within this time frame, a
 .Sy httpx.ConnectTimeout
 exception is raised.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
-.It Sy chains.{chain}.pool_timeout
+.It Sy chains. Ns Ar chain Ns Sy .pool_timeout
 Specifies the maximum duration to wait for acquiring a connection from the connection pool. If HTTPX is unable to acquire a connection within this time frame, a PoolTimeout exception is raised. A related configuration here is the maximum number of allowable connections in the connection pool, which is configured by the limits argument.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
-.It Sy chains.{chain}.max_keepalive_connections
+.It Sy chains. Ns Ar chain Ns Sy .max_keepalive_connections
 Number of allowable keep-alive connections.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/resource-limits "Resource Limits"
-.It Sy chains.{chain}.max_connections
+.It Sy chains. Ns Ar chain Ns Sy .max_connections
 Maximum number of allowable connections.
 .Pp
 .Lk https://www.python-httpx.org/advanced/resource-limits "Resource Limits"
-.It Sy chains.{chain}.keepalive_expiry
+.It Sy chains. Ns Ar chain Ns Sy .keepalive_expiry
 Time limit on idle keep-alive connections in seconds.
 .Pp
 .Lk https://www.python-httpx.org/advanced/resource-limits "Resource Limits"
@@ -279,18 +279,18 @@ is valid at this time.
 .It Sy datacenters
 Servers to perform HTTP requests.
 .Pp
-.It Sy datacenters.{datacenter}.entrypoint
-.It Sy datacenters.{datacenter}.access_token
-.It Sy datacenters.{datacenter}.timeout
-.It Sy datacenters.{datacenter}.read_timeout
-.It Sy datacenters.{datacenter}.write_timeout
-.It Sy datacenters.{datacenter}.connect_timeout
-.It Sy datacenters.{datacenter}.pool_timeout
-.It Sy datacenters.{datacenter}.max_keepalive_connections
-.It Sy datacenters.{datacenter}.max_connections
-.It Sy datacenters.{datacenter}.keepalive_expiry
+.It Sy datacenters. Ns Ar datacenter Ns Sy .entrypoint
+.It Sy datacenters. Ns Ar datacenter Ns Sy .access_token
+.It Sy datacenters. Ns Ar datacenter Ns Sy .timeout
+.It Sy datacenters. Ns Ar datacenter Ns Sy .read_timeout
+.It Sy datacenters. Ns Ar datacenter Ns Sy .write_timeout
+.It Sy datacenters. Ns Ar datacenter Ns Sy .connect_timeout
+.It Sy datacenters. Ns Ar datacenter Ns Sy .pool_timeout
+.It Sy datacenters. Ns Ar datacenter Ns Sy .max_keepalive_connections
+.It Sy datacenters. Ns Ar datacenter Ns Sy .max_connections
+.It Sy datacenters. Ns Ar datacenter Ns Sy .keepalive_expiry
 See
-.Sy chains.{chain}.*
+.Sy chains. Ns Ar chain Ns Sy .*
 in
 .Sx CONFIGURATION
 for details.
@@ -300,7 +300,7 @@ Specify where to deploy.
 .Pp
 .It Sy deployIn.entrypoints
 List of entry points to connect to that may have the chain with a syntax such as
-.Sy {datacenter}.{chainA}.{chainB}.
+.Sy  Ns Ar datacenter Ns Sy .{chainA}.{chainB}.
 .Pp
 By default, when no entry point is specified, data centers will be used as the
 entry points.
@@ -358,7 +358,7 @@ Data Plane API password.
 .It Sy dataplaneapi.max_connections
 .It Sy dataplaneapi.keepalive_expiry
 See
-.Sy chains.{chain}.*
+.Sy chains. Ns Ar chain Ns Sy .*
 in
 .Sx CONFIGURATION
 for details.
