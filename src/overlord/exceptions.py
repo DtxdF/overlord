@@ -56,3 +56,6 @@ class InvalidJailName(Exception):
 
 class InvalidArguments(Exception):
     pass
+
+class InterfaceNotFound(Exception):
+    pass

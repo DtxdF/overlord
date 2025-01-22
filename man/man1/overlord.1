@@ -99,6 +99,9 @@
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm poll-project-info
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm watch-projects
 .Sh DESCRIPTION
 .Sy Overlord
 is a fast, distributed orchestrator for FreeBSD jails oriented to GitOps.
@@ -262,6 +265,42 @@ Indispensable for other polling operations.
 .It Cm poll-project-info
 Using the list of projects stored in the cache server, this command will collect the
 information of each project to be stored in the cache server.
+.It Cm watch-projects
+Wait for jobs to create or destroy a project.
+.Pp
+See
+.Sx SPECIAL LABELS
+for more information on the labels that this command can use to perform some operations.
+.El
+.Sh SPECIAL LABELS
+Jails can have labels and some of them cause the
+.Cm watch-project
+command to perform certain operations.
+.Pp
+.Bl -tag -width xxx
+.It Sy overlord.load-balancer
+If this label has a value, a new server is added, replaced or removed
+.Pq depending on whether the project will be added or destroyed
+to the backend specified in the
+.Sy overlord.load-balancer.backend
+label.
+.It Sy overlord.load-balancer.backend
+The backend to add, replace or remove the server.
+.It Sy overlord.load-balancer.interface
+The interface to obtain the IP address.
+.It Sy overlord.load-balancer.interface.port
+The port to which the load-balancer will be connected.
+.It Sy overlord.load-balancer.interface.address
+The network address where the corresponding IP should be.
+.Pp
+If this label is not specified, the first IP returned will be used.
+.It Sy overlord.load-balancer.set. Ns Ar name
+Additional configuration to add to the server. The value must be in JSON format.
+.Pp
+See also
+.Lk https://www.haproxy.com/documentation/dataplaneapi/community/?v=v3#post-/services/haproxy/configuration/backends/-parent_name-/servers "Add a new server"
+and
+.Lk https://www.haproxy.com/documentation/dataplaneapi/community/?v=v3#put-/services/haproxy/configuration/backends/-parent_name-/servers/-name- "Replace a server"
 .El
 .Sh ENVIRONMENT
 .Bl -tag -width xxx

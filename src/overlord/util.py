@@ -27,10 +27,17 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import ipaddress
+import logging
 import random
 import re
 
+import ifaddr
+
 import overlord.config
+import overlord.exceptions
+
+logger = logging.getLogger(__name__)
 
 def get_skew():
     (skew_begin, skew_end) = overlord.config.get_polling_skew()
@@ -55,3 +62,28 @@ def get_error(err):
     }
 
     return info
+
+def iface2ip(interface, netaddr):
+    adapters = ifaddr.get_adapters()
+    adapters = adapters.mapping
+
+    adapter = adapters.get(interface)
+
+    if adapter is None:
+        raise overlord.exceptions.InterfaceNotFound(f"{interface}: Interface not found.")
+
+    for ip_info in adapter.ips:
+        if isinstance(ip_info.ip, str):
+            ip = ip_info.ip
+
+        elif isinstance(ip_info.ip, tuple):
+            (ip, _, _) = ip_info.ip
+
+        if netaddr is None:
+            return ip
+
+        if ipaddress.ip_address(ip) in ipaddress.ip_network(netaddr, strict=False):
+            return ip
+
+        else:
+            logger.debug("%s not in %s", ip, netaddr)

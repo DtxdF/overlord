@@ -177,3 +177,14 @@ def down(name, destroy=False, ignore_failed=False, ignore_services=False, env=No
         result = {}
 
     return (rc, result)
+
+def check(project):
+    proc = overlord.process.run(["appjail-director", "check", "-p", project])
+
+    rc = 0
+
+    for output in proc:
+        if "rc" in output:
+            rc = output["rc"]
+
+    return rc == 0

@@ -361,7 +361,7 @@ async def print_info_projects(client, chain, api_info, patterns):
 
         for key, value in up.items():
             if print_up:
-                print(f"      up:")
+                print("      up:")
 
                 print_up = False
 
@@ -375,6 +375,32 @@ async def print_info_projects(client, chain, api_info, patterns):
                 if key == "last_update":
                     print("        last_update: %s" % time.ctime(value))
 
+                elif key == "labels":
+                    error = value.get("error")
+                    message = value.get("message")
+
+                    print("        labels:")
+                    print(f"         error: {error}")
+                    print(f"         message: {message}")
+
+                    load_balancer = value.get("load-balancer")
+
+                    print_service = True
+
+                    for service, info in load_balancer.items():
+                        if print_service:
+                            print("         load-balancer:")
+                            print("           services:")
+
+                            print_service = False
+
+                        error = info.get("error")
+                        message = info.get("message")
+
+                        print(f"             {service}:")
+                        print(f"               error: {error}")
+                        print(f"               message: {message}")
+
                 else:
                     print(f"        {key}: {value}")
 
@@ -382,7 +408,7 @@ async def print_info_projects(client, chain, api_info, patterns):
 
         for key, value in down.items():
             if print_down:
-                print(f"      down:")
+                print("      down:")
 
                 print_down = False
 
@@ -395,6 +421,32 @@ async def print_info_projects(client, chain, api_info, patterns):
             else:
                 if key == "last_update":
                     print("        last_update: %s" % time.ctime(value))
+
+                elif key == "labels":
+                    error = value.get("error")
+                    message = value.get("message")
+
+                    print("        labels:")
+                    print(f"         error: {error}")
+                    print(f"         message: {message}")
+
+                    load_balancer = value.get("load-balancer", {})
+
+                    print_service = True
+
+                    for service, info in load_balancer.items():
+                        if print_service:
+                            print("         load-balancer:")
+                            print("           services:")
+
+                            print_service = False
+
+                        error = info.get("error")
+                        message = info.get("message")
+
+                        print(f"             {service}:")
+                        print(f"               error: {error}")
+                        print(f"               message: {message}")
 
                 else:
                     print(f"        {key}: {value}")

@@ -98,7 +98,23 @@ def get_config():
             "logs" : get_appjail_logs()
         },
         "beanstalkd_addr" : get_beanstalkd_addr(),
-        "execution_time" : get_execution_time()
+        "execution_time" : get_execution_time(),
+        "dataplaneapi" : {
+            "serverid" : get_dataplaneapi_serverid(),
+            "entrypoint" : get_dataplaneapi_entrypoint(),
+            "auth" : {
+                "username" : get_dataplaneapi_auth_username(),
+                "password" : get_dataplaneapi_auth_password()
+            },
+            "timeout" : get_dataplaneapi_timeout(),
+            "read_timeout" : get_dataplaneapi_read_timeout(),
+            "write_timeout" : get_dataplaneapi_write_timeout(),
+            "connect_timeout" : get_dataplaneapi_connect_timeout(),
+            "pool_timeout" : get_dataplaneapi_pool_timeout(),
+            "max_keepalive_connections" : get_dataplaneapi_max_keepalive_connections(),
+            "max_connections" : get_dataplaneapi_max_connections(),
+            "keepalive_expiry" : get_dataplaneapi_keepalive_expiry()
+        }
     }
 
     for chain in list_chains():
@@ -448,6 +464,120 @@ def get_chain_keepalive_expiry(chain):
 
     return keepalive_expiry
 
+def get_dataplaneapi():
+    return get_default(CONFIG.get("dataplaneapi"), {})
+
+def get_dataplaneapi_serverid():
+    dataplaneapi = get_dataplaneapi()
+
+    return dataplaneapi.get("serverid")
+
+def get_dataplaneapi_entrypoint():
+    dataplaneapi = get_dataplaneapi()
+
+    return dataplaneapi.get("entrypoint")
+
+def get_dataplaneapi_auth():
+    dataplaneapi = get_dataplaneapi()
+
+    return get_default(dataplaneapi.get("auth"), {})
+
+def get_dataplaneapi_auth_username():
+    auth = get_dataplaneapi_auth()
+
+    return auth.get("username")
+
+def get_dataplaneapi_auth_password():
+    auth = get_dataplaneapi_auth()
+
+    return auth.get("password")
+
+def get_dataplaneapi_timeout():
+    dataplaneapi = get_dataplaneapi()
+
+    timeout = get_default(dataplaneapi.get("timeout"), overlord.default.CHAIN_TIMEOUT)
+
+    if timeout < 0:
+        timeout = None
+
+    elif timeout == 0:
+        pass # ignore
+
+    return timeout
+
+def get_dataplaneapi_read_timeout():
+    dataplaneapi = get_dataplaneapi()
+
+    read_timeout = get_default(dataplaneapi.get("read_timeout"), overlord.default.CHAIN_READ_TIMEOUT)
+
+    if read_timeout < 0:
+        read_timeout = None
+
+    elif read_timeout == 0:
+        pass # ignore
+
+    return read_timeout
+
+def get_dataplaneapi_write_timeout():
+    dataplaneapi = get_dataplaneapi()
+
+    write_timeout = get_default(dataplaneapi.get("write_timeout"), overlord.default.CHAIN_WRITE_TIMEOUT)
+
+    if write_timeout < 0:
+        write_timeout = None
+
+    elif write_timeout == 0:
+        pass # ignore
+
+    return write_timeout
+
+def get_dataplaneapi_connect_timeout():
+    dataplaneapi = get_dataplaneapi()
+
+    connect_timeout = get_default(dataplaneapi.get("connect_timeout"), overlord.default.CHAIN_CONNECT_TIMEOUT)
+
+    if connect_timeout < 0:
+        connect_timeout = None
+
+    elif connect_timeout == 0:
+        pass # ignore
+
+    return connect_timeout
+
+def get_dataplaneapi_pool_timeout():
+    dataplaneapi = get_dataplaneapi()
+
+    pool_timeout = get_default(dataplaneapi.get("pool_timeout"), overlord.default.CHAIN_POOL_TIMEOUT)
+
+    if pool_timeout < 0:
+        pool_timeout = None
+
+    elif pool_timeout == 0:
+        pass # ignore
+
+    return pool_timeout
+
+def get_dataplaneapi_max_keepalive_connections():
+    dataplaneapi = get_dataplaneapi()
+
+    max_keepalive_connections = get_default(dataplaneapi.get("max_keepalive_connections"), overlord.default.CHAIN_MAX_KEEPALIVE_CONNECTIONS)
+
+    return max_keepalive_connections
+
+def get_dataplaneapi_max_connections():
+    dataplaneapi = get_dataplaneapi()
+
+    max_connections = get_default(dataplaneapi.get("max_connections"), overlord.default.CHAIN_MAX_CONNECTIONS)
+
+    return max_connections
+
+def get_dataplaneapi_keepalive_expiry():
+    dataplaneapi = get_dataplaneapi()
+
+    keepalive_expiry = get_default(dataplaneapi.get("keepalive_expiry"), overlord.default.CHAIN_KEEPALIVE_EXPIRY)
+
+    return keepalive_expiry
+
 def validate(document):
     if not isinstance(document, dict):
         raise overlord.exceptions.InvalidSpec("The configuration is invalid.")
@@ -465,7 +595,8 @@ def validate(document):
         "director",
         "appjail",
         "beanstalkd_addr",
-        "execution_time"
+        "execution_time",
+        "dataplaneapi"
     )
 
     for key in document:
@@ -485,6 +616,175 @@ def validate(document):
     validate_appjail(document)
     validate_beanstalkd_addr(document)
     validate_execution_time(document)
+    validate_dataplaneapi(document)
+
+def validate_dataplaneapi(document):
+    dataplaneapi = document.get("dataplaneapi")
+
+    if dataplaneapi is None:
+        return
+
+    if not isinstance(dataplaneapi, dict):
+        raise overlord.exceptions.InvalidSpec("'dataplaneapi' is invalid.")
+
+    keys = (
+        "serverid",
+        "entrypoint",
+        "auth",
+        "timeout",
+        "read_timeout",
+        "write_timeout",
+        "connect_timeout",
+        "pool_timeout",
+        "max_keepalive_connections",
+        "max_connections",
+        "keepalive_expiry"
+    )
+
+    for key in dataplaneapi:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"dataplaneapi.{key}: this key is invalid.")
+
+    validate_dataplaneapi_serverid(dataplaneapi)
+    validate_dataplaneapi_entrypoint(dataplaneapi)
+    validate_dataplaneapi_auth(dataplaneapi)
+    validate_dataplaneapi_timeout(dataplaneapi)
+    validate_dataplaneapi_read_timeout(dataplaneapi)
+    validate_dataplaneapi_write_timeout(dataplaneapi)
+    validate_dataplaneapi_connect_timeout(dataplaneapi)
+    validate_dataplaneapi_pool_timeout(dataplaneapi)
+    validate_dataplaneapi_max_keepalive_connections(dataplaneapi)
+    validate_dataplaneapi_max_connections(dataplaneapi)
+    validate_dataplaneapi_keepalive_expiry(dataplaneapi)
+
+def validate_dataplaneapi_serverid(document):
+    serverid = document.get("serverid")
+
+    if serverid is None:
+        raise overlord.exceptions.InvalidSpec("'dataplaneapi.serverid' is required but hasn't been specified.")
+
+    if not isinstance(serverid, str):
+        raise overlord.exceptions.InvalidSpec(f"{serverid}: invalid value type for 'dataplaneapi.serverid'")
+
+def validate_dataplaneapi_entrypoint(document):
+    entrypoint = document.get("entrypoint")
+
+    if entrypoint is None:
+        raise overlord.exceptions.InvalidSpec("'dataplaneapi.entrypoint' is required but hasn't been specified.")
+
+    if not isinstance(entrypoint, str):
+        raise overlord.exceptions.InvalidSpec(f"{entrypoint}: invalid value type for 'dataplaneapi.entrypoint'")
+
+def validate_dataplaneapi_auth(document):
+    auth = document.get("auth")
+
+    if auth is None:
+        raise overlord.exceptions.InvalidSpec("'dataplaneapi.auth' is required but hasn't been specified.")
+
+    if not isinstance(auth, dict):
+        raise overlord.exceptions.InvalidSpec("'dataplaneapi.auth' is invalid.")
+
+    keys = (
+        "username",
+        "password"
+    )
+
+    for key in auth:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"dataplaneapi.auth.{key}: this key is invalid.")
+
+    validate_dataplaneapi_auth_username(auth)
+    validate_dataplaneapi_auth_password(auth)
+
+def validate_dataplaneapi_auth_username(document):
+    username = document.get("username")
+
+    if username is None:
+        raise overlord.exceptions.InvalidSpec("'dataplaneapi.auth.username' is required but hasn't been specified.")
+
+    if not isinstance(username, str):
+        raise overlord.exceptions.InvalidSpec(f"{username}: invalid value type for 'dataplaneapi.auth.username'")
+
+def validate_dataplaneapi_auth_password(document):
+    password = document.get("password")
+
+    if password is None:
+        raise overlord.exceptions.InvalidSpec("'dataplaneapi.auth.password' is required but hasn't been specified.")
+
+    if not isinstance(password, str):
+        raise overlord.exceptions.InvalidSpec(f"{password}: invalid value type for 'dataplaneapi.auth.password'")
+
+def validate_dataplaneapi_timeout(document):
+    timeout = document.get("timeout")
+
+    if timeout is None:
+        return
+
+    if not isinstance(timeout, int):
+        raise overlord.exceptions.InvalidSpec(f"{timeout}: invalid value type for 'dataplaneapi.timeout'")
+
+def validate_dataplaneapi_read_timeout(document):
+    read_timeout = document.get("read_timeout")
+
+    if read_timeout is None:
+        return
+
+    if not isinstance(read_timeout, int):
+        raise overlord.exceptions.InvalidSpec(f"{read_timeout}: invalid value type for 'dataplaneapi.read_timeout'")
+
+def validate_dataplaneapi_write_timeout(document):
+    write_timeout = document.get("write_timeout")
+
+    if write_timeout is None:
+        return
+
+    if not isinstance(write_timeout, int):
+        raise overlord.exceptions.InvalidSpec(f"{write_timeout}: invalid value type for 'dataplaneapi.write_timeout'")
+
+def validate_dataplaneapi_connect_timeout(document):
+    connect_timeout = document.get("connect_timeout")
+
+    if connect_timeout is None:
+        return
+
+    if not isinstance(connect_timeout, int):
+        raise overlord.exceptions.InvalidSpec(f"{connect_timeout}: invalid value type for 'dataplaneapi.connect_timeout'")
+
+def validate_dataplaneapi_pool_timeout(document):
+    pool_timeout = document.get("pool_timeout")
+
+    if pool_timeout is None:
+        return
+
+    if not isinstance(pool_timeout, int):
+        raise overlord.exceptions.InvalidSpec(f"{pool_timeout}: invalid value type for 'dataplaneapi.pool_timeout'")
+
+def validate_dataplaneapi_max_keepalive_connections(document):
+    max_keepalive_connections = document.get("max_keepalive_connections")
+
+    if max_keepalive_connections is None:
+        return
+
+    if not isinstance(max_keepalive_connections, int):
+        raise overlord.exceptions.InvalidSpec(f"{max_keepalive_connections}: invalid value type for 'dataplaneapi.max_keepalive_connections'")
+
+def validate_dataplaneapi_max_connections(document):
+    max_connections = document.get("max_connections")
+
+    if max_connections is None:
+        return
+
+    if not isinstance(max_connections, int):
+        raise overlord.exceptions.InvalidSpec(f"{max_connections}: invalid value type for 'dataplaneapi.max_connections'")
+
+def validate_dataplaneapi_keepalive_expiry(document):
+    keepalive_expiry = document.get("keepalive_expiry")
+
+    if keepalive_expiry is None:
+        return
+
+    if not isinstance(keepalive_expiry, int):
+        raise overlord.exceptions.InvalidSpec(f"{keepalive_expiry}: invalid value type for 'dataplaneapi.keepalive_expiry'")
 
 def validate_execution_time(document):
     execution_time = document.get("execution_time")

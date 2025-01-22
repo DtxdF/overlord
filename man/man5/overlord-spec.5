@@ -332,6 +332,36 @@ Valid only for
 .Sy deployProject Ns "."
 .It Sy maximumDeployments
 The maximum number of times to deploy a project.
+.Pp
+.It Sy dataplaneapi
+Data Plane API settings to configure HAProxy.
+.Pp
+.It Sy dataplaneapi.serverid
+Server name that must be unique among servers sharing the same Data Plane API instance.
+.Pp
+.It Sy dataplaneapi.auth
+Data Plane API authentication parameters.
+.Pp
+.It Sy dataplaneapi.auth.username
+Data Plane API username.
+.Pp
+.It Sy dataplaneapi.auth.password
+Data Plane API password.
+.Pp
+.It Sy dataplaneapi.entrypoint
+.It Sy dataplaneapi.timeout
+.It Sy dataplaneapi.read_timeout
+.It Sy dataplaneapi.write_timeout
+.It Sy dataplaneapi.connect_timeout
+.It Sy dataplaneapi.pool_timeout
+.It Sy dataplaneapi.max_keepalive_connections
+.It Sy dataplaneapi.max_connections
+.It Sy dataplaneapi.keepalive_expiry
+See
+.Sy chains.{chain}.*
+in
+.Sx CONFIGURATION
+for details.
 .El
 .Sh SEE ALSO
 .Xr overlord 1
