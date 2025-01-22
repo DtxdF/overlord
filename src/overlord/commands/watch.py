@@ -52,40 +52,65 @@ def watch_projects():
     asyncio.run(_watch_projects())
 
 async def _watch_projects():
-    overlord.process.init()
+    try:
+        overlord.process.init()
 
-    while True:
-        logger.debug("Waiting for new jobs ...")
+        while True:
+            logger.debug("Waiting for new jobs ...")
 
-        (job_id, job_body) = await overlord.queue.reserve_project()
+            (job_id, job_body) = await overlord.queue.reserve_project()
 
-        message = job_body.get("message")
-        project = message.get("name")
-        environment = dict(os.environ)
-        environment.update(message.get("environment"))
+            message = job_body.get("message")
+            project = message.get("name")
+            environment = dict(os.environ)
+            environment.update(message.get("environment"))
 
-        type = job_body.get("type")
+            type = job_body.get("type")
 
-        if type == "create":
-            logger.debug(f"Creating project '{project}'")
+            if type == "create":
+                logger.debug(f"Creating project '{project}'")
 
-            overlord.cache.save_project_status_up(project, {
-                "operation" : "RUNNING",
-                "last_project" : project,
-                "last_update" : time.time(),
-                "job_id" : job_id
-            })
+                overlord.cache.save_project_status_up(project, {
+                    "operation" : "RUNNING",
+                    "last_project" : project,
+                    "last_update" : time.time(),
+                    "job_id" : job_id
+                })
 
-            director_file = message.get("director_file") + "\n"
+                director_file = message.get("director_file") + "\n"
 
-            with tempfile.NamedTemporaryFile(prefix="overlord", mode="wb", buffering=0) as fd:
-                fd.write(director_file.encode())
+                with tempfile.NamedTemporaryFile(prefix="overlord", mode="wb", buffering=0) as fd:
+                    fd.write(director_file.encode())
 
-                (rc, result) = overlord.director.up(project, fd.name, env=environment)
+                    (rc, result) = overlord.director.up(project, fd.name, env=environment)
+
+                    special_labels_response = await run_special_labels(project, type)
+
+                    overlord.cache.save_project_status_up(project, {
+                        "operation" : "COMPLETED",
+                        "output" : result,
+                        "last_project" : project,
+                        "last_update" : time.time(),
+                        "job_id" : job_id,
+                        "labels" : special_labels_response
+                    })
+
+            elif type == "destroy":
+                logger.debug(f"Destroying project '{project}'")
 
                 special_labels_response = await run_special_labels(project, type)
 
-                overlord.cache.save_project_status_up(project, {
+                overlord.cache.save_project_status_down(project, {
+                    "operation" : "RUNNING",
+                    "last_project" : project,
+                    "last_update" : time.time(),
+                    "job_id" : job_id,
+                    "labels" : special_labels_response
+                })
+
+                (rc, result) = overlord.director.down(project, destroy=True, ignore_failed=True, env=environment)
+
+                overlord.cache.save_project_status_down(project, {
                     "operation" : "COMPLETED",
                     "output" : result,
                     "last_project" : project,
@@ -94,29 +119,14 @@ async def _watch_projects():
                     "labels" : special_labels_response
                 })
 
-        elif type == "destroy":
-            logger.debug(f"Destroying project '{project}'")
+    except Exception as err:
+        error = overlord.util.get_error(err)
+        error_type = error.get("type")
+        error_message = error.get("message")
 
-            special_labels_response = await run_special_labels(project, type)
+        logger.exception("%s: %s:", error_type, error_message)
 
-            overlord.cache.save_project_status_down(project, {
-                "operation" : "RUNNING",
-                "last_project" : project,
-                "last_update" : time.time(),
-                "job_id" : job_id,
-                "labels" : special_labels_response
-            })
-
-            (rc, result) = overlord.director.down(project, destroy=True, ignore_failed=True, env=environment)
-
-            overlord.cache.save_project_status_down(project, {
-                "operation" : "COMPLETED",
-                "output" : result,
-                "last_project" : project,
-                "last_update" : time.time(),
-                "job_id" : job_id,
-                "labels" : special_labels_response
-            })
+        sys.exit(EX_SOFTWARE)
 
 async def run_special_labels(project, type):
     response = {
