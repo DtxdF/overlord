@@ -277,6 +277,14 @@ Jails can have labels and some of them cause the
 .Cm watch-project
 command to perform certain operations.
 .Pp
+In order for special labels to perform their operations, the project must have the status
+.Sy DONE
+and each jail must have the status
+.Sy 0
+reported by
+.Xr appjail-status 1 Ns "."
+Jails that do not meet this requirement will be completely ignored.
+.Pp
 .Bl -tag -width xxx
 .It Sy overlord.load-balancer
 If this label has a value, a new server is added, replaced or removed
