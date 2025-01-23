@@ -33,6 +33,7 @@ import re
 import sys
 import time
 
+import asciitree
 import click
 import httpx
 import humanfriendly
@@ -48,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
-@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "projects:logs", "jails:logs")))
+@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "chains:tree", "projects:logs", "jails:logs")))
 @click.option("--jail-item", multiple=True, default=[], type=click.Choice(["stats", "info", "cpuset", "devfs", "expose", "healthcheck", "limits", "fstab", "labels", "nat", "volumes"]))
 @click.option("--all-labels", is_flag=True, default=False)
 @click.option("--filter", default=[], multiple=True)
@@ -57,6 +58,8 @@ def get_info(*args, **kwargs):
 
 async def _get_info(file, type, jail_item, all_labels, filter):
     try:
+        tree_chain = {}
+
         overlord.process.init()
 
         overlord.spec.load(file)
@@ -175,11 +178,31 @@ async def _get_info(file, type, jail_item, all_labels, filter):
 
                     print_header(info)
 
+                elif type == "chains:tree":
+                    if chain is None:
+                        continue
+
+                    if entrypoint not in tree_chain:
+                        tree_chain[entrypoint] = {}
+
+                    _root = tree_chain[entrypoint]
+
+                    for _chain in overlord.chains.split_chain(chain):
+                        if _chain not in _root:
+                            _root[_chain] = {}
+
+                        _root = _root[_chain]
+
                 elif type == "projects:logs":
                     await print_info_projects_logs(client, chain, info, filter)
 
                 elif type == "jails:logs":
                     await print_info_jails_logs(client, chain, info, filter)
+
+        if tree_chain:
+            tree = asciitree.LeftAligned()
+
+            print(tree(tree_chain))
 
     except Exception as err:
         error = overlord.util.get_error(err)

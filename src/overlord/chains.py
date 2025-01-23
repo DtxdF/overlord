@@ -56,3 +56,6 @@ def get_chain(chain):
 
 def join_chain(chain):
     return ".".join(chain)
+
+def split_chain(chain):
+    return chain.split(".")

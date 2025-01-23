@@ -42,7 +42,8 @@ setup(
         "pyjwt",
         "aiofiles",
         "humanfriendly",
-        "ifaddr"
+        "ifaddr",
+        "asciitree"
     ],
     entry_points={
         "console_scripts" : [
