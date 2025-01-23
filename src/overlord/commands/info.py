@@ -383,7 +383,7 @@ async def print_info_projects(client, chain, api_info, patterns):
                     print(f"         error: {error}")
                     print(f"         message: {message}")
 
-                    load_balancer = value.get("load-balancer")
+                    load_balancer = value.get("load-balancer", {})
 
                     print_service = True
 
