@@ -41,7 +41,8 @@ setup(
         "pymemcache",
         "pyjwt",
         "aiofiles",
-        "humanfriendly"
+        "humanfriendly",
+        "ifaddr"
     ],
     entry_points={
         "console_scripts" : [
