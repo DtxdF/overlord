@@ -544,9 +544,15 @@ def print_header(info):
     print("datacenter:", datacenter)
     print("  entrypoint:", entrypoint)
     print("  chain:", chain)
-    print("  labels:")
+
+    print_labels = True
 
     for label in labels:
+        if print_labels:
+            print("  labels:")
+
+            print_labels = False
+
         print(f"    - {label}")
 
 async def _safe_client(client, func, *args, **kwargs):
