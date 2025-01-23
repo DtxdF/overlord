@@ -72,7 +72,6 @@ async def _watch_projects():
 
                 overlord.cache.save_project_status_up(project, {
                     "operation" : "RUNNING",
-                    "last_project" : project,
                     "last_update" : time.time(),
                     "job_id" : job_id
                 })
@@ -89,7 +88,6 @@ async def _watch_projects():
                     overlord.cache.save_project_status_up(project, {
                         "operation" : "COMPLETED",
                         "output" : result,
-                        "last_project" : project,
                         "last_update" : time.time(),
                         "job_id" : job_id,
                         "labels" : special_labels_response
@@ -102,7 +100,6 @@ async def _watch_projects():
 
                 overlord.cache.save_project_status_down(project, {
                     "operation" : "RUNNING",
-                    "last_project" : project,
                     "last_update" : time.time(),
                     "job_id" : job_id,
                     "labels" : special_labels_response
@@ -113,7 +110,6 @@ async def _watch_projects():
                 overlord.cache.save_project_status_down(project, {
                     "operation" : "COMPLETED",
                     "output" : result,
-                    "last_project" : project,
                     "last_update" : time.time(),
                     "job_id" : job_id,
                     "labels" : special_labels_response
