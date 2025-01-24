@@ -177,7 +177,9 @@ async def _apply(file):
                 if kind == overlord.spec.OverlordKindTypes.PROJECT.value:
                     project_name = overlord.spec.director_project.get_projectName()
                     project_file = overlord.spec.director_project.get_projectFile()
-                    environment = overlord.spec.director_project.get_environment()
+                    environment = overlord.spec.director_project.get_environment(
+                        datacenter=datacenter, chain=chain, labels=entrypoint_labels
+                    )
 
                     try:
                         response = await client.up(project_name, project_file, environment, chain=chain)

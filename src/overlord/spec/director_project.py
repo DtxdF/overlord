@@ -35,8 +35,66 @@ def get_projectName():
 def get_projectFile():
     return CONFIG.get("projectFile")
 
-def get_environment():
-    return CONFIG.get("environment", {})
+def get_environment(datacenter=None, chain=None, labels=[]):
+    environment = CONFIG.get("environment", {})
+
+    for label in labels:
+        labelEnvironment = get_labelEnvironment(label)
+
+        environment.update(labelEnvironment)
+
+    chainEnvironment = get_chainEnvironment(chain)
+
+    environment.update(chainEnvironment)
+
+    if datacenter is not None:
+        datacenterEnvironment = get_datacenterEnvironment(datacenter)
+
+        environment.update(datacenterEnvironment)
+
+    return environment
+
+def get_labelsEnvironment():
+    return CONFIG.get("labelsEnvironment", {})
+
+def get_labelEnvironment(label):
+    labelsEnvironment = get_labelsEnvironment()
+
+    return labelsEnvironment.get(label, {})
+
+def list_labelsEnvironment():
+    labelsEnvironment = CONFIG.get("labelsEnvironment", {})
+
+    return list(labelsEnvironment)
+
+def get_datacentersEnvironment():
+    return CONFIG.get("datacentersEnvironment", {})
+
+def get_datacenterEnvironment(datacenter):
+    datacentersEnvironment = get_datacentersEnvironment()
+
+    return datacentersEnvironment.get(datacenter, {})
+
+def list_datacentersEnvironment():
+    datacentersEnvironment = CONFIG.get("datacentersEnvironment", {})
+
+    return list(datacentersEnvironment)
+
+def get_chainsEnvironment():
+    return CONFIG.get("chainsEnvironment", {})
+
+def get_chainEnvironment(chain):
+    chainsEnvironment = get_chainsEnvironment()
+
+    if chain is None:
+        chain = "<root>"
+
+    return chainsEnvironment.get(chain, {})
+
+def list_chainsEnvironment():
+    chainsEnvironment = CONFIG.get("chainsEnvironment", {})
+
+    return list(chainsEnvironment)
 
 def validate(document):
     global CONFIG
@@ -51,7 +109,10 @@ def validate(document):
         "maximumDeployments",
         "projectName",
         "projectFile",
-        "environment"
+        "environment",
+        "datacentersEnvironment",
+        "chainsEnvironment",
+        "labelsEnvironment"
     )
 
     for key in document:
@@ -61,6 +122,9 @@ def validate(document):
     validate_projectName(document)
     validate_projectFile(document)
     validate_environment(document)
+    validate_datacentersEnvironment(document)
+    validate_chainsEnvironment(document)
+    validate_labelsEnvironment(document)
 
     CONFIG = document
 
@@ -94,4 +158,58 @@ def validate_environment(document):
     for env_name, env_value in environment.items():
         if not isinstance(env_name, str) \
                 or not isinstance(env_value, str):
-            raise overlord.exceptions.InvalidSpec(f"Invalid environment name ({env_name}) or value ({env_value}).")
+            raise overlord.exceptions.InvalidSpec(f"Invalid environment name (environment.{env_name}) or value (environment.{env_value}).")
+
+def validate_datacentersEnvironment(document):
+    datacentersEnvironment = document.get("datacentersEnvironment")
+
+    if datacentersEnvironment is None:
+        return
+
+    if not isinstance(datacentersEnvironment, dict):
+        raise overlord.exceptions.InvalidSpec("'datacentersEnvironment' is invalid.")
+
+    for datacenter, environment in datacentersEnvironment.items():
+        if not isinstance(datacenter, str):
+            raise overlord.exceptions.InvalidSpec(f"{datacenter}: invalid value type for 'datacentersEnvironment.{index}'")
+
+        for env_name, env_value in environment.items():
+            if not isinstance(env_name, str) \
+                    or not isinstance(env_value, str):
+                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (datacentersEnvironment.{datacentersEnvironment}.{env_name}) or value (datacentersEnvironment.{datacentersEnvironment}.{env_value}).")
+
+def validate_chainsEnvironment(document):
+    chainsEnvironment = document.get("chainsEnvironment")
+
+    if chainsEnvironment is None:
+        return
+
+    if not isinstance(chainsEnvironment, dict):
+        raise overlord.exceptions.InvalidSpec("'chainsEnvironment' is invalid.")
+
+    for datacenter, environment in chainsEnvironment.items():
+        if not isinstance(datacenter, str):
+            raise overlord.exceptions.InvalidSpec(f"{datacenter}: invalid value type for 'chainsEnvironment.{index}'")
+
+        for env_name, env_value in environment.items():
+            if not isinstance(env_name, str) \
+                    or not isinstance(env_value, str):
+                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (chainsEnvironment.{chainsEnvironment}.{env_name}) or value (chainsEnvironment.{chainsEnvironment}.{env_value}).")
+
+def validate_labelsEnvironment(document):
+    labelsEnvironment = document.get("labelsEnvironment")
+
+    if labelsEnvironment is None:
+        return
+
+    if not isinstance(labelsEnvironment, dict):
+        raise overlord.exceptions.InvalidSpec("'labelsEnvironment' is invalid.")
+
+    for datacenter, environment in labelsEnvironment.items():
+        if not isinstance(datacenter, str):
+            raise overlord.exceptions.InvalidSpec(f"{datacenter}: invalid value type for 'labelsEnvironment.{index}'")
+
+        for env_name, env_value in environment.items():
+            if not isinstance(env_name, str) \
+                    or not isinstance(env_value, str):
+                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (labelsEnvironment.{labelsEnvironment}.{env_name}) or value (labelsEnvironment.{labelsEnvironment}.{env_value}).")

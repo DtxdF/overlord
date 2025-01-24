@@ -67,6 +67,9 @@ def get_config():
         config["projectName"] = overlord.spec.director_project.get_projectName()
         config["projectFile"] = overlord.spec.director_project.get_projectFile()
         config["environment"] = overlord.spec.director_project.get_environment()
+        config["labelsEnvironment"] = overlord.spec.director_project.get_labelsEnvironment()
+        config["chainsEnvironment"] = overlord.spec.director_project.get_chainsEnvironment()
+        config["datacentersEnvironment"] = overlord.spec.director_project.get_datacentersEnvironment()
 
     return config
 

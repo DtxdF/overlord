@@ -330,6 +330,46 @@ A dictionary with each key-value environment. Both the key and the value must be
 .Pp
 Valid only for
 .Sy deployProject Ns "."
+.Pp
+.It Sy datacentersEnvironment
+Each key must be a datacenter and its value a dictionary such as
+.Sy environment
+specifying the environment to use depending on the datacenter.
+.Pp
+This parameter overrides any other environment-like option.
+.Pp
+Valid only for
+.Sy deployProject Ns "."
+.Pp
+.It Sy chainsEnvironment
+Each key must be a chain and its value a dictionary such as
+.Sy environment
+specifying the environment to use depending on the chain.
+.Pp
+This parameter overrides any other environment-like option except
+.Sy datacentersEnvironment Ns "."
+.Pp
+A special key
+.Sy <root>
+can be used when a request is to be made to a datacenter but without speciying a chain.
+.Pp
+Valid only for
+.Sy deployProject Ns "."
+.Pp
+.It Sy labelsEnvironment
+Each key must be a label and its value a dictionary such as
+.Sy environment
+specifying the environment to use depending on whether the datacenter and its chain
+have a label that matches a key.
+.Pp
+This parameter overrides any other environment-like option except
+.Sy datacentersEnvironment
+and
+.Sy chainsEnvironment Ns "."
+.Pp
+Valid only for
+.Sy deployProject Ns "."
+.Pp
 .It Sy maximumDeployments
 The maximum number of times to deploy a project.
 .Pp

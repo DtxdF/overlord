@@ -175,7 +175,9 @@ async def _destroy_project(file, filter_chain):
 
                 if kind == overlord.spec.OverlordKindTypes.PROJECT.value:
                     project_name = overlord.spec.director_project.get_projectName()
-                    environment = overlord.spec.director_project.get_environment()
+                    environment = overlord.spec.director_project.get_environment(
+                        datacenter=datacenter, chain=chain, labels=entrypoint_labels
+                    )
 
                     try:
                         response = await client.down(project_name, environment, chain=chain)
