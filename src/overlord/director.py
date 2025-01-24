@@ -110,30 +110,38 @@ def up(name, director_file, env=None, cwd=None):
 
     rc = 0
 
-    data = []
+    stdout = []
+    stderr = []
 
     for output in proc:
         if "rc" in output:
             rc = output["rc"]
 
         elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
+            value = output["stderr"]
 
-            logger.warning("stderr: %s", stderr)
+            stderr.append(value)
         
         elif "line" in output:
             value = output["line"]
 
-            data.append(value)
+            stdout.append(value)
 
-    if data:
-        result = json.loads("".join(data))
+    stderr = "".join(stderr)
+
+    if stdout:
+        stdout = json.loads("".join(stdout))
 
     else:
-        result = {}
+        stdout = {}
 
-    return (rc, result)
+    output = {
+        "rc" : rc,
+        "stdout" : stdout,
+        "stderr" : stderr
+    }
+
+    return output
 
 def down(name, destroy=False, ignore_failed=False, ignore_services=False, env=None, cwd=None):
     cmd = ["appjail-director", "down", "-j"]
@@ -153,30 +161,38 @@ def down(name, destroy=False, ignore_failed=False, ignore_services=False, env=No
 
     rc = 0
 
-    data = []
+    stdout = []
+    stderr = []
 
     for output in proc:
         if "rc" in output:
             rc = output["rc"]
 
         elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
+            value = output["stderr"]
 
-            logger.warning("stderr: %s", stderr)
+            stderr.append(value)
 
         elif "line" in output:
             value = output["line"]
 
-            data.append(value)
+            stdout.append(value)
 
-    if data:
-        result = json.loads("".join(data))
+    stderr = "".join(stderr)
+
+    if stdout:
+        stdout = json.loads("".join(stdout))
 
     else:
-        result = {}
+        stdout = {}
 
-    return (rc, result)
+    output = {
+        "rc" : rc,
+        "stdout" : stdout,
+        "stderr" : stderr
+    }
+
+    return output
 
 def check(project):
     proc = overlord.process.run(["appjail-director", "check", "-p", project])

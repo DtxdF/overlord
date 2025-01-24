@@ -82,7 +82,7 @@ async def _watch_projects():
                 with tempfile.NamedTemporaryFile(prefix="overlord", mode="wb", buffering=0) as fd:
                     fd.write(director_file.encode())
 
-                    (rc, result) = overlord.director.up(project, fd.name, env=environment)
+                    result = overlord.director.up(project, fd.name, env=environment)
 
                     special_labels_response = await run_special_labels(project, type)
 
@@ -106,7 +106,7 @@ async def _watch_projects():
                     "labels" : special_labels_response
                 })
 
-                (rc, result) = overlord.director.down(project, destroy=True, ignore_failed=True, env=environment)
+                result = overlord.director.down(project, destroy=True, ignore_failed=True, env=environment)
 
                 overlord.cache.save_project_status_down(project, {
                     "operation" : "COMPLETED",

@@ -380,99 +380,75 @@ async def print_info_projects(client, chain, api_info, patterns):
         for service in services:
             print(f"        - {service}")
 
-        print_up = True
+        status = {
+            "up" : up,
+            "down" : down
+        }
 
-        for key, value in up.items():
-            if print_up:
-                print("      up:")
+        for status_name, status_value in status.items():
+            print_status_name = True
 
-                print_up = False
+            for key, value in status_value.items():
+                if print_status_name:
+                    print(f"      {status_name}:")
 
-            if isinstance(value, list):
-                print(f"        {key}:")
+                    print_status_name = False
 
-                for _value in value:
-                    print(f"        - {_value}")
+                if isinstance(value, list):
+                    print(f"        {key}:")
 
-            else:
-                if key == "last_update":
-                    print("        last_update: %s" % time.ctime(value))
-
-                elif key == "labels":
-                    error = value.get("error")
-                    message = value.get("message")
-
-                    print("        labels:")
-                    print(f"         error: {error}")
-                    print(f"         message: {message}")
-
-                    load_balancer = value.get("load-balancer", {})
-
-                    print_service = True
-
-                    for service, info in load_balancer.items():
-                        if print_service:
-                            print("         load-balancer:")
-                            print("           services:")
-
-                            print_service = False
-
-                        error = info.get("error")
-                        message = info.get("message")
-
-                        print(f"             {service}:")
-                        print(f"               error: {error}")
-                        print(f"               message: {message}")
+                    for _value in value:
+                        print(f"        - {_value}")
 
                 else:
-                    print(f"        {key}: {value}")
+                    if key == "last_update":
+                        print("        last_update: %s" % time.ctime(value))
 
-        print_down = True
+                    elif key == "output":
+                        output = value
 
-        for key, value in down.items():
-            if print_down:
-                print("      down:")
+                        print_output = True
 
-                print_down = False
+                        for key, value in output.items():
+                            if print_output:
+                                print("        output:")
 
-            if isinstance(value, list):
-                print(f"        {key}:")
+                                print_output = False
 
-                for _value in value:
-                    print(f"        - {value}")
+                            if key == "stderr" \
+                                    and len(value) == 0:
+                                continue
 
-            else:
-                if key == "last_update":
-                    print("        last_update: %s" % time.ctime(value))
+                            print(f"         {key}: {value}")
 
-                elif key == "labels":
-                    error = value.get("error")
-                    message = value.get("message")
+                    elif key == "labels":
+                        error = value.get("error")
+                        message = value.get("message")
 
-                    print("        labels:")
-                    print(f"         error: {error}")
-                    print(f"         message: {message}")
+                        print("        labels:")
+                        print(f"         error: {error}")
+                        print(f"         message: {message}")
 
-                    load_balancer = value.get("load-balancer", {})
+                        load_balancer = value.get("load-balancer", {})
 
-                    print_service = True
+                        print_service = True
 
-                    for service, info in load_balancer.items():
-                        if print_service:
-                            print("         load-balancer:")
-                            print("           services:")
+                        for service, info in load_balancer.items():
+                            if print_service:
+                                print("         load-balancer:")
+                                print("           services:")
 
-                            print_service = False
+                                print_service = False
 
-                        error = info.get("error")
-                        message = info.get("message")
+                            error = info.get("error")
+                            message = info.get("message")
 
-                        print(f"             {service}:")
-                        print(f"               error: {error}")
-                        print(f"               message: {message}")
+                            print(f"             {service}:")
+                            print(f"               error: {error}")
+                            print(f"               message: {message}")
 
-                else:
-                    print(f"        {key}: {value}")
+                    else:
+                        print(f"        {key}: {value}")
 
 async def print_info_projects_logs(client, chain, api_info, patterns):
     logs = await _safe_client(client, "get_projects_logs", chain=chain)
