@@ -415,11 +415,17 @@ async def print_info_projects(client, chain, api_info, patterns):
 
                                 print_output = False
 
-                            if key == "stderr" \
-                                    and len(value) == 0:
-                                continue
+                            if key == "stderr":
+                                if len(value) == 0:
+                                    continue
 
-                            print(f"         {key}: {value}")
+                                print(f"         {key}:")
+
+                                for line in value.splitlines():
+                                    print(f"           {line}")
+
+                            else:
+                                print(f"         {key}: {value}")
 
                     elif key == "labels":
                         error = value.get("error")
