@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import asyncio
+import json
 import logging
 import os
 
@@ -105,7 +106,16 @@ class ChainInternalHandler(InternalHandler):
             logger.exception("Error executing the remote function '%s' (entrypoint:%s, chain:%s): %s",
                              func, next_entrypoint, new_chain, err)
 
-            raise tornado.web.HTTPError(503, reason="Error executing the remote function '%s' (entrypoint:%s, chain:%s): %s" % (func, next_entrypoint, new_chain, err))
+            error_message = {
+                "function" : func,
+                "entrypoint" : next_entrypoint,
+                "chain" : new_chain,
+                "error" : "%s" % err
+            }
+
+            error_message = json.dumps(error_message)
+
+            raise tornado.web.HTTPError(503, reason=error_message)
 
 class JailsHandler(InternalHandler):
     async def get(self):
