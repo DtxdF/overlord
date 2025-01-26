@@ -62,7 +62,7 @@
 .Fl Fl type Ar type
 .Op Fl Fl jail-item Ar item
 .Op Fl Fl all-labels
-.Op Fl Fl filter Ar filter
+.Op Op Fl Fl filter Ar filter Ns | Ns Fl Fl filter-per-project
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm get-project-log
@@ -141,7 +141,7 @@ If this parameter is set, an expiration date is set on the token, which by defau
 .It Fl Fl expire-type Ar type
 Set the expiration date in seconds, minutes, hours, days or weeks.
 .El
-.It Cm get-info Fl Fl file Ar file Fl Fl type Ar type Oo Fl Fl jail-item Ar item Oc Oo Fl Fl all-labels Oc Oo Fl Fl filter Ar filter Oc
+.It Cm get-info Fl Fl file Ar file Fl Fl type Ar type Oo Fl Fl jail-item Ar item Oc Oo Fl Fl all-labels Oc Oo Oo Fl Fl filter Ar filter Ns | Ns Fl Fl filter-per-project Oc Oc
 Gets information about an entity specified with
 .Fl Fl type Ns "."
 .Bl -tag -width xx
@@ -193,6 +193,10 @@ is a valid regular expression. The value to compare can be the jail name, the pr
 name, a chain or a log file name.
 .Pp
 This parameter can be specified multiple times.
+.It Fl Fl filter-per-project
+Like
+.Fl Fl filter
+but matching only the project specified in the deployment file.
 .El
 .It Cm get-project-log Fl Fl file Ar file Fl Fl date Ar date Fl Fl service Ar service Fl Fl log Ar log Ar entrypoint
 Gets the content of a log created by Director.

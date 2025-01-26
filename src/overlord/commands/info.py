@@ -43,7 +43,7 @@ import overlord.commands
 import overlord.process
 import overlord.util
 
-from overlord.sysexits import EX_NOINPUT, EX_SOFTWARE
+from overlord.sysexits import EX_OK, EX_NOINPUT, EX_SOFTWARE
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +53,11 @@ logger = logging.getLogger(__name__)
 @click.option("--jail-item", multiple=True, default=[], type=click.Choice(["stats", "info", "cpuset", "devfs", "expose", "healthcheck", "limits", "fstab", "labels", "nat", "volumes"]))
 @click.option("--all-labels", is_flag=True, default=False)
 @click.option("--filter", default=[], multiple=True)
+@click.option("--filter-per-project", is_flag=True, default=False)
 def get_info(*args, **kwargs):
     asyncio.run(_get_info(*args, **kwargs))
 
-async def _get_info(file, type, jail_item, all_labels, filter):
+async def _get_info(file, type, jail_item, all_labels, filter, filter_per_project):
     try:
         tree_chain = {}
 
@@ -170,6 +171,15 @@ async def _get_info(file, type, jail_item, all_labels, filter):
                     await print_info_jails(client, chain, info, jail_item, filter)
 
                 elif type == "projects":
+                    if filter_per_project:
+                        projectName = overlord.spec.director_project.get_projectName()
+
+                        if projectName is None:
+                            logger.warning("Project is not specified in the deployment file!")
+                            sys.exit(EX_OK)
+
+                        filter = [projectName]
+
                     await print_info_projects(client, chain, info, filter)
 
                 elif type == "chains":
