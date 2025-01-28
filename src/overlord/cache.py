@@ -29,9 +29,9 @@
 
 import json
 
-import overlord.config
-
 import pymemcache
+
+import overlord.config
 
 CLIENT = None
 
