@@ -89,8 +89,25 @@ async def _watch_projects():
 
                     special_labels_response = await run_special_labels(project, type)
 
+                    error = special_labels_response.get("error")
+
+                    if not error:
+                        for integration in ("load-balancer", "skydns"):
+                            integration_info = special_labels_response.get(integration, {})
+
+                            error = integration_info.get("error", False)
+
+                            if error:
+                                break
+
+                    if error:
+                        operation_status = "INCOMPLETED"
+
+                    else:
+                        operation_status = "COMPLETED"
+
                     overlord.cache.save_project_status_up(project, {
-                        "operation" : "COMPLETED",
+                        "operation" : operation_status,
                         "output" : result,
                         "last_update" : time.time(),
                         "job_id" : job_id,
@@ -109,10 +126,27 @@ async def _watch_projects():
                     "labels" : special_labels_response
                 })
 
-                result = overlord.director.down(project, destroy=True, ignore_failed=True, env=environment)
+                error = special_labels_response.get("error")
+
+                if not error:
+                    for integration in ("load-balancer", "skydns"):
+                        integration_info = special_labels_response.get(integration, {})
+
+                        error = integration_info.get("error", False)
+
+                        if error:
+                            break
+
+                if error:
+                    operation_status = "INCOMPLETED"
+                    result = {}
+
+                else:
+                    operation_status = "COMPLETED"
+                    result = overlord.director.down(project, destroy=True, ignore_failed=True, env=environment)
 
                 overlord.cache.save_project_status_down(project, {
-                    "operation" : "COMPLETED",
+                    "operation" : operation_status,
                     "output" : result,
                     "last_update" : time.time(),
                     "job_id" : job_id,

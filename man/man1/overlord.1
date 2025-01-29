@@ -291,6 +291,11 @@ reported by
 .Xr appjail-status 1 Ns "."
 Jails that do not meet this requirement will be completely ignored.
 .Pp
+Also note that in the case of destroying a project requested by the
+.Cm destroy-project
+command, the project will not be destroyed if an integration fails in its operation.
+This is to inform you first if an error has occurred and it is necessary to intervene.
+.Pp
 .Bl -tag -width xxx
 .It Sy overlord.load-balancer
 If this label has a value, a new server is added, replaced or removed
