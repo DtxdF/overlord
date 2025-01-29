@@ -43,7 +43,9 @@ setup(
         "aiofiles",
         "humanfriendly",
         "ifaddr",
-        "asciitree"
+        "asciitree",
+        "etcd3gw",
+        "dnspython"
     ],
     entry_points={
         "console_scripts" : [

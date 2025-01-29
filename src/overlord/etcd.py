@@ -27,38 +27,28 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-class InvalidSpec(Exception):
-    pass
+import etcd3gw
 
-class APIError(Exception):
-    pass
+import overlord.config
 
-class InvalidEntityType(Exception):
-    pass
+CLIENT = None
 
-class InvalidChain(Exception):
-    pass
+def connect():
+    global CLIENT
 
-class InvalidKind(InvalidSpec):
-    pass
+    if CLIENT is not None:
+        return CLIENT
 
-class KindNotDefined(Exception):
-    pass
+    settings = {
+        "host" : overlord.config.get_etcd_host(),
+        "port" : overlord.config.get_etcd_port(),
+        "protocol" : overlord.config.get_etcd_protocol(),
+        "ca_cert" : overlord.config.get_etcd_ca_cert(),
+        "cert_key" : overlord.config.get_etcd_cert_key(),
+        "timeout" : overlord.config.get_etcd_timeout(),
+        "api_path" : overlord.config.get_etcd_api_path()
+    }
 
-class TypeNotAllowed(Exception):
-    pass
+    CLIENT = etcd3gw.client(**settings)
 
-class InvalidProjectName(Exception):
-    pass
-
-class InvalidJailName(Exception):
-    pass
-
-class InvalidArguments(Exception):
-    pass
-
-class InterfaceNotFound(Exception):
-    pass
-
-class MissingServerID(Exception):
-    pass
+    return CLIENT

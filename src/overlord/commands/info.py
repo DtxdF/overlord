@@ -445,23 +445,24 @@ async def print_info_projects(client, chain, api_info, patterns):
                         print(f"         error: {error}")
                         print(f"         message: {message}")
 
-                        load_balancer = value.get("load-balancer", {})
+                        for integration in ("load-balancer", "skydns"):
+                            data = value.get(f"{integration}", {})
 
-                        print_service = True
+                            print_service = True
 
-                        for service, info in load_balancer.items():
-                            if print_service:
-                                print("         load-balancer:")
-                                print("           services:")
+                            for service, info in data.items():
+                                if print_service:
+                                    print(f"         {integration}:")
+                                    print("           services:")
 
-                                print_service = False
+                                    print_service = False
 
-                            error = info.get("error")
-                            message = info.get("message")
+                                error = info.get("error")
+                                message = info.get("message")
 
-                            print(f"             {service}:")
-                            print(f"               error: {error}")
-                            print(f"               message: {message}")
+                                print(f"             {service}:")
+                                print(f"               error: {error}")
+                                print(f"               message: {message}")
 
                     else:
                         print(f"        {key}: {value}")

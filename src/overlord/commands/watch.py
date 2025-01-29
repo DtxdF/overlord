@@ -31,6 +31,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import sys
 import tempfile
 import time
@@ -42,7 +43,9 @@ import overlord.cache
 import overlord.commands
 import overlord.config
 import overlord.dataplaneapi
+import overlord.default
 import overlord.director
+import overlord.skydns
 import overlord.queue
 import overlord.util
 
@@ -183,30 +186,226 @@ async def run_special_labels(project, type):
 
                     data[label_name] = label_value
 
-            if "load-balancer" not in response:
-                response["load-balancer"] = {}
+            for integration in ("load-balancer", "skydns"):
+                if integration not in response:
+                    response[integration] = {}
 
-            try:
-                (error, message) = await run_special_label_load_balancer(project, type, service, data)
+                try:
+                    if integration == "load-balancer":
+                        task = run_special_label_load_balancer(project, type, service, data)
 
-                response["load-balancer"][name] = {
-                    "error" : error,
-                    "message" : message
-                }
+                    elif integration == "skydns":
+                        task = run_special_label_skydns(project, type, service, data)
 
-            except Exception as err:
-                error = overlord.util.get_error(err)
-                error_type = error.get("type")
-                error_message = error.get("message")
+                    (error, message) = await task
 
-                logger.exception("Exception in load-balancer: %s: %s", error_type, error_message)
+                    response[integration][name] = {
+                        "error" : error,
+                        "message" : message
+                    }
 
-                response["load-balancer"][name] = {
-                    "error" : True,
-                    "message" : "Exception %s: %s" % (error_type, error_message)
-                }
+                except Exception as err:
+                    error = overlord.util.get_error(err)
+                    error_type = error.get("type")
+                    error_message = error.get("message")
+
+                    logger.exception("Exception in %s: %s: %s", integration, error_type, error_message)
+
+                    response[integration][name] = {
+                        "error" : True,
+                        "message" : "Exception %s: %s" % (error_type, error_message)
+                    }
 
     return response
+
+async def run_special_label_skydns(project, type, service, labels):
+    service_name = service["name"]
+
+    use_skydns = labels.get("overlord.skydns")
+
+    if use_skydns is None:
+        error = False
+        message = None
+
+        return (error, message)
+
+    group = labels.get("overlord.skydns.group")
+
+    if group is None:
+        error = True
+        message = f"(project:{project}, service:{service_name}, label:overlord.skydns.group) group has not been specified, but is required."
+
+        return (error, message)
+
+    interface = labels.get("overlord.skydns.interface")
+
+    if interface is None:
+        error = True
+        message = f"(project:{project}, service:{service_name}, label:overlord.skydns.interface) interface has not been specified, but is required."
+
+        return (error, message)
+
+    network = labels.get("overlord.skydns.interface.address")
+
+    try:
+        address = overlord.util.iface2ip(interface, network)
+
+    except Exception as err:
+        error = overlord.util.get_error(err)
+        error_type = error.get("type")
+        error_message = error.get("message")
+
+        error = True
+        message = f"(project:{project}, service:{service_name}, label:overlord.skydns.interface.address exception:{error_type}) {error_message}"
+
+        return (error, message) 
+
+    if type == "destroy":
+        error = False
+        
+        records = overlord.skydns.delete_records(group)
+        ptr = overlord.skydns.delete_ptr(address)
+
+        message = f"(project:{project}, service:{service_name}, records:[all:{records},ptr:{ptr}]) DNS records have been removed."
+
+        return (error, message)
+
+    ttl = labels.get("overlord.skydns.ttl", overlord.default.DNS["ttl"])
+
+    try:
+        ttl = int(ttl)
+
+    except ValueError:
+        error = True
+        message = f"(project:{project}, service:{service_name}, label:overlord.skydns.ttl) invalid TTL."
+
+        return (error, message)
+
+    response = {
+        "ptr" : None,
+        "txt" : [],
+        "address" : None,
+        "srv" : None
+    }
+
+    result = overlord.skydns.update_address(address, group, ttl)
+
+    response["address"] = result
+
+    use_skydns_ptr = labels.get("overlord.skydns.ptr")
+
+    if use_skydns_ptr is not None:
+        result = overlord.skydns.update_ptr(address, group)
+
+        response["ptr"] = result
+
+    use_skydns_srv = labels.get("overlord.skydns.srv")
+
+    if use_skydns_srv is not None:
+        port = labels.get("overlord.skydns.srv.port")
+
+        if port is None:
+            error = True
+            message = f"(project:{project}, service:{service_name}, label:overlord.skydns.srv.port) port has not been specified, but is required."
+
+            return (error, message)
+
+        try:
+            port = int(port)
+
+        except ValueError:
+            error = True
+            message = f"(project:{project}, service:{service_name}, port:{port}, label:overlord.skydns.srv.port) invalid port."
+
+            return (error, message)
+
+        proto = labels.get("overlord.skydns.srv.proto")
+
+        if proto is None:
+            error = True
+            message = f"(project:{project}, service:{service_name}, label:overlord.skydns.srv.proto) protocol has not been specified, but is required."
+
+            return (error, message)
+
+        srv_service = labels.get("overlord.skydns.srv.service")
+
+        if srv_service is None:
+            error = True
+            message = f"(project:{project}, service:{service_name}, label:overlord.skydns.srv.service) service has not been specified, but is required."
+
+            return (error, message)
+
+        priority = labels.get("overlord.skydns.srv.priority", overlord.default.DNS["srv"]["priority"])
+
+        try:
+            priority = int(priority)
+
+        except ValueError:
+            error = True
+            message = f"(project:{project}, service:{service_name}, priority:{priority}, label:overlord.skydns.srv.priority) invalid priority."
+
+            return (error, message)
+
+        weight = labels.get("overlord.skydns.srv.weight", overlord.default.DNS["srv"]["weight"])
+
+        try:
+            weight = int(weight)
+
+        except ValueError:
+            error = True
+            message = f"(project:{project}, service:{service_name}, weight:{weight}, label:overlord.skydns.srv.weight) invalid weight."
+
+            return (error, message)
+
+        ttl = labels.get("overlord.skydns.srv.ttl", overlord.default.DNS["ttl"])
+
+        try:
+            ttl = int(ttl)
+
+        except ValueError:
+            error = True
+            message = f"(project:{project}, service:{service_name}, ttl:{ttl}, label:overlord.skydns.srv.ttl) invalid TTL."
+
+            return (error, message)
+        
+        result = overlord.skydns.update_srv(group, srv_service, proto, port, priority, weight, ttl)
+
+        response["srv"] = result
+
+    use_skydns_txt = labels.get("overlord.skydns.txt")
+
+    if use_skydns_txt is not None:
+        for key, value in labels.items():
+            match = re.match(r"^overlord\.skydns\.txt(\d+)$", key)
+
+            if match:
+                index = int(match.group(1))
+                text = value
+
+                ttl = labels.get(f"overlord.skydns.txt{index}.ttl", overlord.default.DNS["ttl"])
+
+                try:
+                    ttl = int(ttl)
+
+                except ValueError:
+                    error = True
+                    message = f"(project:{project}, service:{service_name}, ttl:{ttl}, label:overlord.skydns.txt{index}.ttl) invalid TTL."
+
+                    return (error, message)
+
+                result = overlord.skydns.update_text(group, index, text, ttl)
+
+                response["txt"].append({ f"txt{index}" : result })
+
+    record_address = response.get("address")
+    record_ptr = response.get("ptr")
+    record_txt = response.get("txt")
+    record_srv = response.get("srv")
+
+    error = False
+    message = f"(project:{project}, service:{service_name}, records:[address:{record_address},ptr:{record_ptr},txt:{record_txt},srv:{record_srv}] records has been updated."
+
+    return (error, message)
 
 async def run_special_label_load_balancer(project, type, service, labels):
     service_name = service["name"]

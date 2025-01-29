@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import logging.config
+import re
 
 import pyaml_env
 
@@ -114,6 +115,20 @@ def get_config():
             "max_keepalive_connections" : get_dataplaneapi_max_keepalive_connections(),
             "max_connections" : get_dataplaneapi_max_connections(),
             "keepalive_expiry" : get_dataplaneapi_keepalive_expiry()
+        },
+        "skydns" : {
+            "serverid" : get_skydns_serverid(),
+            "path" : get_skydns_path(),
+            "zone" : get_skydns_zone()
+        },
+        "etcd" : {
+            "host" : get_etcd_host(),
+            "port" : get_etcd_port(),
+            "protocol" : get_etcd_protocol(),
+            "ca_cert" : get_etcd_ca_cert(),
+            "cert_key" : get_etcd_cert_key(),
+            "timeout" : get_etcd_timeout(),
+            "api_path" : get_etcd_api_path()
         }
     }
 
@@ -578,6 +593,62 @@ def get_dataplaneapi_keepalive_expiry():
 
     return keepalive_expiry
 
+def get_skydns():
+    return get_default(CONFIG.get("skydns"), overlord.default.SKYDNS)
+
+def get_skydns_serverid():
+    skydns = get_skydns()
+
+    return skydns.get("serverid")
+
+def get_skydns_path():
+    skydns = get_skydns()
+
+    return get_default(skydns.get("path"), overlord.default.SKYDNS["path"])
+
+def get_skydns_zone():
+    skydns = get_skydns()
+
+    return get_default(skydns.get("zone"), overlord.default.SKYDNS["zone"])
+
+def get_etcd():
+    return get_default(CONFIG.get("etcd"), overlord.default.ETCD)
+
+def get_etcd_host():
+    etcd = get_etcd()
+
+    return get_default(etcd.get("host"), overlord.default.ETCD["host"])
+
+def get_etcd_port():
+    etcd = get_etcd()
+
+    return get_default(etcd.get("port"), overlord.default.ETCD["port"])
+
+def get_etcd_protocol():
+    etcd = get_etcd()
+
+    return get_default(etcd.get("protocol"), overlord.default.ETCD["protocol"])
+
+def get_etcd_ca_cert():
+    etcd = get_etcd()
+
+    return etcd.get("ca_cert")
+
+def get_etcd_cert_key():
+    etcd = get_etcd()
+
+    return etcd.get("cert_key")
+
+def get_etcd_timeout():
+    etcd = get_etcd()
+
+    return etcd.get("timeout")
+
+def get_etcd_api_path():
+    etcd = get_etcd()
+
+    return etcd.get("api_path")
+
 def validate(document):
     if not isinstance(document, dict):
         raise overlord.exceptions.InvalidSpec("The configuration is invalid.")
@@ -596,7 +667,9 @@ def validate(document):
         "appjail",
         "beanstalkd_addr",
         "execution_time",
-        "dataplaneapi"
+        "dataplaneapi",
+        "skydns",
+        "etcd"
     )
 
     for key in document:
@@ -617,6 +690,165 @@ def validate(document):
     validate_beanstalkd_addr(document)
     validate_execution_time(document)
     validate_dataplaneapi(document)
+    validate_skydns(document)
+    validate_etcd(document)
+
+def validate_etcd(document):
+    etcd = document.get("etcd")
+
+    if etcd is None:
+        return
+
+    if not isinstance(etcd, dict):
+        raise overlord.exceptions.InvalidSpec("'etcd' is invalid.")
+
+    keys = (
+        "host",
+        "port",
+        "protocol",
+        "ca_cert",
+        "cert_key",
+        "timeout",
+        "api_path"
+    )
+
+    for key in etcd:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"etcd.{key}: this key is invalid.")
+
+    validate_etcd_host(etcd)
+    validate_etcd_port(etcd)
+    validate_etcd_protocol(etcd)
+    validate_etcd_ca_cert(etcd)
+    validate_etcd_cert_key(etcd)
+    validate_etcd_timeout(etcd)
+    validate_etcd_api_path(etcd)
+
+def validate_etcd_host(document):
+    host = document.get("host")
+
+    if host is None:
+        return
+
+    if not isinstance(host, str):
+        raise overlord.exceptions.InvalidSpec(f"{host}: invalid value type for 'etcd.host'")
+
+def validate_etcd_port(document):
+    port = document.get("port")
+
+    if port is None:
+        return
+
+    if not isinstance(port, int):
+        raise overlord.exceptions.InvalidSpec(f"{port}: invalid value type for 'etcd.port'")
+
+    if port < 0 or port > 65535:
+        raise ValueError(f"{port}: invalid port.")
+
+def validate_etcd_protocol(document):
+    protocol = document.get("protocol")
+
+    if protocol is None:
+        return
+
+    if not isinstance(protocol, str):
+        raise overlord.exceptions.InvalidSpec(f"{protocol}: invalid value type for 'etcd.protocol'")
+
+def validate_etcd_ca_cert(document):
+    ca_cert = document.get("ca_cert")
+
+    if ca_cert is None:
+        return
+
+    if not isinstance(ca_cert, str):
+        raise overlord.exceptions.InvalidSpec(f"{ca_cert}: invalid value type for 'etcd.ca_cert'")
+
+def validate_etcd_cert_key(document):
+    cert_key = document.get("cert_key")
+
+    if cert_key is None:
+        return
+
+    if not isinstance(cert_key, str):
+        raise overlord.exceptions.InvalidSpec(f"{cert_key}: invalid value type for 'etcd.cert_key'")
+
+def validate_etcd_timeout(document):
+    timeout = document.get("timeout")
+
+    if timeout is None:
+        return
+
+    if not isinstance(timeout, int):
+        raise overlord.exceptions.InvalidSpec(f"{timeout}: invalid value type for 'etcd.timeout'")
+
+def validate_etcd_api_path(document):
+    api_path = document.get("api_path")
+
+    if api_path is None:
+        return
+
+    if not isinstance(api_path, str):
+        raise overlord.exceptions.InvalidSpec(f"{api_path}: invalid value type for 'etcd.api_path'")
+
+def validate_skydns(document):
+    skydns = document.get("skydns")
+
+    if skydns is None:
+        return
+
+    if not isinstance(skydns, dict):
+        raise overlord.exceptions.InvalidSpec("'skydns' is invalid.")
+
+    keys = (
+        "serverid",
+        "path",
+        "zone"
+    )
+
+    for key in skydns:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"skydns.{key}: this key is invalid.")
+
+    validate_skydns_serverid(skydns)
+    validate_skydns_path(skydns)
+    validate_skydns_zone(skydns)
+
+def validate_skydns_serverid(document):
+    serverid = document.get("serverid")
+
+    if serverid is None:
+        raise overlord.exceptions.InvalidSpec("'skydns.serverid' is required but hasn't been specified.")
+
+    if not isinstance(serverid, str):
+        raise overlord.exceptions.InvalidSpec(f"{serverid}: invalid value type for 'skydns.serverid'")
+
+    match = re.match(r"^[a-zA-Z_-][a-zA-Z\d_-]+$", serverid)
+
+    if not match:
+        raise overlord.exceptions.InvalidSpec(f"{serverid}: invalid server ID for 'skydns.serverid'")
+
+    serverid = serverid[match.start():match.end()]
+    serverid = serverid.lower()
+
+    document["serverid"] = serverid
+
+def validate_skydns_path(document):
+    path = document.get("path")
+
+    if path is None:
+        return
+
+    if not isinstance(path, str):
+        raise overlord.exceptions.InvalidSpec(f"{path}: invalid value type for 'skydns.path'")
+
+def validate_skydns_zone(document):
+    zone = document.get("zone")
+
+    if zone is None:
+        return
+
+    if not isinstance(zone, str):
+        raise overlord.exceptions.InvalidSpec(f"{zone}: invalid value type for 'skydns.zone'")
 
 def validate_dataplaneapi(document):
     dataplaneapi = document.get("dataplaneapi")

@@ -202,3 +202,19 @@ APPJAIL = {
 BEANSTALKD_ADDR = ("127.0.0.1", 11300)
 EXECUTION_TIME = 60 * 60 * 3
 MAXIMUM_DEPLOYMENTS = 0
+SKYDNS = {
+    "path" : "/skydns",
+    "zone" : "."
+}
+ETCD = {
+    "host" : "localhost",
+    "port" : 2379,
+    "protocol" : "http"
+}
+DNS = {
+    "ttl" : 60,
+    "srv" : {
+        "priority" : 10,
+        "weight" : 100
+    }
+}

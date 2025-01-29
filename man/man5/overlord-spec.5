@@ -402,6 +402,45 @@ See
 in
 .Sx CONFIGURATION
 for details.
+.Pp
+.It Sy skydns
+.No Configuration to manipulate the SkyDNS Ns / Ns Xr coredns-etcd 7 No plugin.
+.Pp
+.It Sy skydns.serverid
+Server name that must be unique among servers sharing the same SkyDNS instance.
+.Pp
+.It Sy skydns.path
+The path inside etcd.
+.Pp
+.It Sy skydns.zone
+Authoritative zone.
+.Pp
+.It Sy etcd
+Configuration to connect to an etcd instance.
+.Pp
+.It Sy etcd.host
+Host name or address of the etcd instance.
+.Pp
+.It Sy etcd.port
+Port to connect to the etcd instance.
+.Pp
+.It Sy etcd.protocol
+Protocol
+.Po or scheme Pc Ns "."
+.Pp
+.It Sy etcd.ca_cert
+Local cert to use as client side certificate.
+.Pp
+.It Sy etcd.cert_key
+Private key.
+.Pp
+.It Sy etcd.timeout
+Number of seconds to wait for the client to establish a connection to the etcd
+instance and to wait for the server to send a response.
+.Pp
+.It Sy etcd.api_path
+The part that specifies the API version of etcd. Do not specify any if you want
+to leave the responsability of discovering the API version to the library.
 .El
 .Sh SEE ALSO
 .Xr overlord 1

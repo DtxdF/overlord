@@ -315,6 +315,87 @@ See also
 .Lk https://www.haproxy.com/documentation/dataplaneapi/community/?v=v3#post-/services/haproxy/configuration/backends/-parent_name-/servers "Add a new server"
 and
 .Lk https://www.haproxy.com/documentation/dataplaneapi/community/?v=v3#put-/services/haproxy/configuration/backends/-parent_name-/servers/-name- "Replace a server"
+.It Sy overlord.skydns
+If this label has a value, new DNS records are added to an etcd instance assuming
+that a SkyDNS instance is consuming it. In the modern era, you should use
+.Xr coredns-etcd 7
+instead of the older implementation that is not related to CoreDNS.
+.It Sy overlord.skydns.group
+This is the part that specifies the DNS label that is concatenated between the
+server ID and the zone. In other words, the domain will be
+.Ar serverid Ns "." Ns Ar group Ns "." Ns Ar zone Ns ,
+but you should use
+.Ar group Ns "." Ns Ar zone
+to consume, also remember that how SkyDNS is designed, the IPs are accumulated,
+so you can use it in a round-robin fashion, although it is preferable to use a
+load-balancer for this function, however.
+.It Sy overlord.skydns.interface
+The interface to obtain the IP address.
+.It Sy overlord.skydns.interface.address
+The network address where the corresponding IP should be.
+.Pp
+If this label is not specified, the first IP returned will be used.
+.Pp
+Note that if the IP address is an IPv4 address, an
+.Sy A
+record will be added, and if
+the IP is an IPv6 address, an
+.Sy AAAA
+record will be added instead.
+.It Sy overlord.skydns.ttl
+The time-to-live field for
+.Sy A
+and
+.Sy AAAA
+records.
+.It Sy overlord.skydns.ptr
+If this label has a value, a
+.Sy PTR
+record using the IP address of the interface specified
+in the
+.Sy overlord.skydns.interface
+label is added.
+.Pp
+Note that you should use this record only if you are absolutely sure that the IP
+addresses are different between each system on which the project will be deployed.
+.It Sy overlord.skydns.srv
+If this label has a value, an
+.Sy SRV
+record is added.
+.It Sy overlord.skydns.srv.port
+The port that clients must use to connect to the application.
+.It Sy overlord.skydns.srv.proto
+The protocol that clients must use to communicate with the application. Normally
+.Sy tcp
+or
+.Sy udp Ns "."
+.It Sy overlord.skydns.srv.service
+The symbolic name of the desired service.
+.It Sy overlord.skydns.srv.priority
+The priority of the target host.
+.It Sy overlord.skydns.srv.weight
+A relative weight for records with the same priority, higher value means higher
+chance of getting picked.
+.Pp
+See also
+.Lk https://github.com/skynetservices/skydns?tab=readme-ov-file#service-announcements "Service Announcements"
+for how this value is calculated.
+.It Sy overlord.skydns.srv.ttl
+The time-to-live field for the
+.Sy SRV
+record.
+.It Sy overlord.skydns.txt
+If this label has a value,
+.Sy TXT
+records are added.
+.It Sy overlord.skydns.txt Ns Ar index
+Value to add to this
+.Sy TXT
+record.
+.It Sy overlord.skydns.txt Ns Ar index Ns Sy .ttl
+The time-to-live field for this
+.Sy TXT
+record.
 .El
 .Sh ENVIRONMENT
 .Bl -tag -width xxx
