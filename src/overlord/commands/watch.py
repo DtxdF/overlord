@@ -474,9 +474,7 @@ async def run_special_label_load_balancer(project, type, service, labels):
             or username is None \
             or password is None:
         error = True
-        message = "Service '%s.%s' wants to use the load-balancer but you haven't configured the Data Plane API." % (
-            project, service_name
-        )
+        message = f"(project:{project}, service:{service_name}) Data Plane API client is not configured."
 
         return (error, message)
 
@@ -494,9 +492,7 @@ async def run_special_label_load_balancer(project, type, service, labels):
 
     if backend is None:
         error = True
-        message = "Service '%s.%s' wants to use the load-balancer but it hasn't specified a backend." % (
-            project, service_name
-        )
+        message = f"(project:{project}, service:{service_name}, label:overlord.load-balancer.backend) backend has not been specified, but is required."
 
         return (error, message)
 
@@ -506,17 +502,13 @@ async def run_special_label_load_balancer(project, type, service, labels):
 
     if code == 404:
         error = True
-        message = "Service '%s.%s' wants to use the load-balancer but has specified the backend '%s' which does not exist." % (
-            project, service_name, backend
-        )
+        message = f"(project:{project}, service:{service_name}, backend:{backend}, label:overlord.load-balancer.backend) backend is not found."
 
         return (error, message)
     
     elif code != 200:
         error = True
-        message = "Service '%s.%s' wants to use the load-balancer but Data Plane API returns a different code (%d) than expected." % (
-            project, service_name, code
-        )
+        message = f"(project:{project}, service:{service_name}, backend:{backend}, code:{code}, label:overlord.load-balancer.backend) unexpected HTTP status code from Data Plane API."
 
         return (error, message)
 
@@ -524,9 +516,7 @@ async def run_special_label_load_balancer(project, type, service, labels):
 
     if interface is None:
         error = True
-        message = "Service '%s.%s' wants to use the load-balancer but it hasn't specified an interface." % (
-            project, service_name
-        )
+        message = f"(project:{project}, service:{service_name}, label:overlord.load-balancer.interface) interface has not been specified, but is required."
 
         return (error, message)
 
@@ -534,9 +524,7 @@ async def run_special_label_load_balancer(project, type, service, labels):
 
     if port is None:
         error = True
-        message = "Service '%s.%s' wants to use the load-balancer but is hasn't specified the port." % (
-            project, service_name
-        )
+        message = f"(project:{project}, service:{service_name}, label:overlord.load-balancer.interface.port) port has not been specified, but is required."
 
         return (error, message)
 
@@ -545,9 +533,7 @@ async def run_special_label_load_balancer(project, type, service, labels):
 
     except ValueError as err:
         error = True
-        message = "Service '%s.%s' wants to use the load-balancer but it has specified an invalid port '%s'." % (
-            project, service_name, port
-        )
+        message = f"(project:{project}, service:{service_name}, port:{port}, label:overlord.load-balancer.interface.port) invalid port."
 
         return (error, message)
 
@@ -562,17 +548,13 @@ async def run_special_label_load_balancer(project, type, service, labels):
         error_message = error.get("message")
 
         error = True
-        message = "Error when trying to get information about the '%s' interface (address:%s): %s: %s" % (
-            interface, network, error_type, error_message
-        )
+        message = f"(project:{project}, service:{service_name}, interface:{interface}, address:{network}, exception:{error_type}, label:overlord.load-balancer.interface.address) {error_message}"
 
         return (error, message) 
 
     if address is None:
         error = True
-        message = "Service '%s.%s' wants to use the load-balancer but no matching IP address has been found for the '%s' interface (address:%s)" % (
-            project, service_name, interface, address
-        )
+        message = f"(project:{project}, service:{service_name}, interface:{interface}, address:{network}, label:overlord.load-balancer.interface.address) no IP address has been found."
 
         return (error, message)
 
@@ -595,8 +577,12 @@ async def run_special_label_load_balancer(project, type, service, labels):
                 body[name] = json.loads(label_value)
 
             except Exception as err:
+                error = overlord.util.get_error(err)
+                error_type = error.get("type")
+                error_message = error.get("message")
+
                 error = True
-                message = "Service '%s.%s' wants to use the load-balancer but it has specified an invalid value from label '%s': %s" % (project, service_name, label_name, label_value)
+                message = f"(project:{project}, service:{service_name}, exception:{error_type}, label:{label_name}) {error_message}"
 
                 return (error, message)
 
@@ -620,17 +606,14 @@ async def run_special_label_load_balancer(project, type, service, labels):
             if code == 200 \
                     or code == 202:
                 error = False
-                message = "Server '%s' from backend '%s' used by '%s.%s' has been successfully updated." % (
-                    serverid, backend, project, service_name
-                )
+                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) server has been successfully updated."
 
                 return (error, message)
 
             else:
                 error = True
-                message = "Error updating server '%s' from backend '%s' used by '%s.%s'." % (
-                    serverid, backend, project, service_name
-                )
+                response = replace_server_info.content
+                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) error updating the server - {response}"
 
                 return (error, message)
 
@@ -647,25 +630,21 @@ async def run_special_label_load_balancer(project, type, service, labels):
             if code == 201 \
                     or code == 202:
                 error = False
-                message = "Server '%s' from backend '%s' used by '%s.%s' has been successfully added." % (
-                    serverid, backend, project, service_name
-                )
+                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) server has been successfully added."
 
                 return (error, message)
 
             else:
                 error = True
-                message = "Error adding server '%s' from backend '%s' used by '%s.%s' - status code is '%d'" % (
-                    serverid, backend, project, service_name, code
-                )
+                response = add_server_info.content
+                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) error adding the server - {response}"
 
                 return (error, message)
 
         else:
             error = True
-            message = "Error retrieving information about server '%s' from backend '%s' used by '%s.%s' - status code is '%d'" % (
-                serverid, backend, project, service_name, code
-            )
+            response = server_info.content
+            message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) error retrieving information about the server - {response}"
 
             return (error, message)
 
@@ -688,16 +667,13 @@ async def run_special_label_load_balancer(project, type, service, labels):
         if code == 202 \
                 or code == 204:
             error = False
-            message = "Server '%s' used by service '%s.%s' has been removed from backend '%s'." % (
-                serverid, project, service_name, backend
-            )
+            message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) server has been removed."
 
             return (error, message)
 
         else:
             error = True
-            message = "An error occurred while removing server '%s' from backend '%s' used by service '%s.%s'." % (
-                serverid, backend, service_name, backend
-            )
+            response = delete_server_info.content
+            message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) error removing the server - {response}"
 
             return (error, message)
