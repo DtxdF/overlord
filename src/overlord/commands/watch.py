@@ -49,6 +49,8 @@ import overlord.skydns
 import overlord.queue
 import overlord.util
 
+from sysexits import EX_SOFTWARE
+
 logger = logging.getLogger(__name__)
 
 @overlord.commands.cli.command(add_help_option=False)
