@@ -49,7 +49,7 @@ import overlord.skydns
 import overlord.queue
 import overlord.util
 
-from sysexits import EX_SOFTWARE
+from overlord.sysexits import EX_SOFTWARE
 
 logger = logging.getLogger(__name__)
 
