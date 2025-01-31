@@ -32,123 +32,150 @@
 .Nm overlord-spec
 .Nd Overlord specification for configuration files
 .Sh CONFIGURATION
-.Bl -tag -width xxx
+.Bl -tag -compact -width xxx
 .It Sy port
 Specify the source port Overlord's API server should use.
+.Pp
 .It Sy debug
 Shorthand for several debug mode settings. 
 .Pp
 See also
 .Lk https://www.tornadoweb.org/en/stable/web.html#tornado.web.Application.settings "Application configuration"
+.Pp
 .It Sy compress_response
 If True, responses in textual formats will be compressed automatically.
 .Pp
 See also
 .Lk https://www.tornadoweb.org/en/stable/web.html#tornado.web.Application.settings "Application configuration"
+.Pp
 .It Sy polling
 Polling configuration.
+.Pp
 .It Sy polling.jail_stats
 How long to sleep after re-collecting
 .Xr rctl 4
 statistics.
+.Pp
 .It Sy polling.jail_info
 How much time to sleep after collecting information from the jails again.
+.Pp
 .It Sy polling.projects
 How long to sleep afterwards to get the project list back.
+.Pp
 .It Sy polling.jails
 How long to sleep afterwards to get the jail list back.
+.Pp
 .It Sy polling.jail_extras
 How much time to sleep after collecting additional information from the jails again.
+.Pp
 .It Sy polling.project_info
 How much time to sleep after collecting information from the projects again.
+.Pp
 .It Sy polling.skew
 After repeating the polling operation, a random number will be added to the previous
 numbers. The random number will be generated using the range specified in this parameter.
+.Pp
 .It Sy polling.keywords
 Keywords to use to get information.
+.Pp
 .It Sy polling.keywords.stats
 See the
 .Sx KEYWORDS
 section in
 .Xr appjail-limits 1
 for details.
+.Pp
 .It Sy polling.keywords.jail
 See the
 .Sx KEYWORDS
 section in
 .Xr appjail-jail 1
 for details.
+.Pp
 .It Sy polling.keywords.devfs
 See the
 .Sx KEYWORDS
 section in
 .Xr appjail-devfs 1
 for details.
+.Pp
 .It Sy polling.keywords.expose
 See the
 .Sx KEYWORDS
 section in
 .Xr appjail-expose 1
 for details.
+.Pp
 .It Sy polling.keywords.healthcheck
 See the
 .Sx KEYWORDS
 section in
 .Xr appjail-healthcheck 1
 for details.
+.Pp
 .It Sy polling.keywords.label
 See the
 .Sx KEYWORDS
 section in
 .Xr appjail-label 1
 for details.
+.Pp
 .It Sy polling.keywords.limits
 See the
 .Sx KEYWORDS
 section in
 .Xr appjail-limits 1
 for details.
+.Pp
 .It Sy polling.keywords.nat
 See the
 .Sx KEYWORDS
 section in
 .Xr appjail-nat 1
 for details.
+.Pp
 .It Sy polling.keywords.volume
 See the
 .Sx KEYWORDS
 section in
 .Xr appjail-volume 1
 for details.
+.Pp
 .It Sy polling.keywords.fstab
 See the
 .Sx KEYWORDS
 section in
 .Xr appjail-fstab 1
 for details.
+.Pp
 .It Sy memcache
 Configuration for the memcache client.
 .Pp
 See also
 .Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.hash.html#pymemcache.client.hash.HashClient "pymemcache.client.hash module"
+.Pp
 .It Sy memcache.connections
 An array of addresses pointing to memcache servers.
+.Pp
 .It Sy memcache.max_pool_size
 maximum pool size to use.
 .Pp
 See also
 .Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.PooledClient "pymemcache.client.base.PooledClient"
+.Pp
 .It Sy memcache.pool_idle_timeout
 pooled connections are discarded if they have been unused for this many seconds.
 A value of 0 indicates that pooled connections are never discarded.
 .Pp
 See also
 .Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.PooledClient "pymemcache.client.base.PooledClient"
+.Pp
 .It Sy memcache.retry_attempts
 Amount of times a client should be tried before it is marked dead and removed from the pool.
 .Pp
 See also
 .Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.hash.html#pymemcache.client.hash.HashClient "pymemcache.client.hash module"
+.Pp
 .It Sy memcache.retry_timeout
 Time in seconds that should pass between retry attempts.
 .Pp
@@ -156,6 +183,7 @@ Use 0 to use the default timeout, or -1 to disable it.
 .Pp
 See also
 .Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.hash.html#pymemcache.client.hash.HashClient "pymemcache.client.hash module"
+.Pp
 .It Sy memcache.dead_timeout
 Time in seconds before attempting to add a node back in the pool.
 .Pp
@@ -163,6 +191,7 @@ Use 0 to use the default timeout, or -1 to disable it.
 .Pp
 See also
 .Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.hash.html#pymemcache.client.hash.HashClient "pymemcache.client.hash module"
+.Pp
 .It Sy memcache.connect_timeout
 Seconds to wait for a connection to the memcached server.
 .Pp
@@ -170,11 +199,13 @@ Use 0 to use the default timeout, or -1 to disable it.
 .Pp
 See also
 .Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.Client "pymemcache.client.base.Client"
+.Pp
 .It Sy memcache.timeout
 Seconds to wait for send or recv calls on the socket connected to memcached.
 .Pp
 See also
 .Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.Client "pymemcache.client.base.Client"
+.Pp
 .It Sy memcache.no_delay
 Set the
 .Sy TCP_NODELAY
@@ -182,27 +213,35 @@ flag, which may help with performance in some cases.
 .Pp
 See also
 .Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.Client "pymemcache.client.base.Client"
+.Pp
 .It Sy memcache.id
 When you have multiple Overlord instances sharing the same memcache servers, you
 need to set this value to avoid race conditions.
+.Pp
 .It Sy secret_key
 Secret key for signing the JWT.
+.Pp
 .It Sy log_config
 Logging configuration.
 .Pp
 See also
 .Lk https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig "logging.conf.dictConfig"
+.Pp
 .It Sy chains
 Chain configuration.
+.Pp
 .It Sy chains. Ns Ar chain Ns Sy .entrypoint
 URL to connect to.
+.Pp
 .It Sy chains. Ns Ar chain Ns Sy .access_token
 Access token.
+.Pp
 .It Sy chains. Ns Ar chain Ns Sy .timeout
 Timeout for all operations.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
+.Pp
 .It Sy chains. Ns Ar chain Ns Sy .read_timeout
 Specified the maximum duration to wait for a chunk of data to be received
 .Po for example, a chunk of the response body). If HTTPX is unable to receive data within this time frame Pc Ns ,
@@ -212,6 +251,7 @@ exception is raised.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
+.Pp
 .It Sy chains. Ns Ar chain Ns Sy .write_timeout
 Specifies the maximum duration to wait for a chunk of data to be sent
 .Po for example, a chunk of the request body Pc Ns "."
@@ -221,6 +261,7 @@ exception is raised.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
+.Pp
 .It Sy chains. Ns Ar chain Ns Sy .connect_timeout
 Specifies the maximum amount of time to wait until a socket connection to the requested host is established. If HTTPX is unable to connect within this time frame, a
 .Sy httpx.ConnectTimeout
@@ -228,44 +269,122 @@ exception is raised.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
+.Pp
 .It Sy chains. Ns Ar chain Ns Sy .pool_timeout
 Specifies the maximum duration to wait for acquiring a connection from the connection pool. If HTTPX is unable to acquire a connection within this time frame, a PoolTimeout exception is raised. A related configuration here is the maximum number of allowable connections in the connection pool, which is configured by the limits argument.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/timeouts "Timeouts"
+.Pp
 .It Sy chains. Ns Ar chain Ns Sy .max_keepalive_connections
 Number of allowable keep-alive connections.
 .Pp
 See also
 .Lk https://www.python-httpx.org/advanced/resource-limits "Resource Limits"
+.Pp
 .It Sy chains. Ns Ar chain Ns Sy .max_connections
 Maximum number of allowable connections.
 .Pp
 .Lk https://www.python-httpx.org/advanced/resource-limits "Resource Limits"
+.Pp
 .It Sy chains. Ns Ar chain Ns Sy .keepalive_expiry
 Time limit on idle keep-alive connections in seconds.
 .Pp
 .Lk https://www.python-httpx.org/advanced/resource-limits "Resource Limits"
+.Pp
 .It Sy labels
 List of labels for the API server.
+.Pp
 .It Sy director
 Director configuration.
+.Pp
 .It Sy director.logs
 Path to the logs directory created by Director.
+.Pp
 .It Sy appjail
 AppJail configuration.
+.Pp
 .It Sy appjail.logs
 Path to the logs directory created by AppJail.
+.Pp
 .It Sy beanstalkd_addr
 Beanstalkd address to connect to. Use the
 .Sy unix:
 prefix to connect to a UNIX socket. If the port is not specified,
 .Sy 11300
 will be used.
+.Pp
 .It Sy execution_time
 Maximum time to execute a command or
 .Sy null
 to not set a timeout.
+.Pp
+.It Sy dataplaneapi
+Data Plane API settings to configure HAProxy.
+.Pp
+.It Sy dataplaneapi.serverid
+Server name that must be unique among servers sharing the same Data Plane API instance.
+.Pp
+.It Sy dataplaneapi.auth
+Data Plane API authentication parameters.
+.Pp
+.It Sy dataplaneapi.auth.username
+Data Plane API username.
+.Pp
+.It Sy dataplaneapi.auth.password
+Data Plane API password.
+.Pp
+.It Sy dataplaneapi.entrypoint
+.It Sy dataplaneapi.timeout
+.It Sy dataplaneapi.read_timeout
+.It Sy dataplaneapi.write_timeout
+.It Sy dataplaneapi.connect_timeout
+.It Sy dataplaneapi.pool_timeout
+.It Sy dataplaneapi.max_keepalive_connections
+.It Sy dataplaneapi.max_connections
+.It Sy dataplaneapi.keepalive_expiry
+See
+.Sy chains. Ns Ar chain Ns Sy .*
+for details.
+.Pp
+.It Sy skydns
+.No Configuration to manipulate the SkyDNS Ns / Ns Xr coredns-etcd 7 No plugin.
+.Pp
+.It Sy skydns.serverid
+Server name that must be unique among servers sharing the same SkyDNS instance.
+.Pp
+.It Sy skydns.path
+The path inside etcd.
+.Pp
+.It Sy skydns.zone
+Authoritative zone.
+.Pp
+.It Sy etcd
+Configuration to connect to an etcd instance.
+.Pp
+.It Sy etcd.host
+Host name or address of the etcd instance.
+.Pp
+.It Sy etcd.port
+Port to connect to the etcd instance.
+.Pp
+.It Sy etcd.protocol
+Protocol
+.Po or scheme Pc Ns "."
+.Pp
+.It Sy etcd.ca_cert
+Local cert to use as client side certificate.
+.Pp
+.It Sy etcd.cert_key
+Private key.
+.Pp
+.It Sy etcd.timeout
+Number of seconds to wait for the client to establish a connection to the etcd
+instance and to wait for the server to send a response.
+.Pp
+.It Sy etcd.api_path
+The part that specifies the API version of etcd. Do not specify any if you want
+to leave the responsability of discovering the API version to the library.
 .El
 .Sh DEPLOYMENT
 .Bl -tag -compact -width xxx
@@ -373,74 +492,6 @@ Valid only for
 .It Sy maximumDeployments
 The maximum number of times to deploy a project.
 .Pp
-.It Sy dataplaneapi
-Data Plane API settings to configure HAProxy.
-.Pp
-.It Sy dataplaneapi.serverid
-Server name that must be unique among servers sharing the same Data Plane API instance.
-.Pp
-.It Sy dataplaneapi.auth
-Data Plane API authentication parameters.
-.Pp
-.It Sy dataplaneapi.auth.username
-Data Plane API username.
-.Pp
-.It Sy dataplaneapi.auth.password
-Data Plane API password.
-.Pp
-.It Sy dataplaneapi.entrypoint
-.It Sy dataplaneapi.timeout
-.It Sy dataplaneapi.read_timeout
-.It Sy dataplaneapi.write_timeout
-.It Sy dataplaneapi.connect_timeout
-.It Sy dataplaneapi.pool_timeout
-.It Sy dataplaneapi.max_keepalive_connections
-.It Sy dataplaneapi.max_connections
-.It Sy dataplaneapi.keepalive_expiry
-See
-.Sy chains. Ns Ar chain Ns Sy .*
-in
-.Sx CONFIGURATION
-for details.
-.Pp
-.It Sy skydns
-.No Configuration to manipulate the SkyDNS Ns / Ns Xr coredns-etcd 7 No plugin.
-.Pp
-.It Sy skydns.serverid
-Server name that must be unique among servers sharing the same SkyDNS instance.
-.Pp
-.It Sy skydns.path
-The path inside etcd.
-.Pp
-.It Sy skydns.zone
-Authoritative zone.
-.Pp
-.It Sy etcd
-Configuration to connect to an etcd instance.
-.Pp
-.It Sy etcd.host
-Host name or address of the etcd instance.
-.Pp
-.It Sy etcd.port
-Port to connect to the etcd instance.
-.Pp
-.It Sy etcd.protocol
-Protocol
-.Po or scheme Pc Ns "."
-.Pp
-.It Sy etcd.ca_cert
-Local cert to use as client side certificate.
-.Pp
-.It Sy etcd.cert_key
-Private key.
-.Pp
-.It Sy etcd.timeout
-Number of seconds to wait for the client to establish a connection to the etcd
-instance and to wait for the server to send a response.
-.Pp
-.It Sy etcd.api_path
-The part that specifies the API version of etcd. Do not specify any if you want
-to leave the responsability of discovering the API version to the library.
 .El
 .Sh SEE ALSO
 .Xr overlord 1
