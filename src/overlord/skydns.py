@@ -140,13 +140,27 @@ def update_address(address, group, ttl):
 
     return result
 
+def delete_address(group):
+    group = _get_group(group)
+    serverid = _get_serverid()
+    path = overlord.config.get_skydns_path()
+    zone_path = _get_zone2path()
+
+    etcd_path = f"{path}{zone_path}/{group}/{serverid}/"
+
+    conn = overlord.etcd.connect()
+
+    result = conn.delete(etcd_path)
+
+    return result
+
 def update_srv(group, service, proto, port, priority, weight, ttl):
     group = _get_group(group)
     serverid = _get_serverid()
     path = overlord.config.get_skydns_path()
     zone_path = _get_zone2path()
 
-    etcd_path = f"{path}{zone_path}/{group}/_{proto}/_{service}/{serverid}"
+    etcd_path = f"{path}{zone_path}/{group}/_{proto}/_{service}/{serverid}/"
 
     zone = overlord.config.get_skydns_zone()
     zone = dns.name.from_text(zone)
@@ -171,36 +185,15 @@ def update_srv(group, service, proto, port, priority, weight, ttl):
 
     return result
 
-def update_text(group, index, text, ttl):
-    group = _get_group(group)
-    path = overlord.config.get_skydns_path()
-    zone_path = _get_zone2path()
-
-    etcd_path = f"{path}{zone_path}/{group}/txt{index}/"
-
-    data = {
-        "text" : text,
-        "ttl" : int(ttl),
-        "group" : group
-    }
-
-    json_data = json.dumps(data)
-
-    conn = overlord.etcd.connect()
-
-    result = conn.put(etcd_path, json_data)
-
-    return result
-
-def delete_records(group):
+def delete_srv(group, service, proto):
     serverid = _get_serverid()
     path = overlord.config.get_skydns_path()
     zone_path = _get_zone2path()
 
-    etcd_path = f"{path}{zone_path}/{group}/{serverid}/"
+    etcd_path = f"{path}{zone_path}/{group}/_{proto}/_{service}/{serverid}/"
 
     conn = overlord.etcd.connect()
 
-    result = conn.delete_prefix(etcd_path)
+    result = conn.delete(etcd_path)
 
     return result

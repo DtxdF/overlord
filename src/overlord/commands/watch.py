@@ -320,16 +320,6 @@ async def run_special_label_skydns(project, type, service, labels):
 
         return (error, message) 
 
-    if type == "destroy":
-        error = False
-        
-        records = overlord.skydns.delete_records(group)
-        ptr = overlord.skydns.delete_ptr(address)
-
-        message = f"(project:{project}, service:{service_name}, records:[all:{records},ptr:{ptr}]) DNS records have been removed."
-
-        return (error, message)
-
     ttl = labels.get("overlord.skydns.ttl", overlord.default.DNS["ttl"])
 
     try:
@@ -343,19 +333,26 @@ async def run_special_label_skydns(project, type, service, labels):
 
     response = {
         "ptr" : None,
-        "txt" : [],
         "address" : None,
         "srv" : None
     }
 
-    result = overlord.skydns.update_address(address, group, ttl)
+    if type == "create":
+        result = overlord.skydns.update_address(address, group, ttl)
+
+    elif type == "destroy":
+        result = overlord.skydns.delete_address(group)
 
     response["address"] = result
 
     use_skydns_ptr = labels.get("overlord.skydns.ptr")
 
     if use_skydns_ptr is not None:
-        result = overlord.skydns.update_ptr(address, group)
+        if type == "create":
+            result = overlord.skydns.update_ptr(address, group)
+
+        elif type == "destroy":
+            result = overlord.skydns.delete_ptr(address)
 
         response["ptr"] = result
 
@@ -428,42 +425,26 @@ async def run_special_label_skydns(project, type, service, labels):
 
             return (error, message)
         
-        result = overlord.skydns.update_srv(group, srv_service, proto, port, priority, weight, ttl)
+        if type == "create":
+            result = overlord.skydns.update_srv(group, srv_service, proto, port, priority, weight, ttl)
+
+        elif type == "destroy":
+            result = overlord.skydns.delete_srv(group, srv_service, proto)
 
         response["srv"] = result
 
-    use_skydns_txt = labels.get("overlord.skydns.txt")
-
-    if use_skydns_txt is not None:
-        for key, value in labels.items():
-            match = re.match(r"^overlord\.skydns\.txt(\d+)$", key)
-
-            if match:
-                index = int(match.group(1))
-                text = value
-
-                ttl = labels.get(f"overlord.skydns.txt{index}.ttl", overlord.default.DNS["ttl"])
-
-                try:
-                    ttl = int(ttl)
-
-                except ValueError:
-                    error = True
-                    message = f"(project:{project}, service:{service_name}, ttl:{ttl}, label:overlord.skydns.txt{index}.ttl) invalid TTL."
-
-                    return (error, message)
-
-                result = overlord.skydns.update_text(group, index, text, ttl)
-
-                response["txt"].append({ f"txt{index}" : result })
-
     record_address = response.get("address")
     record_ptr = response.get("ptr")
-    record_txt = response.get("txt")
     record_srv = response.get("srv")
 
+    if type == "create":
+        _message = "records has been updated."
+
+    elif type == "destroy":
+        _message = "records has been removed."
+
     error = False
-    message = f"(project:{project}, service:{service_name}, records:[address:{record_address},ptr:{record_ptr},txt:{record_txt},srv:{record_srv}] records has been updated."
+    message = f"(project:{project}, service:{service_name}, records:[address:{record_address},ptr:{record_ptr},srv:{record_srv}] {_message}"
 
     return (error, message)
 
