@@ -27,6 +27,8 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import copy
+
 CONFIG = {}
 
 def get_projectName():
@@ -37,6 +39,7 @@ def get_projectFile():
 
 def get_environment(datacenter=None, chain=None, labels=[]):
     environment = CONFIG.get("environment", {})
+    environment = copy.copy(environment)
 
     for label in labels:
         labelEnvironment = get_labelEnvironment(label)
