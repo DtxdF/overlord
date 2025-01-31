@@ -29,6 +29,7 @@
 
 import logging.config
 import re
+import os
 
 import pyaml_env
 
@@ -129,7 +130,8 @@ def get_config():
             "cert_key" : get_etcd_cert_key(),
             "timeout" : get_etcd_timeout(),
             "api_path" : get_etcd_api_path()
-        }
+        },
+        "max_watch_projects" : get_max_watch_projects()
     }
 
     for chain in list_chains():
@@ -649,6 +651,9 @@ def get_etcd_api_path():
 
     return etcd.get("api_path")
 
+def get_max_watch_projects():
+    return get_default(CONFIG.get("max_watch_projects"), os.cpu_count())
+
 def validate(document):
     if not isinstance(document, dict):
         raise overlord.exceptions.InvalidSpec("The configuration is invalid.")
@@ -669,7 +674,8 @@ def validate(document):
         "execution_time",
         "dataplaneapi",
         "skydns",
-        "etcd"
+        "etcd",
+        "max_watch_projects"
     )
 
     for key in document:
@@ -692,6 +698,19 @@ def validate(document):
     validate_dataplaneapi(document)
     validate_skydns(document)
     validate_etcd(document)
+    validate_max_watch_projects(document)
+
+def validate_max_watch_projects(document):
+    max_watch_projects = document.get("max_watch_projects")
+
+    if max_watch_projects is None:
+        return
+
+    if not isinstance(max_watch_projects, int):
+        raise overlord.exceptions.InvalidSpec(f"{max_watch_projects}: invalid value type for 'max_watch_projects'")
+
+    if max_watch_projects <= 0:
+        raise ValueError(f"{max_watch_projects}: invalid value for 'max_watch_projects'.")
 
 def validate_etcd(document):
     etcd = document.get("etcd")

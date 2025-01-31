@@ -49,15 +49,24 @@ import overlord.skydns
 import overlord.queue
 import overlord.util
 
+from concurrent.futures import ProcessPoolExecutor
+
 from overlord.sysexits import EX_SOFTWARE
 
 logger = logging.getLogger(__name__)
 
 @overlord.commands.cli.command(add_help_option=False)
 def watch_projects():
-    asyncio.run(_watch_projects())
+    max_watch_projects = overlord.config.get_max_watch_projects()
 
-async def _watch_projects():
+    with ProcessPoolExecutor() as executor:
+        for _ in range(max_watch_projects):
+            executor.submit(_watch_projects)
+
+def _watch_projects(*args, **kwargs):
+    asyncio.run(_async_watch_projects())
+
+async def _async_watch_projects():
     try:
         overlord.process.init()
 

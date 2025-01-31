@@ -385,6 +385,11 @@ instance and to wait for the server to send a response.
 .It Sy etcd.api_path
 The part that specifies the API version of etcd. Do not specify any if you want
 to leave the responsability of discovering the API version to the library.
+.Pp
+.It Sy max_watch_projects
+Maximum number of jobs to wait in parallel to create or destroy projects, which
+must be greater than or equal to 1. By default, the number of available CPUs is
+used.
 .El
 .Sh DEPLOYMENT
 .Bl -tag -compact -width xxx
