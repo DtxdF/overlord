@@ -104,9 +104,13 @@ async def _async_watch_projects():
 
                     if not error:
                         for integration in ("load-balancer", "skydns"):
-                            integration_info = special_labels_response.get(integration, {})
+                            services = special_labels_response.get(integration, {})
 
-                            error = integration_info.get("error", False)
+                            for _, info in services.items():
+                                error = info.get("error", False)
+
+                                if error:
+                                    break
 
                             if error:
                                 break
@@ -141,9 +145,13 @@ async def _async_watch_projects():
 
                 if not error:
                     for integration in ("load-balancer", "skydns"):
-                        integration_info = special_labels_response.get(integration, {})
+                        services = special_labels_response.get(integration, {})
 
-                        error = integration_info.get("error", False)
+                        for _, info in services.items():
+                            error = info.get("error", False)
+
+                            if error:
+                                break
 
                         if error:
                             break
