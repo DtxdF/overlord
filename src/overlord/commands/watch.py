@@ -45,6 +45,8 @@ import overlord.config
 import overlord.dataplaneapi
 import overlord.default
 import overlord.director
+import overlord.process
+import overlord.trap
 import overlord.skydns
 import overlord.queue
 import overlord.util
@@ -59,9 +61,14 @@ logger = logging.getLogger(__name__)
 def watch_projects():
     max_watch_projects = overlord.config.get_max_watch_projects()
 
-    with ProcessPoolExecutor() as executor:
+    overlord.trap.add(clean)
+
+    with ProcessPoolExecutor(max_workers=max_watch_projects) as executor:
         for _ in range(max_watch_projects):
             executor.submit(_watch_projects)
+
+def clean(*args, **kwargs):
+    overlord.process.kill_child_processes(os.getpid())
 
 def _watch_projects(*args, **kwargs):
     asyncio.run(_async_watch_projects())
