@@ -27,6 +27,10 @@ log_config:
       handlers: ['default']
       level: 'INFO'
       propagate: false
+    'overlord.etcd':
+      handlers: ['default']
+      level: 'INFO'
+      propagate: false
     'overlord.commands':
       handlers: ['default']
       level: 'INFO'

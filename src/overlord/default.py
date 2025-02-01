@@ -206,10 +206,13 @@ SKYDNS = {
     "path" : "/skydns",
     "zone" : "."
 }
+ETCD_PORT = 2379
+ETCD_PROTOCOL = "http"
 ETCD = {
-    "host" : "localhost",
-    "port" : 2379,
-    "protocol" : "http"
+    "localhost" : {
+        "port" : ETCD_PORT,
+        "protocol" : ETCD_PROTOCOL
+    }
 }
 DNS = {
     "ttl" : 60,

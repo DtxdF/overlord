@@ -360,29 +360,26 @@ The path inside etcd.
 Authoritative zone.
 .Pp
 .It Sy etcd
-Configuration to connect to an etcd instance.
+Configuration to connect to etcd instances.
 .Pp
-.It Sy etcd.host
-Host name or address of the etcd instance.
-.Pp
-.It Sy etcd.port
+.It Sy etcd. Ns Ar host Ns Sy .port
 Port to connect to the etcd instance.
 .Pp
-.It Sy etcd.protocol
+.It Sy etcd. Ns Ar host Ns Sy .protocol
 Protocol
 .Po or scheme Pc Ns "."
 .Pp
-.It Sy etcd.ca_cert
+.It Sy etcd. Ns Ar host Ns Sy .ca_cert
 Local cert to use as client side certificate.
 .Pp
-.It Sy etcd.cert_key
+.It Sy etcd. Ns Ar host Ns Sy .cert_key
 Private key.
 .Pp
-.It Sy etcd.timeout
+.It Sy etcd. Ns Ar host Ns Sy .timeout
 Number of seconds to wait for the client to establish a connection to the etcd
 instance and to wait for the server to send a response.
 .Pp
-.It Sy etcd.api_path
+.It Sy etcd. Ns Ar host Ns Sy .api_path
 The part that specifies the API version of etcd. Do not specify any if you want
 to leave the responsability of discovering the API version to the library.
 .Pp

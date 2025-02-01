@@ -100,9 +100,7 @@ def update_ptr(address, group):
 
     json_data = json.dumps(data)
 
-    conn = overlord.etcd.connect()
-
-    result = conn.put(etcd_path, json_data)
+    result = overlord.etcd.run_cmd("put", etcd_path, json_data)
 
     return result
 
@@ -112,9 +110,7 @@ def delete_ptr(address):
 
     etcd_path = f"{path}{address_path}"
 
-    conn = overlord.etcd.connect()
-
-    result = conn.delete(etcd_path)
+    result = overlord.etcd.run_cmd("delete", etcd_path)
 
     return result
 
@@ -134,9 +130,7 @@ def update_address(address, group, ttl):
 
     json_data = json.dumps(data)
 
-    conn = overlord.etcd.connect()
-
-    result = conn.put(etcd_path, json_data)
+    result = overlord.etcd.run_cmd("put", etcd_path, json_data)
 
     return result
 
@@ -148,9 +142,7 @@ def delete_address(group):
 
     etcd_path = f"{path}{zone_path}/{group}/{serverid}/"
 
-    conn = overlord.etcd.connect()
-
-    result = conn.delete(etcd_path)
+    result = overlord.etcd.run_cmd("delete", etcd_path)
 
     return result
 
@@ -179,9 +171,7 @@ def update_srv(group, service, proto, port, priority, weight, ttl):
 
     json_data = json.dumps(data)
 
-    conn = overlord.etcd.connect()
-
-    result = conn.put(etcd_path, json_data)
+    result = overlord.etcd.run_cmd("put", etcd_path, json_data)
 
     return result
 
@@ -192,8 +182,6 @@ def delete_srv(group, service, proto):
 
     etcd_path = f"{path}{zone_path}/{group}/_{proto}/_{service}/{serverid}/"
 
-    conn = overlord.etcd.connect()
-
-    result = conn.delete(etcd_path)
+    result = overlord.etcd.run_cmd("delete", etcd_path)
 
     return result

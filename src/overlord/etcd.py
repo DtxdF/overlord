@@ -27,28 +27,56 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import time
+import logging
+
 import etcd3gw
 
 import overlord.config
+import overlord.exceptions
 
-CLIENT = None
+logger = logging.getLogger(__name__)
 
-def connect():
-    global CLIENT
+HOSTS = {}
 
-    if CLIENT is not None:
-        return CLIENT
+def gen_hosts():
+    for host in overlord.config.list_etcd_hosts():
+        HOSTS[host] = 0
 
-    settings = {
-        "host" : overlord.config.get_etcd_host(),
-        "port" : overlord.config.get_etcd_port(),
-        "protocol" : overlord.config.get_etcd_protocol(),
-        "ca_cert" : overlord.config.get_etcd_ca_cert(),
-        "cert_key" : overlord.config.get_etcd_cert_key(),
-        "timeout" : overlord.config.get_etcd_timeout(),
-        "api_path" : overlord.config.get_etcd_api_path()
-    }
+def run_cmd(cmd, *args, **kwargs):
+    if len(HOSTS) == 0:
+        gen_hosts()
 
-    CLIENT = etcd3gw.client(**settings)
+    for host, blacklisted in HOSTS.items():
+        if blacklisted > 0:
+            wait_time = len(HOSTS) * 2
 
-    return CLIENT
+            current_time = time.time()
+
+            if current_time-blacklisted < wait_time:
+                continue
+
+        HOSTS[host] = 0
+
+        settings = {
+            "host" : host,
+            "port" : overlord.config.get_etcd_port(host),
+            "protocol" : overlord.config.get_etcd_protocol(host),
+            "ca_cert" : overlord.config.get_etcd_ca_cert(host),
+            "cert_key" : overlord.config.get_etcd_cert_key(host),
+            "timeout" : overlord.config.get_etcd_timeout(host),
+            "api_path" : overlord.config.get_etcd_api_path(host)
+        }
+
+        conn = etcd3gw.client(**settings)
+
+        try:
+            return getattr(conn, cmd)(*args, **kwargs)
+
+        except:
+            logger.exception("Error executing the etcd function '%s' (host:%s)",
+                             cmd, host)
+
+            HOSTS[host] = time.time()
+
+    raise overlord.exceptions.EtcdException("All etcd instances do not seem to work correctly.")

@@ -122,17 +122,19 @@ def get_config():
             "path" : get_skydns_path(),
             "zone" : get_skydns_zone()
         },
-        "etcd" : {
-            "host" : get_etcd_host(),
-            "port" : get_etcd_port(),
-            "protocol" : get_etcd_protocol(),
-            "ca_cert" : get_etcd_ca_cert(),
-            "cert_key" : get_etcd_cert_key(),
-            "timeout" : get_etcd_timeout(),
-            "api_path" : get_etcd_api_path()
-        },
+        "etcd" : {},
         "max_watch_projects" : get_max_watch_projects()
     }
+
+    for host in list_etcd_hosts():
+        config["etcd"][host] = {
+            "port" : get_etcd_port(host),
+            "protocol" : get_etcd_protocol(host),
+            "ca_cert" : get_etcd_ca_cert(host),
+            "cert_key" : get_etcd_cert_key(host),
+            "timeout" : get_etcd_timeout(host),
+            "api_path" : get_etcd_api_path(host)
+        }
 
     for chain in list_chains():
         config["chains"][chain] = {
@@ -616,40 +618,63 @@ def get_skydns_zone():
 def get_etcd():
     return get_default(CONFIG.get("etcd"), overlord.default.ETCD)
 
-def get_etcd_host():
+def list_etcd_hosts():
     etcd = get_etcd()
 
-    return get_default(etcd.get("host"), overlord.default.ETCD["host"])
+    return list(etcd)
 
-def get_etcd_port():
+def get_etcd_host(host):
     etcd = get_etcd()
 
-    return get_default(etcd.get("port"), overlord.default.ETCD["port"])
+    return etcd.get(host)
 
-def get_etcd_protocol():
-    etcd = get_etcd()
+def get_etcd_port(host):
+    etcd_host = get_etcd_host(host)
 
-    return get_default(etcd.get("protocol"), overlord.default.ETCD["protocol"])
+    if etcd_host is None:
+        return
 
-def get_etcd_ca_cert():
-    etcd = get_etcd()
+    return get_default(etcd_host.get("port"), overlord.default.ETCD_PORT)
 
-    return etcd.get("ca_cert")
+def get_etcd_protocol(host):
+    etcd_host = get_etcd_host(host)
+    
+    if etcd_host is None:
+        return
 
-def get_etcd_cert_key():
-    etcd = get_etcd()
+    return get_default(etcd_host.get("protocol"), overlord.default.ETCD_PROTOCOL)
 
-    return etcd.get("cert_key")
+def get_etcd_ca_cert(host):
+    etcd_host = get_etcd_host(host)
 
-def get_etcd_timeout():
-    etcd = get_etcd()
+    if etcd_host is None:
+        return
 
-    return etcd.get("timeout")
+    return etcd_host.get("ca_cert")
 
-def get_etcd_api_path():
-    etcd = get_etcd()
+def get_etcd_cert_key(host):
+    etcd_host = get_etcd_host(host)
 
-    return etcd.get("api_path")
+    if etcd_host is None:
+        return
+
+    return etcd_host.get("cert_key")
+
+def get_etcd_timeout(host):
+    etcd_host = get_etcd_host(host)
+
+    if etcd_host is None:
+        return
+
+    return etcd_host.get("timeout")
+
+def get_etcd_api_path(host):
+    etcd_host = get_etcd_host(host)
+
+    if etcd_host is None:
+        return
+
+    return etcd_host.get("api_path")
 
 def get_max_watch_projects():
     return get_default(CONFIG.get("max_watch_projects"), os.cpu_count())
@@ -721,8 +746,17 @@ def validate_etcd(document):
     if not isinstance(etcd, dict):
         raise overlord.exceptions.InvalidSpec("'etcd' is invalid.")
 
+    for index, host in enumerate(etcd):
+        if not isinstance(host, str):
+            raise overlord.exceptions.InvalidSpec(f"{host}: invalid value type for 'etcd.{index}'")
+
+        validate_etcd_host(etcd, host)
+
+def validate_etcd_host(etcd, host):
+    if not isinstance(etcd[host], dict):
+        raise overlord.exceptions.InvalidSpec(f"'etcd.{host}' is invalid.")
+
     keys = (
-        "host",
         "port",
         "protocol",
         "ca_cert",
@@ -731,83 +765,73 @@ def validate_etcd(document):
         "api_path"
     )
 
-    for key in etcd:
+    for key in etcd[host]:
         if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"etcd.{key}: this key is invalid.")
+            raise overlord.exceptions.InvalidSpec(f"etcd.{host}.{key}: this key is invalid.")
 
-    validate_etcd_host(etcd)
-    validate_etcd_port(etcd)
-    validate_etcd_protocol(etcd)
-    validate_etcd_ca_cert(etcd)
-    validate_etcd_cert_key(etcd)
-    validate_etcd_timeout(etcd)
-    validate_etcd_api_path(etcd)
+    validate_etcd_port(etcd, host)
+    validate_etcd_protocol(etcd, host)
+    validate_etcd_ca_cert(etcd, host)
+    validate_etcd_cert_key(etcd, host)
+    validate_etcd_timeout(etcd, host)
+    validate_etcd_api_path(etcd, host)
 
-def validate_etcd_host(document):
-    host = document.get("host")
-
-    if host is None:
-        return
-
-    if not isinstance(host, str):
-        raise overlord.exceptions.InvalidSpec(f"{host}: invalid value type for 'etcd.host'")
-
-def validate_etcd_port(document):
-    port = document.get("port")
+def validate_etcd_port(etcd, host):
+    port = etcd[host].get("port")
 
     if port is None:
         return
 
     if not isinstance(port, int):
-        raise overlord.exceptions.InvalidSpec(f"{port}: invalid value type for 'etcd.port'")
+        raise overlord.exceptions.InvalidSpec(f"{port}: invalid value type for 'etcd.{host}.port'")
 
     if port < 0 or port > 65535:
         raise ValueError(f"{port}: invalid port.")
 
-def validate_etcd_protocol(document):
-    protocol = document.get("protocol")
+def validate_etcd_protocol(etcd, host):
+    protocol = etcd[host].get("protocol")
 
     if protocol is None:
         return
 
     if not isinstance(protocol, str):
-        raise overlord.exceptions.InvalidSpec(f"{protocol}: invalid value type for 'etcd.protocol'")
+        raise overlord.exceptions.InvalidSpec(f"{protocol}: invalid value type for 'etcd.{host}.protocol'")
 
-def validate_etcd_ca_cert(document):
-    ca_cert = document.get("ca_cert")
+def validate_etcd_ca_cert(etcd, host):
+    ca_cert = etcd[host].get("ca_cert")
 
     if ca_cert is None:
         return
 
     if not isinstance(ca_cert, str):
-        raise overlord.exceptions.InvalidSpec(f"{ca_cert}: invalid value type for 'etcd.ca_cert'")
+        raise overlord.exceptions.InvalidSpec(f"{ca_cert}: invalid value type for 'etcd.{host}.ca_cert'")
 
-def validate_etcd_cert_key(document):
-    cert_key = document.get("cert_key")
+def validate_etcd_cert_key(etcd, host):
+    cert_key = etcd[host].get("cert_key")
 
     if cert_key is None:
         return
 
     if not isinstance(cert_key, str):
-        raise overlord.exceptions.InvalidSpec(f"{cert_key}: invalid value type for 'etcd.cert_key'")
+        raise overlord.exceptions.InvalidSpec(f"{cert_key}: invalid value type for 'etcd.{host}.cert_key'")
 
-def validate_etcd_timeout(document):
-    timeout = document.get("timeout")
+def validate_etcd_timeout(etcd, host):
+    timeout = etcd[host].get("timeout")
 
     if timeout is None:
         return
 
     if not isinstance(timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{timeout}: invalid value type for 'etcd.timeout'")
+        raise overlord.exceptions.InvalidSpec(f"{timeout}: invalid value type for 'etcd.{host}.timeout'")
 
-def validate_etcd_api_path(document):
-    api_path = document.get("api_path")
+def validate_etcd_api_path(etcd, host):
+    api_path = etcd[host].get("api_path")
 
     if api_path is None:
         return
 
     if not isinstance(api_path, str):
-        raise overlord.exceptions.InvalidSpec(f"{api_path}: invalid value type for 'etcd.api_path'")
+        raise overlord.exceptions.InvalidSpec(f"{api_path}: invalid value type for 'etcd.{host}.api_path'")
 
 def validate_skydns(document):
     skydns = document.get("skydns")

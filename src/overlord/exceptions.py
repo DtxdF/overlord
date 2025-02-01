@@ -62,3 +62,6 @@ class InterfaceNotFound(Exception):
 
 class MissingServerID(Exception):
     pass
+
+class EtcdException(Exception):
+    pass
