@@ -57,24 +57,43 @@ from overlord.sysexits import EX_SOFTWARE
 
 logger = logging.getLogger(__name__)
 
+EXECUTOR = None
+CHILD = None
+
 @overlord.commands.cli.command(add_help_option=False)
 def watch_projects():
+    global EXECUTOR
+
     max_watch_projects = overlord.config.get_max_watch_projects()
 
     overlord.trap.add(clean)
 
-    with ProcessPoolExecutor(max_workers=max_watch_projects) as executor:
-        for _ in range(max_watch_projects):
-            executor.submit(_watch_projects)
+    EXECUTOR = ProcessPoolExecutor(max_workers=max_watch_projects)
+
+    for _ in range(max_watch_projects):
+        EXECUTOR.submit(_watch_projects)
 
 def clean(*args, **kwargs):
+    if CHILD is not None:
+        logger.info("My work is finished :D")
+        return
+
+    logger.info("Cleaning up ...")
+
     overlord.process.kill_child_processes(os.getpid())
+
+    if EXECUTOR is not None:
+        EXECUTOR.shutdown(wait=False)
 
 def _watch_projects(*args, **kwargs):
     asyncio.run(_async_watch_projects())
 
 async def _async_watch_projects():
+    global CHILD
+
     try:
+        CHILD = os.getpid()
+
         overlord.process.init()
 
         while True:
