@@ -46,7 +46,7 @@
 .Cm print-spec
 .Nm
 .Op Fl Fl env-file Ar file
-.Cm destroy-project
+.Cm destroy
 .Fl Fl file Ar file
 .Op Fl Fl filter-chain Ar filter
 .Nm
@@ -121,8 +121,8 @@ Prints the configuration in JSON format. This includes the default values.
 .It Cm print-spec
 Prints the specification of a deployment file in JSON format. This includes the
 default values.
-.It Cm destroy-project Fl Fl file Ar file Oo Fl Fl filter-chain Ar filter Oc
-Destroys a project.
+.It Cm destroy Fl Fl file Ar file Oo Fl Fl filter-chain Ar filter Oc
+Destroy a project or metadata.
 .Bl -tag -width xx
 .It Fl f Ar file Ns , No Fl Fl file Ar file
 Deployment file.
@@ -295,7 +295,7 @@ reported by
 Jails that do not meet this requirement will be completely ignored.
 .Pp
 Also note that in the case of destroying a project requested by the
-.Cm destroy-project
+.Cm destroy
 command, the project will not be destroyed if an integration fails in its operation.
 This is to inform you first if an error has occurred and it is necessary to intervene.
 .Pp

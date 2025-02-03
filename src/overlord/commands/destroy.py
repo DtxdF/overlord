@@ -46,10 +46,10 @@ logger = logging.getLogger(__name__)
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
 @click.option("--filter-chain", default=[], multiple=True)
-def destroy_project(*args, **kwargs):
-    asyncio.run(_destroy_project(*args, **kwargs))
+def destroy(*args, **kwargs):
+    asyncio.run(_destroy(*args, **kwargs))
 
-async def _destroy_project(file, filter_chain):
+async def _destroy(file, filter_chain):
     try:
         overlord.spec.load(file)
 
@@ -195,6 +195,23 @@ async def _destroy_project(file, filter_chain):
                     job_id = response.get("job_id")
 
                     logger.debug("Job ID is '%d'", job_id)
+
+                elif kind == overlord.spec.OverlordKindTypes.METADATA.value:
+                    metadata = overlord.spec.metadata.get_metadata()
+
+                    for metadata_name in metadata:
+                        try:
+                            await client.metadata_delete(metadata_name, chain=chain)
+
+                        except Exception as err:
+                            error = overlord.util.get_error(err)
+                            error_type = error.get("type")
+                            error_message = error.get("message")
+
+                            logger.warning("Error destroying metadata '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
+                                           metadata_name, client.base_url, chain, error_type, error_message)
+
+                            continue
 
     except Exception as err:
         error = overlord.util.get_error(err)
