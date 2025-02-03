@@ -28,11 +28,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import asyncio
+import io
 import logging
 import sys
 
 import click
 import httpx
+import yaml
 
 import overlord.chains
 import overlord.client
@@ -178,6 +180,40 @@ async def _destroy(file, filter_chain):
                     environment = overlord.spec.director_project.get_environment(
                         datacenter=datacenter, chain=chain, labels=entrypoint_labels
                     )
+
+                    environ_from_metadata = overlord.spec.director_project.get_environFromMetadata()
+
+                    if environ_from_metadata is not None:
+                        try:
+                            _environment = await client.metadata_get(environ_from_metadata, chain=chain)
+
+                        except Exception as err:
+                            error = overlord.util.get_error(err)
+                            error_type = error.get("type")
+                            error_message = error.get("message")
+
+                            logger.warning("Error obtaining the environment '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
+                                           environ_from_metadata, client.base_url, chain, error_type, error_message)
+                            continue
+
+                        with io.StringIO(initial_value=_environment) as fd:
+                            try:
+                                _environment = yaml.load(_environment, Loader=yaml.SafeLoader)
+                            except Exception as err:
+                                error = overlord.util.get_error(err)
+                                error_type = error.get("type")
+                                error_message = error.get("message")
+
+                                logger.warning("Error parsing the environment '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
+                                               environ_from_metadata, client.base_url, chain, error_type, error_message)
+                                continue
+
+                        if not isinstance(_environment, dict):
+                            logger.warning("The environment from the metadata '%s' is not a dictionary (entrypoint:%s, chain:%s)",
+                                           environ_from_metadata, client.base_url, chain)
+                            continue
+
+                        environment.update(_environment)
 
                     try:
                         response = await client.down(project_name, environment, chain=chain)

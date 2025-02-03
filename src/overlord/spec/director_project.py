@@ -40,6 +40,9 @@ def get_projectFile():
 def get_projectFromMetadata():
     return CONFIG.get("projectFromMetadata")
 
+def get_environFromMetadata():
+    return CONFIG.get("environFromMetadata")
+
 def get_environment(datacenter=None, chain=None, labels=[]):
     environment = CONFIG.get("environment", {})
     environment = copy.copy(environment)
@@ -119,7 +122,8 @@ def validate(document):
         "environment",
         "datacentersEnvironment",
         "chainsEnvironment",
-        "labelsEnvironment"
+        "labelsEnvironment",
+        "environFromMetadata"
     )
 
     for key in document:
@@ -132,6 +136,7 @@ def validate(document):
     validate_datacentersEnvironment(document)
     validate_chainsEnvironment(document)
     validate_labelsEnvironment(document)
+    validate_environFromMetadata(document)
 
     CONFIG = document
 
@@ -229,3 +234,12 @@ def validate_labelsEnvironment(document):
             if not isinstance(env_name, str) \
                     or not isinstance(env_value, str):
                 raise overlord.exceptions.InvalidSpec(f"Invalid environment name (labelsEnvironment.{labelsEnvironment}.{env_name}) or value (labelsEnvironment.{labelsEnvironment}.{env_value}).")
+
+def validate_environFromMetadata(document):
+    environFromMetadata = document.get("environFromMetadata")
+
+    if environFromMetadata is None:
+        return
+
+    if not isinstance(environFromMetadata, str):
+        raise overlord.exceptions.InvalidSpec(f"{environFromMetadata}: invalid value type for 'environFromMetadata'")
