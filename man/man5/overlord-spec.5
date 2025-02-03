@@ -393,9 +393,10 @@ used.
 .It Sy kind
 What kind of deployment is this file.
 .Pp
-Only
+Valid choices are
 .Sy directorProject
-is valid at this time.
+and
+.Sy metadata Ns "."
 .Pp
 .It Sy datacenters
 Servers to perform HTTP requests.
@@ -494,6 +495,11 @@ Valid only for
 .It Sy maximumDeployments
 The maximum number of times to deploy a project.
 .Pp
+.It Sy metadata
+A dictionary speciying the metadata to be stored.
+.Pp
+Valid only for
+.Sy metadata Ns "."
 .El
 .Sh SEE ALSO
 .Xr overlord 1
