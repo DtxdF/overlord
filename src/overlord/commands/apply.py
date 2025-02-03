@@ -237,7 +237,7 @@ async def _apply(file):
                             error_type = error.get("type")
                             error_message = error.get("message")
 
-                            logger.exception("Error creating the metadata '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
+                            logger.warning("Error creating the metadata '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
                                            key, client.base_url, chain, error_type, error_message)
 
                             continue
