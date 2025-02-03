@@ -37,6 +37,9 @@ def get_projectName():
 def get_projectFile():
     return CONFIG.get("projectFile")
 
+def get_projectFromMetadata():
+    return CONFIG.get("projectFromMetadata")
+
 def get_environment(datacenter=None, chain=None, labels=[]):
     environment = CONFIG.get("environment", {})
     environment = copy.copy(environment)
@@ -112,6 +115,7 @@ def validate(document):
         "maximumDeployments",
         "projectName",
         "projectFile",
+        "projectFromMetadata",
         "environment",
         "datacentersEnvironment",
         "chainsEnvironment",
@@ -123,7 +127,7 @@ def validate(document):
             raise overlord.exceptions.InvalidSpec(f"{key}: this key is invalid.")
 
     validate_projectName(document)
-    validate_projectFile(document)
+    validate_project(document)
     validate_environment(document)
     validate_datacentersEnvironment(document)
     validate_chainsEnvironment(document)
@@ -140,14 +144,23 @@ def validate_projectName(document):
     if not isinstance(projectName, str):
         raise overlord.exceptions.InvalidSpec(f"{projectName}: invalid value type for 'projectName'")
 
-def validate_projectFile(document):
+def validate_project(document):
     projectFile = document.get("projectFile")
+    projectFromMetadata = document.get("projectFromMetadata")
 
-    if projectFile is None:
-        raise overlord.exceptions.InvalidSpec("'projectFile' is required but hasn't been specified.")
+    if projectFile is None and projectFromMetadata is None:
+        raise overlord.exceptions.InvalidSpec("'projectFile' or 'projectFromMetadata' are required but haven't been specified.")
 
-    if not isinstance(projectFile, str):
-        raise overlord.exceptions.InvalidSpec(f"{projectFile}: invalid value type for 'projectFile'")
+    elif projectFile is not None and projectFromMetadata is not None:
+        raise overlord.exceptions.InvalidSpec("Only 'projectFile' or 'projectFromMetadata' should be specified, but not both.")
+
+    elif projectFile is not None:
+        if not isinstance(projectFile, str):
+            raise overlord.exceptions.InvalidSpec(f"{projectFile}: invalid value type for 'projectFile'")
+
+    elif projectFromMetadata is not None:
+        if not isinstance(projectFromMetadata, str):
+            raise overlord.exceptions.InvalidSpec(f"{projectFromMetadata}: invalid value type for 'projectFromMetadata'")
 
 def validate_environment(document):
     environment = document.get("environment")

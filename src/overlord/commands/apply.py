@@ -176,10 +176,31 @@ async def _apply(file):
 
                 if kind == overlord.spec.OverlordKindTypes.PROJECT.value:
                     project_name = overlord.spec.director_project.get_projectName()
-                    project_file = overlord.spec.director_project.get_projectFile()
                     environment = overlord.spec.director_project.get_environment(
                         datacenter=datacenter, chain=chain, labels=entrypoint_labels
                     )
+
+                    project_from_metadata = overlord.spec.director_project.get_projectFromMetadata()
+
+                    if project_from_metadata is None:
+                        project_file = overlord.spec.director_project.get_projectFile()
+
+                    else:
+                        try:
+                            logger.debug("Obtaining the project file '%s' at entrypoint URL '%s' (chain:%s)",
+                                         project_from_metadata, client.base_url, chain)
+
+                            project_file = await client.metadata_get(project_from_metadata, chain=chain)
+
+                        except Exception as err:
+                            error = overlord.util.get_error(err)
+                            error_type = error.get("type")
+                            error_message = error.get("message")
+
+                            logger.warning("Error obtaining the project file '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
+                                           project_from_metadata, client.base_url, chain, error_type, error_message)
+
+                            continue
 
                     try:
                         response = await client.up(project_name, project_file, environment, chain=chain)
