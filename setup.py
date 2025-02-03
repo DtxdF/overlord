@@ -45,7 +45,8 @@ setup(
         "ifaddr",
         "asciitree",
         "etcd3gw",
-        "dnspython"
+        "dnspython",
+        "PyYAML"
     ],
     entry_points={
         "console_scripts" : [
