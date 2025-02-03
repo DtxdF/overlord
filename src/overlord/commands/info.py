@@ -463,7 +463,9 @@ async def print_info_projects(client, chain, api_info, patterns):
 
                 else:
                     if key == "last_update":
-                        print("        last_update: %s" % time.ctime(value))
+                        last_update = humanfriendly.format_timespan(value)
+
+                        print("        last_update: %s" % last_update)
 
                     elif key == "output":
                         output = value

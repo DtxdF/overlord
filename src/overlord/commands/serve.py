@@ -31,6 +31,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 
 import aiofiles
 import click
@@ -321,8 +322,13 @@ class ProjectUpHandler(InternalHandler):
         if not self.check_project(project):
             return
 
+        result = overlord.cache.get_project_status_up(project)
+
+        if "last_update" in result:
+            result["last_update"] = time.time() - result["last_update"]
+
         self.write_template({
-            "status" : overlord.cache.get_project_status_up(project)
+            "status" : result
         })
 
     async def post(self, project):
@@ -352,8 +358,13 @@ class ProjectDownHandler(InternalHandler):
         if not self.check_project(project):
             return
 
+        result = overlord.cache.get_project_status_down(project)
+
+        if "last_update" in result:
+            result["last_update"] = time.time() - result["last_update"]
+
         self.write_template({
-            "status" : overlord.cache.get_project_status_down(project)
+            "status" : result
         })
 
     async def post(self, project):
