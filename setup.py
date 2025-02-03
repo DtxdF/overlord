@@ -46,7 +46,7 @@ setup(
         "asciitree",
         "etcd3gw",
         "dnspython",
-        "PyYAML"
+        "pyyaml"
     ],
     entry_points={
         "console_scripts" : [
