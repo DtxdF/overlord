@@ -253,6 +253,23 @@ class NotFoundHandler(JSONHandler):
         self.set_status(status_code, message)
 
     def prepare(self):
+        if self.get_status() < 400:
+            log_method = logger.info
+
+        elif self.get_status() < 500:
+            log_method = logger.warning
+
+        else:
+            log_method = logger.error
+
+        request_time = 1000.0 * self.request.request_time()
+        log_method(
+            "%d %s %.2fms",
+            self.get_status(),
+            self._request_summary(),
+            request_time,
+        )
+
         raise tornado.web.HTTPError(
             self._status_code, self._reason
         )
