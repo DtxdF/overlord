@@ -200,13 +200,34 @@ async def _apply(file):
 
                     logger.debug("Job ID is '%d'", job_id)
 
+                elif kind == overlord.spec.OverlordKindTypes.METADATA.value:
+                    metadata = overlord.spec.metadata.get_metadata()
+
+                    for key, value in metadata.items():
+                        try:
+                            logger.info("Writing metadata '%s' ...", key)
+
+                            await client.metadata_set(key, value, chain=chain)
+
+                            deployments += 1
+
+                        except Exception as err:
+                            error = overlord.util.get_error(err)
+                            error_type = error.get("type")
+                            error_message = error.get("message")
+
+                            logger.exception("Error creating the metadata '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
+                                           key, client.base_url, chain, error_type, error_message)
+
+                            continue
+
                 if maximumDeployments > 0 \
                         and deployments >= maximumDeployments:
                     logger.warning("Maximum deployments has been reached! (%d/%d)", deployments, maximumDeployments)
                     sys.exit(EX_OK)
 
         if deployments == 0:
-            logger.warning("The specified project hasn't been deployed!")
+            logger.warning("No deployment has had any effect.")
 
     except Exception as err:
         error = overlord.util.get_error(err)

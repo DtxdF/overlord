@@ -123,7 +123,11 @@ def get_config():
             "zone" : get_skydns_zone()
         },
         "etcd" : {},
-        "max_watch_projects" : get_max_watch_projects()
+        "max_watch_projects" : get_max_watch_projects(),
+        "metadata" : {
+            "location" : get_metadata_location(),
+            "size" : get_metadata_size()
+        }
     }
 
     for host in list_etcd_hosts():
@@ -679,6 +683,19 @@ def get_etcd_api_path(host):
 def get_max_watch_projects():
     return get_default(CONFIG.get("max_watch_projects"), os.cpu_count())
 
+def get_metadata():
+    return get_default(CONFIG.get("metadata"), {})
+
+def get_metadata_location():
+    metadata = get_metadata()
+
+    return get_default(metadata.get("location"), overlord.default.METADATA["location"])
+
+def get_metadata_size():
+    metadata = get_metadata()
+
+    return get_default(metadata.get("size"), overlord.default.METADATA["size"])
+
 def validate(document):
     if not isinstance(document, dict):
         raise overlord.exceptions.InvalidSpec("The configuration is invalid.")
@@ -700,7 +717,8 @@ def validate(document):
         "dataplaneapi",
         "skydns",
         "etcd",
-        "max_watch_projects"
+        "max_watch_projects",
+        "metadata"
     )
 
     for key in document:
@@ -724,6 +742,49 @@ def validate(document):
     validate_skydns(document)
     validate_etcd(document)
     validate_max_watch_projects(document)
+    validate_metadata(document)
+
+def validate_metadata(document):
+    metadata = document.get("metadata")
+
+    if metadata is None:
+        return
+
+    if not isinstance(metadata, dict):
+        raise overlord.exceptions.InvalidSpec("'metadata' is invalid.")
+
+    keys = (
+        "location",
+        "size"
+    )
+
+    for key in metadata.keys():
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"metadata.{key}: this key is invalid.")
+
+    validate_metadata_location(metadata)
+    validate_metadata_size(metadata)
+
+def validate_metadata_size(document):
+    size = document.get("size")
+
+    if size is None:
+        return
+
+    if not isinstance(size, int):
+        raise overlord.exceptions.InvalidSpec(f"{size}: invalid value type for 'metadata.size'")
+
+    if size < overlord.default.METADATA_MAX_SIZE:
+        raise ValueError(f"{size}: invalid value for 'metadata.size'")
+
+def validate_metadata_location(document):
+    location = document.get("location")
+
+    if location is None:
+        return
+
+    if not isinstance(location, str):
+        raise overlord.exceptions.InvalidSpec(f"{location}: invalid value type for 'metadata.location'")
 
 def validate_max_watch_projects(document):
     max_watch_projects = document.get("max_watch_projects")

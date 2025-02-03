@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import sys
 
 CONFIG = ".overlord.yml"
 PORT = 8888
@@ -221,3 +222,9 @@ DNS = {
         "weight" : 100
     }
 }
+PREFIX = os.path.join(sys.prefix, "overlord")
+METADATA = {
+    "location" : os.path.join(PREFIX, "metadata"),
+    "size" : 2**20 # 1 MiB
+}
+METADATA_MAX_SIZE = 2**10 # 1 KiB

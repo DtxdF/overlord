@@ -41,6 +41,7 @@ import humanfriendly
 import overlord.client
 import overlord.commands
 import overlord.process
+import overlord.spec
 import overlord.util
 
 from overlord.sysexits import EX_OK, EX_NOINPUT, EX_SOFTWARE
@@ -49,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
-@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "chains:tree", "projects:logs", "jails:logs")))
+@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "chains:tree", "projects:logs", "jails:logs", "metadata")))
 @click.option("--jail-item", multiple=True, default=[], type=click.Choice(["stats", "info", "cpuset", "devfs", "expose", "healthcheck", "limits", "fstab", "labels", "nat", "volumes"]))
 @click.option("--all-labels", is_flag=True, default=False)
 @click.option("--filter", default=[], multiple=True)
@@ -209,6 +210,18 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                 elif type == "jails:logs":
                     await print_info_jails_logs(client, chain, info, filter)
 
+                elif type == "metadata":
+                    if len(filter) == 0:
+                        filter = overlord.spec.metadata.get_metadata()
+
+                        if filter is None:
+                            filter = []
+
+                        else:
+                            filter = list(filter)
+
+                    await print_info_metadata(client, chain, info, filter)
+
         if tree_chain:
             tree = asciitree.LeftAligned()
 
@@ -235,6 +248,44 @@ def match_pattern(value, patterns):
             return True
 
     return False
+
+async def print_info_metadata(client, chain, api_info, patterns):
+    info = {}
+    info.update(api_info)
+    info["metadata"] = {}
+
+    for pattern in patterns:
+        if not await client.metadata_check(pattern):
+            logger.debug(f"Metadata '%s' cannot be found ...", pattern)
+            continue
+
+        info["metadata"][pattern] = await client.metadata_get(pattern, chain=chain)
+
+    metadata = info["metadata"]
+
+    if len(metadata) == 0:
+        logger.debug("Nothing to show in '%s' (chain:%s)",
+                     api_info.get("datacenter"), api_info.get("chain"))
+        return
+
+    print_header(info)
+
+    print("  metadata:")
+
+    for metadata_name, metadata_value in metadata.items():
+        lines = metadata_value.splitlines()
+
+        if len(lines) == 0:
+            continue
+
+        elif len(lines) == 1:
+            print(f"    {metadata_name}: {metadata_value}")
+
+        elif len(lines) > 1:
+            print(f"    {metadata_name}: |")
+
+            for line in lines:
+                print(f"      {line}")
 
 async def print_info_jails(client, chain, api_info, items, patterns):
     info = {}

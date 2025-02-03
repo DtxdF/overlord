@@ -35,11 +35,13 @@ import overlord.chains
 import overlord.default
 import overlord.exceptions
 import overlord.spec.director_project
+import overlord.spec.metadata
 
 CONFIG = {}
 
 class OverlordKindTypes(enum.Enum):
     PROJECT = "directorProject"
+    METADATA = "metadata"
 
 def load(file):
     global CONFIG
@@ -70,6 +72,9 @@ def get_config():
         config["labelsEnvironment"] = overlord.spec.director_project.get_labelsEnvironment()
         config["chainsEnvironment"] = overlord.spec.director_project.get_chainsEnvironment()
         config["datacentersEnvironment"] = overlord.spec.director_project.get_datacentersEnvironment()
+
+    elif kind == OverlordKindTypes.METADATA.value:
+        config["metadata"] = overlord.spec.metadata.get_metadata()
 
     return config
 
@@ -248,6 +253,9 @@ def validate_kind(document):
 
     if kind == OverlordKindTypes.PROJECT.value:
         overlord.spec.director_project.validate(document)
+
+    elif kind == OverlordKindTypes.METADATA.value:
+        overlord.spec.metadata.validate(document)
 
     else:
         raise overlord.exceptions.InvalidKind(f"{kind}: Unknown value for 'kind'.")

@@ -42,6 +42,7 @@ import overlord.chains
 import overlord.client
 import overlord.commands
 import overlord.config
+import overlord.metadata
 import overlord.queue
 import overlord.tornado
 import overlord.util
@@ -69,6 +70,17 @@ class InternalHandler(overlord.tornado.JSONAuthHandler):
         else:
             self.write_template({
                 "message" : "Project cannot be found."
+            }, status_code=404)
+
+            return False
+
+    def check_metadata(self, key):
+        if overlord.metadata.check(key):
+            return True
+
+        else:
+            self.write_template({
+                "message" : "Metadata cannot be found."
             }, status_code=404)
 
             return False
@@ -415,6 +427,73 @@ class ProjectsLogHandler(InternalHandler):
             "log_content" : content
         })
 
+class MetadataHandler(InternalHandler):
+    async def get(self, key):
+        if not self.check_metadata(key):
+            return
+
+        content = await overlord.metadata.get(key)
+
+        self.write_template({
+            "metadata" : content
+        })
+
+    async def post(self, key):
+        if overlord.metadata.check(key):
+            self.write_template({
+                "message" : f"The specified metadata '{key}' already exists."
+            }, status_code=409)
+            return
+
+        value = self.get_json_argument("value", value_type=str)
+
+        try:
+            await overlord.metadata.set(key, value)
+
+        except overlord.exceptions.MetadataTooLong as err:
+            self.write_template({
+                "message" : str(err)
+            }, status_code=400)
+
+        else:
+            self.write_template({
+                "message" : f"Metadata '{key}' has been successfully created."
+            }, status_code=201)
+
+    async def put(self, key):
+        if not self.check_metadata(key):
+            return
+
+        value = self.get_json_argument("value", value_type=str)
+
+        try:
+            await overlord.metadata.set(key, value)
+
+        except overlord.exceptions.MetadataTooLong as err:
+            self.write_template({
+                "message" : str(err)
+            }, status_code=400)
+
+        else:
+            self.write_template({
+                "message" : f"Metadata '{key}' has been successfully updated."
+            }, status_code=200)
+
+    async def delete(self, key):
+        if not self.check_metadata(key):
+            return
+
+        self.set_status(204)
+
+        overlord.metadata.delete(key)
+
+    async def head(self, key):
+        if overlord.metadata.check(key):
+            self.set_status(200)
+
+        else:
+            self.set_status(404)
+
 class LabelsHandler(InternalHandler):
     async def get(self):
         self.write_template({
@@ -426,6 +505,47 @@ class ChainsHandler(ChainInternalHandler):
         self.write_template({
             "chains" : overlord.config.list_chains()
         })
+
+class ChainMetadataHandler(ChainInternalHandler):
+    async def get(self, chain, key):
+        result = await self.remote_call(chain, "metadata_get", key)
+
+        self.write_template({
+            "metadata" : result
+        })
+
+    async def post(self, chain, key):
+        value = self.get_json_argument("value", value_type=str)
+
+        result = await self.remote_call(chain, "metadata_set", key, value)
+
+        self.write_template({
+            "message" : result
+        })
+
+    async def put(self, chain, key):
+        value = self.get_json_argument("value", value_type=str)
+
+        result = await self.remote_call(chain, "metadata_set", key, value)
+
+        self.write_template({
+            "message" : result
+        })
+
+    async def delete(self, chain, key):
+        result = await self.remote_call(chain, "metadata_delete", key)
+
+        if result:
+            self.set_status(204)
+
+    async def head(self, key):
+        result = await self.remote_call(chain, "metadata_check", key)
+
+        if result:
+            self.set_status(200)
+
+        else:
+            self.set_status(404)
 
 class ChainChainsHandler(ChainInternalHandler):
     async def get(self, chain):
@@ -652,8 +772,10 @@ def make_app():
         (r"/v1/project/info/([a-zA-Z0-9._-]+)", ProjectInfoHandler),
         (r"/v1/project/up/([a-zA-Z0-9._-]+)", ProjectUpHandler),
         (r"/v1/project/down/([a-zA-Z0-9._-]+)", ProjectDownHandler),
+        (r"/v1/metadata/" + overlord.metadata.REGEX_KEY, MetadataHandler),
         (r"/v1/labels/?", LabelsHandler),
         (r"/v1/chains/?", ChainsHandler),
+        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/metadata/" + overlord.metadata.REGEX_KEY, ChainMetadataHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/labels/?", ChainLabelsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/chains/?", ChainChainsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/jails/?", ChainJailsHandler),

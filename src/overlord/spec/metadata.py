@@ -27,50 +27,43 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-class InvalidSpec(Exception):
-    pass
+CONFIG = {}
 
-class APIError(Exception):
-    pass
+def get_metadata():
+    return CONFIG.get("metadata")
 
-class InvalidEntityType(Exception):
-    pass
+def validate(document):
+    global CONFIG
 
-class InvalidChain(Exception):
-    pass
+    if not isinstance(document, dict):
+        raise overlord.exceptions.InvalidSpec("The document is invalid.")
 
-class InvalidKind(InvalidSpec):
-    pass
+    keys = (
+        "kind",
+        "datacenters",
+        "deployIn",
+        "maximumDeployments",
+        "metadata"
+    )
 
-class KindNotDefined(Exception):
-    pass
+    for key in document:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"{key}: this key is invalid.")
 
-class TypeNotAllowed(Exception):
-    pass
+    validate_metadata(document)
 
-class InvalidProjectName(Exception):
-    pass
+    CONFIG = document
 
-class InvalidJailName(Exception):
-    pass
+def validate_metadata(document):
+    metadata = document.get("metadata")
 
-class InvalidArguments(Exception):
-    pass
+    if metadata is None:
+        raise overlord.exceptions.InvalidSpec("'metadata' is required but hasn't been specified.")
 
-class InterfaceNotFound(Exception):
-    pass
+    if not isinstance(metadata, dict):
+        raise overlord.exceptions.InvalidSpec("'metadata' is invalid.")
 
-class MissingServerID(Exception):
-    pass
-
-class EtcdException(Exception):
-    pass
-
-class InvalidKeyName(Exception):
-    pass
-
-class MetadataTooLong(Exception):
-    pass
-
-class MetadataNotFound(Exception):
-    pass
+    for metadata_name, metadata_value in metadata.items():
+        if not isinstance(metadata_name, str) \
+                or not isinstance(metadata_value, str):
+            raise overlord.exceptions.InvalidSpec(f"Invalid metadata name (metadata.{metadata_name}) or value (metadata.{metadata_value}).")

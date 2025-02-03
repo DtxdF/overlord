@@ -36,6 +36,7 @@ import httpx
 import overlord.chains
 import overlord.director
 import overlord.jail
+import overlord.metadata
 import overlord.util
 import overlord.exceptions
 
@@ -44,6 +45,7 @@ logger = logging.getLogger(__name__)
 class OverlordEntityTypes(enum.Enum):
     JAIL = 1
     PROJECT = 2
+    METADATA = 3
 
 class OverlordAuth(httpx.Auth):
     def __init__(self, token):
@@ -696,8 +698,174 @@ class OverlordClient(httpx.AsyncClient):
             async for chain in self.get_all_chains(chain=chain):
                 yield chain
 
+    async def metadata_set(self, key, value, chain=None):
+        """
+        Create a new metadata file or update an existing one.
+
+        Args:
+            key (str): Metadata identifier.
+            value (str): Metadata content.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            str: Message indicating whether metadata has been created or updated.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.InvalidKeyName
+            - overlord.exceptions.APIError
+        """
+
+        if await self.metadata_check(key, chain=chain):
+            response = await self.__put_parsed(f"metadata/{key}", chain=chain, json={
+                "value" : value
+            })
+
+        else:
+            response = await self.__post_parsed(f"metadata/{key}", chain=chain, json={
+                "value" : value
+            })
+
+        return response.get("message")
+
+    async def metadata_get(self, key, chain=None):
+        """
+        Obtain the content of a metadata.
+
+        Args:
+            key (str): Metadata identifier.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            str: Metadata content.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.InvalidEntityType
+            - overlord.exceptions.InvalidKeyName
+            - overlord.exceptions.APIError
+        """
+
+        response = await self.__get_entity(key, type=OverlordEntityTypes.METADATA, chain=chain)
+
+        value = response.get("metadata")
+        
+        return value
+
+    async def metadata_delete(self, key, chain=None):
+        """
+        Delete an existing metadata.
+
+        Args:
+            key (str): Metadata identifier.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            bool:
+                True if the metadata has been deleted succesfully or thown an exception if an
+                unexpected status code is detected.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.InvalidEntityType
+            - overlord.exceptions.InvalidKeyName
+            - overlord.exceptions.APIError
+        """
+
+        if re.match(r"[/]", key):
+            raise overlord.exceptions.InvalidArguments(f"{key}: The key contains a character not allowed.")
+
+        if not overlord.metadata.check_keyname(key):
+            raise overlord.exceptions.InvalidKeyName(f"{key}: invalid key name.")
+
+        if chain is None:
+            url = f"/v1/metadata/{key}"
+
+        else:
+            if re.match(r"[/]", chain):
+                raise overlord.exceptions.InvalidArguments(f"{chain}: The chain contains a character not allowed.")
+
+            url = f"/v1/chain/{chain}/metadata/{key}"
+
+        request = await self.delete(url)
+
+        status_code = request.status_code
+
+        if status_code == 204:
+            return True
+
+        else:
+            response = request.text
+
+            try:
+                request.raise_for_status()
+
+            except httpx.HTTPStatusError:
+                raise overlord.exceptions.APIError(f"Error {status_code}: {response}")
+
+    async def metadata_check(self, key, chain=None):
+        """
+        Checks for the existence of a metadata.
+
+        Args:
+            key (str): Metadata identifier.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            bool:
+                True if the metadata exists or False if not. An exception is thrown if unexpected
+                status code is detected.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.InvalidEntityType
+            - overlord.exceptions.InvalidKeyName
+            - overlord.exceptions.APIError
+        """
+
+        if re.match(r"[/]", key):
+            raise overlord.exceptions.InvalidArguments(f"{key}: The key contains a character not allowed.")
+
+        if not overlord.metadata.check_keyname(key):
+            raise overlord.exceptions.InvalidKeyName(f"{key}: invalid key name.")
+
+        if chain is None:
+            url = f"/v1/metadata/{key}"
+
+        else:
+            if re.match(r"[/]", chain):
+                raise overlord.exceptions.InvalidArguments(f"{chain}: The chain contains a character not allowed.")
+
+            url = f"/v1/chain/{chain}/{path}"
+
+        request = await self.head(url)
+
+        status_code = request.status_code
+
+        if status_code == 200:
+            return True
+
+        elif status_code == 404:
+            return False
+
+        else:
+            response = request.text
+
+            try:
+                request.raise_for_status()
+
+            except httpx.HTTPStatusError:
+                raise overlord.exceptions.APIError(f"Error {status_code}: {response}")
+
     async def __post_parsed(self, path, *args, chain=None, **kwargs):
         return await self.__parsed("post", path, *args, chain=chain, **kwargs)
+
+    async def __put_parsed(self, path, *args, chain=None, **kwargs):
+        return await self.__parsed("put", path, *args, chain=chain, **kwargs)
 
     async def __get_parsed(self, path, *args, chain=None, **kwargs):
         return await self.__parsed("get", path, *args, chain=chain, **kwargs)
@@ -718,16 +886,22 @@ class OverlordClient(httpx.AsyncClient):
         elif method == "post":
             method = self.__post
 
+        elif method == "put":
+            method = self.__put
+
         request = await method(url, *args, **kwargs)
 
         return request.json()
 
-    async def __get_entity(self, name, command, type=OverlordEntityTypes.JAIL, chain=None):
+    async def __get_entity(self, name, command=None, type=OverlordEntityTypes.JAIL, chain=None):
         if type == OverlordEntityTypes.JAIL:
             entity = "jail"
 
         elif type == OverlordEntityTypes.PROJECT:
             entity = "project"
+
+        elif type == OverlordEntityTypes.METADATA:
+            entity = "metadata"
 
         else:
             raise overlord.exceptions.InvalidEntityType("Invalid entity type.")
@@ -735,9 +909,15 @@ class OverlordClient(httpx.AsyncClient):
         if re.match(r"[/]", name):
             raise overlord.exceptions.InvalidArguments(f"{name}: Entity name contains a character not allowed.")
         
-        return await self.__get_parsed(f"{entity}/{command}/{name}", chain=chain)
+        if command is None:
+            result = await self.__get_parsed(f"{entity}/{name}", chain=chain)
 
-    async def __get_entity_parsed(self, name, key, default=None, type=OverlordEntityTypes.JAIL, chain=None):
+        else:
+            result = await self.__get_parsed(f"{entity}/{command}/{name}", chain=chain)
+
+        return result
+
+    async def __get_entity_parsed(self, name, key=None, default=None, type=OverlordEntityTypes.JAIL, chain=None):
         parsed = await self.__get_entity(name, key, type, chain)
         
         return parsed.get(key, default)
@@ -747,6 +927,9 @@ class OverlordClient(httpx.AsyncClient):
 
     async def __post(self, *args, **kwargs):
         return await self.__request(*args, method="post", **kwargs)
+
+    async def __put(self, *args, **kwargs):
+        return await self.__request(*args, method="put", **kwargs)
 
     async def __request(self, *args, method, **kwargs):
         request = await getattr(self, method)(*args, **kwargs)
