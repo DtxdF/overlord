@@ -29,7 +29,6 @@
 
 import logging.config
 import re
-import os
 
 import pyaml_env
 
@@ -681,7 +680,7 @@ def get_etcd_api_path(host):
     return etcd_host.get("api_path")
 
 def get_max_watch_projects():
-    return get_default(CONFIG.get("max_watch_projects"), os.cpu_count())
+    return get_default(CONFIG.get("max_watch_projects"), overlord.default.CPU_COUNT)
 
 def get_metadata():
     return get_default(CONFIG.get("metadata"), {})
