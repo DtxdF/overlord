@@ -41,6 +41,7 @@ import overlord.chains
 import overlord.client
 import overlord.commands
 import overlord.default
+import overlord.metadata
 import overlord.process
 import overlord.spec
 import overlord.util
@@ -264,6 +265,10 @@ async def _apply(file):
                     metadata = overlord.spec.metadata.get_metadata()
 
                     for key, value in metadata.items():
+                        if not overlord.metadata.check_keyname(key):
+                            logger.error(f"{key}: invalid key name.")
+                            break
+
                         try:
                             logger.info("Writing metadata '%s' ...", key)
 
