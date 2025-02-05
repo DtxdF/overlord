@@ -227,5 +227,6 @@ METADATA = {
     "location" : os.path.join(PREFIX, "metadata"),
     "size" : 2**20 # 1 MiB
 }
+SERVERID = os.path.join(PREFIX, "serverid")
 METADATA_MAX_SIZE = 2**10 # 1 KiB
 CPU_COUNT = os.cpu_count()

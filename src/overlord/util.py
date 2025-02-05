@@ -29,8 +29,10 @@
 
 import ipaddress
 import logging
+import os
 import random
 import re
+import uuid
 
 import ifaddr
 
@@ -38,6 +40,8 @@ import overlord.config
 import overlord.exceptions
 
 logger = logging.getLogger(__name__)
+
+SERVERID = None
 
 def get_skew():
     (skew_begin, skew_end) = overlord.config.get_polling_skew()
@@ -87,3 +91,34 @@ def iface2ip(interface, netaddr):
 
         else:
             logger.debug("%s not in %s", ip, netaddr)
+
+def get_serverid():
+    global SERVERID
+
+    if SERVERID is not None:
+        return SERVERID
+
+    serverid_file = overlord.config.get_serverid()
+
+    serverid = ""
+
+    if os.path.isfile(serverid_file):
+        with open(serverid_file) as fd:
+            serverid = fd.read().strip()
+
+    if len(serverid) == 0:
+        serverid_dir = os.path.dirname(serverid_file)
+
+        if len(serverid_dir) > 0:
+            os.makedirs(serverid_dir, exist_ok=True)
+
+        serverid = "%s" % uuid.uuid4()
+
+        with open(serverid_file, "wb", buffering=0) as fd:
+            fd.write(serverid.encode())
+            fd.flush()
+            os.fsync(fd.fileno())
+
+    SERVERID = serverid
+
+    return serverid

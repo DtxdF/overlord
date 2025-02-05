@@ -491,7 +491,7 @@ async def run_special_label_load_balancer(project, type, service, labels):
         "pool" : overlord.config.get_dataplaneapi_pool_timeout()
     }
 
-    serverid = overlord.config.get_dataplaneapi_serverid()
+    serverid = overlord.util.get_serverid()
     entrypoint = overlord.config.get_dataplaneapi_entrypoint()
     username = overlord.config.get_dataplaneapi_auth_username()
     password = overlord.config.get_dataplaneapi_auth_password()

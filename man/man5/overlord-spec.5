@@ -33,6 +33,11 @@
 .Nd Overlord specification for configuration files
 .Sh CONFIGURATION
 .Bl -tag -compact -width xxx
+.It Sy serverid
+Path to a file containing the server identifier. Give all responsability to Overlord
+for generating this identifier, or in other words, do not manually change the
+contents of the file.
+.Pp
 .It Sy port
 Specify the source port Overlord's API server should use.
 .Pp
@@ -214,10 +219,6 @@ flag, which may help with performance in some cases.
 See also
 .Lk https://pymemcache.readthedocs.io/en/latest/apidoc/pymemcache.client.base.html#pymemcache.client.base.Client "pymemcache.client.base.Client"
 .Pp
-.It Sy memcache.id
-When you have multiple Overlord instances sharing the same memcache servers, you
-need to set this value to avoid race conditions.
-.Pp
 .It Sy secret_key
 Secret key for signing the JWT.
 .Pp
@@ -322,9 +323,6 @@ to not set a timeout.
 .It Sy dataplaneapi
 Data Plane API settings to configure HAProxy.
 .Pp
-.It Sy dataplaneapi.serverid
-Server name that must be unique among servers sharing the same Data Plane API instance.
-.Pp
 .It Sy dataplaneapi.auth
 Data Plane API authentication parameters.
 .Pp
@@ -349,9 +347,6 @@ for details.
 .Pp
 .It Sy skydns
 .No Configuration to manipulate the SkyDNS Ns / Ns Xr coredns-etcd 7 No plugin.
-.Pp
-.It Sy skydns.serverid
-Server name that must be unique among servers sharing the same SkyDNS instance.
 .Pp
 .It Sy skydns.path
 The path inside etcd.

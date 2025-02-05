@@ -35,9 +35,10 @@ import dns.reversename
 
 import overlord.config
 import overlord.etcd
+import overlord.util
 
 def _get_serverid():
-    serverid = overlord.config.get_skydns_serverid()
+    serverid = overlord.util.get_serverid()
 
     if serverid is None:
         raise overlord.exceptions.MissingServerID("'skydns.serverid' is required but missing.")

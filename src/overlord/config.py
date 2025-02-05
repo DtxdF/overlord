@@ -52,6 +52,7 @@ def load(file):
 
 def get_config():
     config = {
+        "serverid" : get_serverid(),
         "port" : get_port(),
         "debug" : get_debug(),
         "compress_response" : get_compress_response(),
@@ -85,8 +86,7 @@ def get_config():
             "dead_timeout" : get_memcache_dead_timeout(),
             "connect_timeout" : get_memcache_connect_timeout(),
             "timeout" : get_memcache_timeout(),
-            "no_delay" : get_memcache_no_delay(),
-            "id" : get_memcache_id()
+            "no_delay" : get_memcache_no_delay()
         },
         "secret_key" : get_secret_key(),
         "log_config" : get_log_config(),
@@ -101,7 +101,6 @@ def get_config():
         "beanstalkd_addr" : get_beanstalkd_addr(),
         "execution_time" : get_execution_time(),
         "dataplaneapi" : {
-            "serverid" : get_dataplaneapi_serverid(),
             "entrypoint" : get_dataplaneapi_entrypoint(),
             "auth" : {
                 "username" : get_dataplaneapi_auth_username(),
@@ -117,7 +116,6 @@ def get_config():
             "keepalive_expiry" : get_dataplaneapi_keepalive_expiry()
         },
         "skydns" : {
-            "serverid" : get_skydns_serverid(),
             "path" : get_skydns_path(),
             "zone" : get_skydns_zone()
         },
@@ -160,6 +158,9 @@ def get_default(value, default=None):
         return default
 
     return value
+
+def get_serverid():
+    return CONFIG.get("serverid", overlord.default.SERVERID)
 
 def get_execution_time():
     return CONFIG.get("execution_time", overlord.default.EXECUTION_TIME)
@@ -336,11 +337,6 @@ def get_memcache_no_delay():
 
     return get_default(memcache.get("no_delay"), overlord.default.MEMCACHE["no_delay"])
 
-def get_memcache_id():
-    memcache = get_memcache()
-
-    return get_default(memcache.get("id"), overlord.default.MEMCACHE["id"])
-
 def get_secret_key():
     return get_default(CONFIG.get("secret_key"), overlord.default.SECRET_KEY)
 
@@ -489,11 +485,6 @@ def get_chain_keepalive_expiry(chain):
 def get_dataplaneapi():
     return get_default(CONFIG.get("dataplaneapi"), {})
 
-def get_dataplaneapi_serverid():
-    dataplaneapi = get_dataplaneapi()
-
-    return dataplaneapi.get("serverid")
-
 def get_dataplaneapi_entrypoint():
     dataplaneapi = get_dataplaneapi()
 
@@ -603,11 +594,6 @@ def get_dataplaneapi_keepalive_expiry():
 def get_skydns():
     return get_default(CONFIG.get("skydns"), overlord.default.SKYDNS)
 
-def get_skydns_serverid():
-    skydns = get_skydns()
-
-    return skydns.get("serverid")
-
 def get_skydns_path():
     skydns = get_skydns()
 
@@ -700,6 +686,7 @@ def validate(document):
         raise overlord.exceptions.InvalidSpec("The configuration is invalid.")
 
     keys = (
+        "serverid",
         "port",
         "debug",
         "compress_response",
@@ -724,6 +711,7 @@ def validate(document):
         if key not in keys:
             raise overlord.exceptions.InvalidSpec(f"{key}: this key is invalid.")
 
+    validate_serverid(document)
     validate_port(document)
     validate_debug(document)
     validate_compress_response(document)
@@ -742,6 +730,15 @@ def validate(document):
     validate_etcd(document)
     validate_max_watch_projects(document)
     validate_metadata(document)
+
+def validate_serverid(document):
+    serverid = document.get("serverid")
+
+    if serverid is None:
+        return
+
+    if not isinstance(serverid, str):
+        raise overlord.exceptions.InvalidSpec(f"{serverid}: invalid value type for 'serverid'")
 
 def validate_metadata(document):
     metadata = document.get("metadata")
@@ -903,7 +900,6 @@ def validate_skydns(document):
         raise overlord.exceptions.InvalidSpec("'skydns' is invalid.")
 
     keys = (
-        "serverid",
         "path",
         "zone"
     )
@@ -912,28 +908,8 @@ def validate_skydns(document):
         if key not in keys:
             raise overlord.exceptions.InvalidSpec(f"skydns.{key}: this key is invalid.")
 
-    validate_skydns_serverid(skydns)
     validate_skydns_path(skydns)
     validate_skydns_zone(skydns)
-
-def validate_skydns_serverid(document):
-    serverid = document.get("serverid")
-
-    if serverid is None:
-        raise overlord.exceptions.InvalidSpec("'skydns.serverid' is required but hasn't been specified.")
-
-    if not isinstance(serverid, str):
-        raise overlord.exceptions.InvalidSpec(f"{serverid}: invalid value type for 'skydns.serverid'")
-
-    match = re.match(r"^[a-zA-Z_-][a-zA-Z\d_-]+$", serverid)
-
-    if not match:
-        raise overlord.exceptions.InvalidSpec(f"{serverid}: invalid server ID for 'skydns.serverid'")
-
-    serverid = serverid[match.start():match.end()]
-    serverid = serverid.lower()
-
-    document["serverid"] = serverid
 
 def validate_skydns_path(document):
     path = document.get("path")
@@ -963,7 +939,6 @@ def validate_dataplaneapi(document):
         raise overlord.exceptions.InvalidSpec("'dataplaneapi' is invalid.")
 
     keys = (
-        "serverid",
         "entrypoint",
         "auth",
         "timeout",
@@ -980,7 +955,6 @@ def validate_dataplaneapi(document):
         if key not in keys:
             raise overlord.exceptions.InvalidSpec(f"dataplaneapi.{key}: this key is invalid.")
 
-    validate_dataplaneapi_serverid(dataplaneapi)
     validate_dataplaneapi_entrypoint(dataplaneapi)
     validate_dataplaneapi_auth(dataplaneapi)
     validate_dataplaneapi_timeout(dataplaneapi)
@@ -991,15 +965,6 @@ def validate_dataplaneapi(document):
     validate_dataplaneapi_max_keepalive_connections(dataplaneapi)
     validate_dataplaneapi_max_connections(dataplaneapi)
     validate_dataplaneapi_keepalive_expiry(dataplaneapi)
-
-def validate_dataplaneapi_serverid(document):
-    serverid = document.get("serverid")
-
-    if serverid is None:
-        raise overlord.exceptions.InvalidSpec("'dataplaneapi.serverid' is required but hasn't been specified.")
-
-    if not isinstance(serverid, str):
-        raise overlord.exceptions.InvalidSpec(f"{serverid}: invalid value type for 'dataplaneapi.serverid'")
 
 def validate_dataplaneapi_entrypoint(document):
     entrypoint = document.get("entrypoint")
@@ -1616,8 +1581,7 @@ def validate_memcache(document):
         "dead_timeout",
         "connect_timeout",
         "timeout",
-        "no_delay",
-        "id"
+        "no_delay"
     )
 
     for key in memcache:
@@ -1633,7 +1597,6 @@ def validate_memcache(document):
     validate_memcache_connect_timeout(memcache)
     validate_memcache_timeout(memcache)
     validate_memcache_no_delay(memcache)
-    validate_memcache_id(memcache)
 
 def validate_memcache_no_delay(document):
     no_delay = document.get("no_delay")
@@ -1726,15 +1689,6 @@ def validate_memcache_connections(document):
     for index, connection in enumerate(connections):
         if not isinstance(connection, str):
             raise overlord.exceptions.InvalidSpec(f"{connection}: invalid value type for 'memcache.connections.{index}'")
-
-def validate_memcache_id(document):
-    id = document.get("id")
-
-    if id is None:
-        return
-
-    if not isinstance(id, str):
-        raise overlord.exceptions.InvalidSpec(f"{id}: invalid value type for 'memcache.id'")
 
 def validate_secret_key(document):
     secret_key = document.get("secret_key")

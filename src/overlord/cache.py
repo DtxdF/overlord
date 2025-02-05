@@ -32,6 +32,7 @@ import json
 import pymemcache
 
 import overlord.config
+import overlord.util
 
 CLIENT = None
 
@@ -60,7 +61,7 @@ def connect():
     return CLIENT
 
 def _get_key(key):
-    id = overlord.config.get_memcache_id()
+    id = overlord.util.get_serverid()
 
     if id is not None:
         key = "%s_%s" % (id, key)
