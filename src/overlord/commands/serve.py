@@ -51,6 +51,7 @@ import overlord.util
 logger = logging.getLogger(__name__)
 
 CHAINS = {}
+METADATA = {}
 
 class InternalHandler(overlord.tornado.JSONAuthHandler):
     def check_jail(self, jail):
@@ -458,8 +459,14 @@ class MetadataHandler(InternalHandler):
 
         value = self.get_json_argument("value", value_type=str)
 
+        if key not in METADATA:
+            METADATA[key] = asyncio.Lock()
+
+        lock = METADATA[key]
+
         try:
-            await overlord.metadata.set(key, value)
+            async with lock:
+                await overlord.metadata.set(key, value)
 
         except overlord.exceptions.MetadataTooLong as err:
             self.write_template({
@@ -477,8 +484,14 @@ class MetadataHandler(InternalHandler):
 
         value = self.get_json_argument("value", value_type=str)
 
+        if key not in METADATA:
+            METADATA[key] = asyncio.Lock()
+
+        lock = METADATA[key]
+
         try:
-            await overlord.metadata.set(key, value)
+            async with lock:
+                await overlord.metadata.set(key, value)
 
         except overlord.exceptions.MetadataTooLong as err:
             self.write_template({
