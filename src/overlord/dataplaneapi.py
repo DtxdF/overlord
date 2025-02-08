@@ -60,7 +60,8 @@ class DataPlaneAPIClientv3(httpx.AsyncClient):
 
         version = request.json()
 
-        logger.debug("Response: %s, Code: %d", request.json(), request.status_code)
+        logger.debug("(code:%d, reason:%s) response: %s",
+                     request.status_code, request.reason_phrase, json.dumps(request.json(), indent=4))
 
         return int(version)
 
@@ -77,7 +78,8 @@ class DataPlaneAPIClientv3(httpx.AsyncClient):
         if _raise_for_status:
             request.raise_for_status()
 
-        logger.debug("Response: %s, Code: %d", request.json(), request.status_code)
+        logger.debug("(code:%d, reason:%s) response: %s",
+                     request.status_code, request.reason_phrase, json.dumps(request.json(), indent=4))
 
         return request
 
@@ -92,7 +94,8 @@ class DataPlaneAPIClientv3(httpx.AsyncClient):
         if _raise_for_status:
             request.raise_for_status()
 
-        logger.debug("Response: %s, Code: %d", request.json(), request.status_code)
+        logger.debug("(code:%d, reason:%s) response: %s",
+                     request.status_code, request.reason_phrase, json.dumps(request.json(), indent=4))
 
         return request
 
@@ -125,7 +128,8 @@ class DataPlaneAPIClientv3(httpx.AsyncClient):
         if _raise_for_status:
             request.raise_for_status()
 
-        logger.debug("Response: %s, Code: %d", request.json(), request.status_code)
+        logger.debug("(code:%d, reason:%s) response: %s",
+                     request.status_code, request.reason_phrase, json.dumps(request.json(), indent=4))
 
         return request
 
@@ -157,7 +161,8 @@ class DataPlaneAPIClientv3(httpx.AsyncClient):
         if _raise_for_status:
             request.raise_for_status()
 
-        logger.debug("Response: %s, Code: %d", request.json(), request.status_code)
+        logger.debug("(code:%d, reason:%s) response: %s",
+                     request.status_code, request.reason_phrase, json.dumps(request.json(), indent=4))
 
         return request
 

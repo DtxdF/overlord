@@ -29,6 +29,7 @@
 
 import asyncio
 import io
+import json
 import logging
 import sys
 
@@ -59,9 +60,6 @@ async def _destroy(file, filter_chain):
 
         labels = overlord.spec.get_deployIn_labels()
 
-        if len(labels) == 0:
-            labels = overlord.default.LABELS
-
         entrypoints = overlord.spec.get_deployIn_entrypoints()
         datacenters = {}
 
@@ -71,7 +69,7 @@ async def _destroy(file, filter_chain):
             datacenter = overlord.spec.get_datacenter(main_entrypoint)
 
             if datacenter is None:
-                logger.error("Datacenter '%s' cannot be found.", main_entrypoint)
+                logger.error("(datacenter:%s) data center cannot be found.", main_entrypoint)
                 sys.exit(EX_NOINPUT)
 
             chain = overlord.chains.join_chain([main_entrypoint] + chain)
@@ -130,7 +128,8 @@ async def _destroy(file, filter_chain):
             for chain in chains:
                 if len(filter_chain) > 0 \
                         and chain not in filter_chain:
-                    logger.debug("Chain '%s' doesn't match the specified chains '%s'", chain, filter_chain)
+                    logger.debug("(datacenter:%s, chain:%s, filter:%s) it doesn't match the specified chain, ignoring ...",
+                                 datacenter, chain, filter_chain)
                     continue
 
                 try:
@@ -141,8 +140,8 @@ async def _destroy(file, filter_chain):
                     error_type = error.get("type")
                     error_message = error.get("message")
 
-                    logger.warning("Error obtaining the labels of entrypoint URL '%s' (chain:%s): %s: %s",
-                                   client.base_url, chain, error_type, error_message)
+                    logger.warning("(datacenter:%s, chain:%s, exception:%s) error obtaining API labels: %s",
+                                   datacenter, chain, error_type, error_message)
                     continue
 
                 exclude = False
@@ -151,13 +150,12 @@ async def _destroy(file, filter_chain):
                     if label in exclude_labels:
                         exclude = True
 
-                        logger.debug("Entrypoint '%s' (chain:%s) will be excluded because it matches the label '%s'", datacenter, chain, label)
+                        logger.debug("(datacenter:%s, chain:%s, label:%s) excluding ...",
+                                     datacenter, chain, label)
 
                         break
 
                 if exclude:
-                    logger.debug("Ignoring entrypoint '%s' (chain:%s)", datacenter, chain)
-
                     continue
 
                 match = False
@@ -166,13 +164,12 @@ async def _destroy(file, filter_chain):
                     if label in labels:
                         match = True
 
-                        logger.debug("Entrypoint '%s' (chain:%s) matches with label '%s'", datacenter, chain, label)
+                        logger.debug("(datacenter:%s, chain:%s, label:%s) match!",
+                                     datacenter, chain, label)
 
                         break
 
                 if not match:
-                    logger.debug("Ignoring entrypoint '%s' (chain:%s)", datacenter, chain)
-
                     continue
 
                 if kind == overlord.spec.OverlordKindTypes.PROJECT.value:
@@ -192,50 +189,99 @@ async def _destroy(file, filter_chain):
                             error_type = error.get("type")
                             error_message = error.get("message")
 
-                            logger.warning("Error obtaining the environment '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
-                                           environ_from_metadata, client.base_url, chain, error_type, error_message)
+                            logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) error obtaining the environment from the metadata: %s",
+                                           datacenter, chain, environ_from_metadata, error_type, error_message)
                             continue
 
                         with io.StringIO(initial_value=_environment) as fd:
                             try:
                                 _environment = yaml.load(_environment, Loader=yaml.SafeLoader)
+
                             except Exception as err:
                                 error = overlord.util.get_error(err)
                                 error_type = error.get("type")
                                 error_message = error.get("message")
 
-                                logger.warning("Error parsing the environment '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
-                                               environ_from_metadata, client.base_url, chain, error_type, error_message)
+                                logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) error parsing the environment: %s",
+                                               datacenter, chain, environ_from_metadata, error_type, error_message)
                                 continue
 
                         if not isinstance(_environment, dict):
-                            logger.warning("The environment from the metadata '%s' is not a dictionary (entrypoint:%s, chain:%s)",
-                                           environ_from_metadata, client.base_url, chain)
+                            logger.warning("(datacenter:%s, chain:%s, metadata:%s) environment is not a dictionary!",
+                                           datacenter, chain, environ_from_metadata)
                             continue
 
                         environment.update(_environment)
 
+                    logger.debug("(datacenter:%s, chain:%s): environment: %s",
+                                 datacenter, chain, json.dumps(environment, indent=4))
+
                     try:
-                        response = await client.down(project_name, environment, chain=chain)
+                        is_autoscalable = await client.metadata_check(f"overlord.autoscale.{project_name}", chain=chain)
 
                     except Exception as err:
                         error = overlord.util.get_error(err)
                         error_type = error.get("type")
                         error_message = error.get("message")
 
-                        logger.warning("Error creating the project '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
-                                       project_name, client.base_url, chain, error_type, error_message)
+                        logger.warning("(datacenter:%s, chain:%s, exception:%s) error when checking if the project is auto-scalable: %s",
+                                       datacenter, chain, error_type, error_message)
 
                         continue
 
-                    job_id = response.get("job_id")
+                    if is_autoscalable:
+                        metadata_cleanup = f"overlord.autoscale-cleanup.{project_name}"
 
-                    logger.debug("Job ID is '%d'", job_id)
+                        if not overlord.metadata.check_keyname(metadata_cleanup):
+                            logger.warning("(datacenter:%s, chain:%s, metadata:%s) invalid metadata name.",
+                                         datacenter, chain, metadata_cleanup)
+                            continue
+
+                        try:
+                            logger.info("(datacenter:%s, chain:%s, metadata:%s) Writing metadata ...",
+                                        datacenter, chain, metadata_cleanup)
+
+                            await client.metadata_set(metadata_cleanup, "{}", chain=chain)
+
+                        except Exception as err:
+                            error = overlord.util.get_error(err)
+                            error_type = error.get("type")
+                            error_message = error.get("message")
+
+                            logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) error writing the metadata: %s",
+                                           datacenter, chain, metadata_cleanup, error_type, error_message)
+
+                            continue
+
+                    else:
+                        try:
+                            response = await client.down(project_name, environment, chain=chain)
+
+                        except Exception as err:
+                            error = overlord.util.get_error(err)
+                            error_type = error.get("type")
+                            error_message = error.get("message")
+
+                            logger.warning("(datacenter:%s, chain:%s, project:%s, exception:%s) error destroying the project: %s",
+                                           datacenter, chain, project_name, error_type, error_message)
+
+                            continue
+
+                        job_id = response.get("job_id")
+
+                        if job_id is not None:
+                            logger.debug("(datacenter:%s, chain:%s, project:%s, job:%d) request for destruction has been made!",
+                                         datacenter, chain, project_name, job_id)
 
                 elif kind == overlord.spec.OverlordKindTypes.METADATA.value:
                     metadata = overlord.spec.metadata.get_metadata()
 
                     for metadata_name in metadata:
+                        if not overlord.metadata.check_keyname(metadata_name):
+                            logger.warning("(datacenter:%s, chain:%s, metadata:%s) invalid metadata name.",
+                                         datacenter, chain, metadata_name)
+                            continue
+
                         try:
                             await client.metadata_delete(metadata_name, chain=chain)
 
@@ -244,8 +290,8 @@ async def _destroy(file, filter_chain):
                             error_type = error.get("type")
                             error_message = error.get("message")
 
-                            logger.warning("Error destroying metadata '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
-                                           metadata_name, client.base_url, chain, error_type, error_message)
+                            logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) %s",
+                                           datacenter, chain, metadata_name, error_type, error_message)
 
                             continue
 
@@ -254,6 +300,6 @@ async def _destroy(file, filter_chain):
         error_type = error.get("type")
         error_message = error.get("message")
 
-        logger.exception("%s: %s", error_type, error_message)
+        logger.exception("(exception:%s) %s", error_type, error_message)
 
         sys.exit(EX_SOFTWARE)

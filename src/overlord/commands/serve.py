@@ -100,14 +100,16 @@ class ChainInternalHandler(InternalHandler):
             raise tornado.web.HTTPError(404, reason=f"Next entrypoint '{next_entrypoint}' cannot be found.")
 
         if len(next_chain) == 0:
-            logger.debug("Connecting to '%s'", next_entrypoint)
+            logger.debug("(function:%s, entrypoint:%s) connecting ...",
+                         func, next_entrypoint)
 
             result = getattr(chain_cli, func)(*args, **kwargs)
 
         else:
             new_chain = overlord.chains.join_chain(next_chain)
 
-            logger.debug("Chain is '%s'", new_chain)
+            logger.debug("(function:%s, entrypoint:%s, chain:%s) connecting ...",
+                         func, next_entrypoint, new_chain)
 
             result = getattr(chain_cli, func)(*args, chain=new_chain, **kwargs)
 
@@ -115,21 +117,23 @@ class ChainInternalHandler(InternalHandler):
             return await result
 
         except Exception as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
             new_chain = overlord.chains.join_chain(next_chain)
 
-            logger.exception("Error executing the remote function '%s' (entrypoint:%s, chain:%s): %s",
-                             func, next_entrypoint, new_chain, err)
+            logger.exception("(function:%s, entrypoint:%s, chain:%s, exception:%s) error executing the remote call: %s",
+                             func, next_entrypoint, new_chain, error_type, error_message)
 
-            error_message = {
+            self.write_template({
                 "function" : func,
                 "entrypoint" : next_entrypoint,
                 "chain" : new_chain,
-                "error" : "%s" % err
-            }
-
-            error_message = json.dumps(error_message)
-
-            raise tornado.web.HTTPError(503, reason=error_message)
+                "error" : error_type,
+                "message" : error_message
+            }, status_code=503)
+            self.finish()
 
 class JailsHandler(InternalHandler):
     async def get(self):
@@ -221,6 +225,13 @@ class JailInfoHandler(InternalHandler):
         self.write_template({
             "info" : overlord.cache.get_jail_info(jail)
         })
+
+    async def head(self, jail):
+        if overlord.cache.check_jail(jail):
+            self.set_status(200)
+
+        else:
+            self.set_status(404)
 
 class JailCPUSetHandler(InternalHandler):
     async def get(self, jail):
@@ -318,6 +329,13 @@ class ProjectInfoHandler(InternalHandler):
             "info" : overlord.cache.get_project_info(project)
         })
 
+    async def head(self, project):
+        if overlord.cache.check_project(project):
+            self.set_status(200)
+
+        else:
+            self.set_status(404)
+
 class ProjectUpHandler(InternalHandler):
     async def get(self, project):
         if not self.check_project(project):
@@ -386,6 +404,17 @@ class ProjectDownHandler(InternalHandler):
 
         self.write_template({
             "job_id" : job_id
+        })
+
+class ProjectAutoScaleHandler(InternalHandler):
+    async def get(self, project):
+        result = overlord.cache.get_project_status_autoscale(project)
+
+        if "last_update" in result:
+            result["last_update"] = time.time() - result["last_update"]
+
+        self.write_template({
+            "status" : result
         })
 
 class ProjectsLogsHandler(InternalHandler):
@@ -627,6 +656,15 @@ class ChainJailInfoHandler(ChainInternalHandler):
             "info" : result
         })
 
+    async def head(self, jail):
+        result = await self.remote_call(chain, "check", jail)
+
+        if result:
+            self.set_status(200)
+
+        else:
+            self.set_status(404)
+
 class ChainJailCPUSetHandler(ChainInternalHandler):
     async def get(self, chain, jail):
         result = await self.remote_call(chain, "get_cpuset", jail)
@@ -715,6 +753,15 @@ class ChainProjectInfoHandler(ChainInternalHandler):
             "info" : result
         })
 
+    async def head(self, chain, project):
+        result = await self.remote_call(chain, "check", project, type=overlord.client.OverlordEntityTypes.PROJECT)
+
+        if result:
+            self.set_status(200)
+
+        else:
+            self.set_status(404)
+
 class ChainProjectUpHandler(ChainInternalHandler):
     async def get(self, chain, project):
         result = await self.remote_call(chain, "get_status_up", project)
@@ -745,6 +792,14 @@ class ChainProjectDownHandler(ChainInternalHandler):
         result = await self.remote_call(chain, "down", project, environment)
 
         self.write_template(result)
+
+class ChainProjectAutoScaleHandler(ChainInternalHandler):
+    async def get(self, chain, project):
+        result = await self.remote_call(chain, "get_status_autoscale", project)
+
+        self.write_template({
+            "status" : result
+        })
 
 class ChainProjectsLogsHandler(ChainInternalHandler):
     async def get(self, chain):
@@ -796,6 +851,7 @@ def make_app():
         (r"/v1/project/info/([a-zA-Z0-9._-]+)", ProjectInfoHandler),
         (r"/v1/project/up/([a-zA-Z0-9._-]+)", ProjectUpHandler),
         (r"/v1/project/down/([a-zA-Z0-9._-]+)", ProjectDownHandler),
+        (r"/v1/project/autoscale/([a-zA-Z0-9._-]+)", ProjectAutoScaleHandler),
         (r"/v1/metadata/" + overlord.metadata.REGEX_KEY, MetadataHandler),
         (r"/v1/labels/?", LabelsHandler),
         (r"/v1/chains/?", ChainsHandler),
@@ -821,7 +877,8 @@ def make_app():
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/projects/log/([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]h[0-9][0-9]m[0-9][0-9]s)/([a-zA-Z0-9._-]+)/([a-z-]+\.log)", ChainProjectsLogHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/info/([a-zA-Z0-9._-]+)", ChainProjectInfoHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/up/([a-zA-Z0-9._-]+)", ChainProjectUpHandler),
-        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/down/([a-zA-Z0-9._-]+)", ChainProjectDownHandler)
+        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/down/([a-zA-Z0-9._-]+)", ChainProjectDownHandler),
+        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/autoscale/([a-zA-Z0-9._-]+)", ChainProjectDownHandler)
     ], **settings)
 
 async def listen():

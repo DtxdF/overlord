@@ -34,6 +34,7 @@ import etcd3gw
 
 import overlord.config
 import overlord.exceptions
+import overlord.util
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +74,13 @@ def run_cmd(cmd, *args, **kwargs):
         try:
             return getattr(conn, cmd)(*args, **kwargs)
 
-        except:
-            logger.exception("Error executing the etcd function '%s' (host:%s)",
-                             cmd, host)
+        except Exception as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
+            logger.exception("(host:%s, function:%s, exception:%s) %s",
+                             host, cmd, error_type, error_message)
 
             HOSTS[host] = time.time()
 

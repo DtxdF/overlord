@@ -511,6 +511,86 @@ A dictionary speciying the metadata to be stored.
 .Pp
 Valid only for
 .Sy metadata Ns "."
+.It Sy autoScale
+When at least one option of this parameter is set, a metadata named
+.Sy overlord.autoscale. Ns Ar project
+is created instead of simply deploying the project to the matching nodes. It is
+assumed that the remote Overlord instance will read the metadata to deploy and
+autoscale the project depending on how many chains it has.
+.Pp
+The counterpart to destroying a project is to create another metadata named
+.Sy overlord.autoscale-cleanup. Ns Ar project Ns "."
+This is an indication to the Overlord instance not to deploy any more projects
+and to destroy the ones that are currently deployed.
+.Pp
+If the
+.Sy overlord.autoscale. Ns Ar project
+metadata have at least one change, the project is redeployed to the nodes that
+have the project.
+.Pp
+.It Sy autoScale.replicas
+Configuration parameters used to replicate the project.
+.Pp
+.It Sy autoScale.replicas.min
+The minimum number of replicas this project will have. It depends on the number
+of matching and working chains.
+.Pp
+.It Sy autoScale.replicas.max
+When scaling the project due to
+.Xr rctl 8
+rules, this limits the number of deployments. By default, the number of matched
+and working chains calculated at runtime is used.
+.Pp
+.It Sy autoScale.type
+When at least one
+.Xr rctl 8
+rule is specified to scale the project based on the jail metrics, this indicates
+how the metric should be evaluated.
+.Pp
+.Bl -tag -width xxxxx
+.It Sy any-jail
+Fails if any of the jails have a metric greater than or equal to the specified
+limit.
+.It Sy any-project
+Fails if the metric total for all jails in the same project is greater than or
+equal to the specified limit.
+.It Sy average
+Calculates the average of the metric for all jails in the same project and fails
+if it is greater than or equal to the specified limit.
+.It Sy percent-jail
+Calculates the percentage of the specified limit and fails if it is greater than or equal to the current metric. For example, if you define a rule as
+.Dq vmemoryuse=512m
+and a percentage of
+.Sy 60 Ns ,
+the value will be
+.Sy 307
+.Po rounded Pc Ns ,
+so this test fails if the current metric is greater than or equal to
+.Sy 307 Ns "."
+.It Sy percent-project
+Like
+.Sy percent-jail Ns ,
+but first get the metric total for all jails in the same project
+.El
+.Pp
+.It Sy autoScale.value
+If the type requires a value such as
+.Sy percent-jail
+or
+.Sy percent-project Ns ,
+this parameter must be used.
+.Pp
+.It Sy autoScale.rules
+A dictionary specifying the
+.Xr rctl 8
+rules. Each key-value must specify the rule and the limit, and if that limit is
+reached, more instances of the project will be created.
+.Pp
+.It Sy autoScale.labels
+See
+.Sy deployIn.labels
+for details.
+.Pp
 .El
 .Sh SEE ALSO
 .Xr overlord 1

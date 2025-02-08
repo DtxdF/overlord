@@ -63,6 +63,7 @@
 .Op Fl Fl jail-item Ar item
 .Op Fl Fl all-labels
 .Op Op Fl Fl filter Ar filter Ns | Ns Fl Fl filter-per-project
+.Op Fl Fl use-autoscale-labels
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm get-project-log
@@ -99,6 +100,9 @@
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm poll-project-info
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm poll-autoscale
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm watch-projects
@@ -141,7 +145,7 @@ If this parameter is set, an expiration date is set on the token, which by defau
 .It Fl Fl expire-type Ar type
 Set the expiration date in seconds, minutes, hours, days or weeks.
 .El
-.It Cm get-info Fl Fl file Ar file Fl Fl type Ar type Oo Fl Fl jail-item Ar item Oc Oo Fl Fl all-labels Oc Oo Oo Fl Fl filter Ar filter Ns | Ns Fl Fl filter-per-project Oc Oc
+.It Cm get-info Fl Fl file Ar file Fl Fl type Ar type Oo Fl Fl jail-item Ar item Oc Oo Fl Fl all-labels Oc Oo Oo Fl Fl filter Ar filter Ns | Ns Fl Fl filter-per-project Oc Oc Oo Fl Fl use-autoscale-labels Oc
 Gets information about an entity specified with
 .Fl Fl type Ns "."
 .Bl -tag -width xx
@@ -200,6 +204,11 @@ This parameter can be specified multiple times.
 Like
 .Fl Fl filter
 but matching only the project specified in the deployment file.
+.Pp
+.It Fl Fl use-autoscale-labels
+Use the labels defined in the
+.Sy autoScale
+section.
 .El
 .It Cm get-project-log Fl Fl file Ar file Fl Fl date Ar date Fl Fl service Ar service Fl Fl log Ar log Ar entrypoint
 Gets the content of a log created by Director.
@@ -274,6 +283,8 @@ Indispensable for other polling operations.
 .It Cm poll-project-info
 Using the list of projects stored in the cache server, this command will collect the
 information of each project to be stored in the cache server.
+.It Cm poll-autoscale
+Scale projects based on metrics and replicas.
 .It Cm watch-projects
 Wait for jobs to create or destroy a project.
 .Pp

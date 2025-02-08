@@ -72,6 +72,7 @@ def get_config():
         config["labelsEnvironment"] = overlord.spec.director_project.get_labelsEnvironment()
         config["chainsEnvironment"] = overlord.spec.director_project.get_chainsEnvironment()
         config["datacentersEnvironment"] = overlord.spec.director_project.get_datacentersEnvironment()
+        config["autoScale"] = overlord.spec.director_project.get_autoScale()
 
     elif kind == OverlordKindTypes.METADATA.value:
         config["metadata"] = overlord.spec.metadata.get_metadata()
@@ -96,7 +97,7 @@ def list_datacenters():
     return list(get_datacenters())
 
 def get_datacenters():
-    return CONFIG.get("datacenters", {})
+    return get_default(CONFIG.get("datacenters"), {})
 
 def get_datacenter(datacenter):
     return get_datacenters().get(datacenter)
@@ -222,16 +223,16 @@ def get_datacenter_keepalive_expiry(datacenter):
     return get_default(datacenter.get("keepalive_expiry"), overlord.default.CHAIN_KEEPALIVE_EXPIRY)
 
 def get_deployIn():
-    return CONFIG.get("deployIn", {})
+    return get_default(CONFIG.get("deployIn"), {})
 
 def get_deployIn_entrypoints():
-    return get_deployIn().get("entrypoints", list_datacenters())
+    return get_default(get_deployIn().get("entrypoints"), list_datacenters())
 
 def get_deployIn_labels():
-    return get_deployIn().get("labels", [])
+    return get_default(get_deployIn().get("labels"), overlord.default.LABELS)
 
 def get_deployIn_exclude():
-    return get_deployIn().get("exclude", [])
+    return get_default(get_deployIn().get("exclude"), [])
 
 def get_maximumDeployments():
     return get_default(CONFIG.get("maximumDeployments"), overlord.default.MAXIMUM_DEPLOYMENTS)

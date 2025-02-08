@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import pathlib
 import re
 
 import aiofiles
@@ -77,6 +78,16 @@ async def get(key):
         content = await fd.read()
 
         return content
+
+def glob(pattern):
+    metadata_location = overlord.config.get_metadata_location()
+
+    if not os.path.isdir(metadata_location):
+        return
+
+    files = pathlib.Path(metadata_location)
+
+    return files.glob(pattern)
 
 def delete(key):
     _raise_invalid_keyname(key)

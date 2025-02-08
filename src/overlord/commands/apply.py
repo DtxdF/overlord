@@ -67,9 +67,6 @@ async def _apply(file):
 
         labels = overlord.spec.get_deployIn_labels()
 
-        if len(labels) == 0:
-            labels = overlord.default.LABELS
-
         entrypoints = overlord.spec.get_deployIn_entrypoints()
         datacenters = {}
 
@@ -79,7 +76,7 @@ async def _apply(file):
             datacenter = overlord.spec.get_datacenter(main_entrypoint)
 
             if datacenter is None:
-                logger.error("Datacenter '%s' cannot be found.", main_entrypoint)
+                logger.error("(datacenter:%s) data center cannot be found.", main_entrypoint)
                 sys.exit(EX_NOINPUT)
 
             chain = overlord.chains.join_chain([main_entrypoint] + chain)
@@ -144,8 +141,8 @@ async def _apply(file):
                     error_type = error.get("type")
                     error_message = error.get("message")
 
-                    logger.warning("Error obtaining the labels of entrypoint URL '%s' (chain:%s): %s: %s",
-                                   client.base_url, chain, error_type, error_message)
+                    logger.warning("(datacenter:%s, chain:%s, exception:%s) error obtaining API labels: %s",
+                                   datacenter, chain, error_type, error_message)
                     continue
 
                 exclude = False
@@ -154,13 +151,12 @@ async def _apply(file):
                     if label in exclude_labels:
                         exclude = True
 
-                        logger.debug("Entrypoint '%s' (chain:%s) will be excluded because it matches the label '%s'", datacenter, chain, label)
+                        logger.debug("(datacenter:%s, chain:%s, label:%s) excluding ...",
+                                     datacenter, chain, label)
 
                         break
 
                 if exclude:
-                    logger.debug("Ignoring entrypoint '%s' (chain:%s)", datacenter, chain)
-
                     continue
 
                 match = False
@@ -169,14 +165,15 @@ async def _apply(file):
                     if label in labels:
                         match = True
 
-                        logger.debug("Entrypoint '%s' (chain:%s) matches the label '%s'", datacenter, chain, label)
+                        logger.debug("(datacenter:%s, chain:%s, label:%s) match!",
+                                     datacenter, chain, label)
 
                         break
 
                 if not match:
-                    logger.debug("Ignoring entrypoint '%s' (chain:%s)", datacenter, chain)
-
                     continue
+
+                metadata = {}
 
                 if kind == overlord.spec.OverlordKindTypes.PROJECT.value:
                     project_name = overlord.spec.director_project.get_projectName()
@@ -195,30 +192,32 @@ async def _apply(file):
                             error_type = error.get("type")
                             error_message = error.get("message")
 
-                            logger.warning("Error obtaining the environment '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
-                                           environ_from_metadata, client.base_url, chain, error_type, error_message)
+                            logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) error obtaining the environment from the metadata: %s",
+                                           datacenter, chain, environ_from_metadata, error_type, error_message)
                             continue
 
                         with io.StringIO(initial_value=_environment) as fd:
                             try:
                                 _environment = yaml.load(fd, Loader=yaml.SafeLoader)
+
                             except Exception as err:
                                 error = overlord.util.get_error(err)
                                 error_type = error.get("type")
                                 error_message = error.get("message")
 
-                                logger.warning("Error parsing the environment '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
-                                               environ_from_metadata, client.base_url, chain, error_type, error_message)
+                                logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) error parsing the environment: %s",
+                                               datacenter, chain, environ_from_metadata, error_type, error_message)
                                 continue
 
                         if not isinstance(_environment, dict):
-                            logger.warning("The environment from the metadata '%s' is not a dictionary (entrypoint:%s, chain:%s)",
-                                           environ_from_metadata, client.base_url, chain)
+                            logger.warning("(datacenter:%s, chain:%s, metadata:%s) environment is not a dictionary!",
+                                           datacenter, chain, environ_from_metadata)
                             continue
 
                         environment.update(_environment)
 
-                    logger.debug("Environ: %s", json.dumps(environment, indent=4))
+                    logger.debug("(datacenter:%s, chain:%s): environment: %s",
+                                 datacenter, chain, json.dumps(environment, indent=4))
 
                     project_from_metadata = overlord.spec.director_project.get_projectFromMetadata()
 
@@ -227,9 +226,6 @@ async def _apply(file):
 
                     else:
                         try:
-                            logger.debug("Obtaining the project file '%s' at entrypoint URL '%s' (chain:%s)",
-                                         project_from_metadata, client.base_url, chain)
-
                             project_file = await client.metadata_get(project_from_metadata, chain=chain)
 
                         except Exception as err:
@@ -237,40 +233,58 @@ async def _apply(file):
                             error_type = error.get("type")
                             error_message = error.get("message")
 
-                            logger.warning("Error obtaining the project file '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
-                                           project_from_metadata, client.base_url, chain, error_type, error_message)
+                            logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) error obtaining the project file from the metadata: %s",
+                                           datacenter, chain, project_from_metadata, error_type, error_message)
 
                             continue
 
-                    try:
-                        response = await client.up(project_name, project_file, environment, chain=chain)
+                    scale_options = overlord.spec.director_project.get_autoScale()
 
-                        deployments += 1
+                    if len(scale_options) == 0:
+                        try:
+                            response = await client.up(project_name, project_file, environment, chain=chain)
 
-                    except Exception as err:
-                        error = overlord.util.get_error(err)
-                        error_type = error.get("type")
-                        error_message = error.get("message")
+                            deployments += 1
 
-                        logger.warning("Error creating the project '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
-                                       project_name, client.base_url, chain, error_type, error_message)
+                        except Exception as err:
+                            error = overlord.util.get_error(err)
+                            error_type = error.get("type")
+                            error_message = error.get("message")
 
-                        continue
+                            logger.warning("(datacenter:%s, chain:%s, project:%s, exception:%s) error creating the project: %s",
+                                           datacenter, chain, project_name, error_type, error_message)
 
-                    job_id = response.get("job_id")
+                            continue
 
-                    logger.debug("Job ID is '%d'", job_id)
+                        job_id = response.get("job_id")
 
-                elif kind == overlord.spec.OverlordKindTypes.METADATA.value:
-                    metadata = overlord.spec.metadata.get_metadata()
+                        if job_id is not None:
+                            logger.debug("(datacenter:%s, chain:%s, project:%s, job:%d) request for creating has been made!",
+                                         datacenter, chain, project_name, job_id)
+
+                    else:
+                        metadata = {
+                            f"overlord.autoscale.{project_name}" : json.dumps({
+                                "projectFile" : project_file,
+                                "environment" : environment,
+                                "autoScale" : scale_options
+                            }, indent=4)
+                        }
+
+                if len(metadata) > 0 or \
+                        kind == overlord.spec.OverlordKindTypes.METADATA.value:
+                    if len(metadata) == 0:
+                        metadata = overlord.spec.metadata.get_metadata()
 
                     for key, value in metadata.items():
                         if not overlord.metadata.check_keyname(key):
-                            logger.error(f"{key}: invalid key name.")
-                            break
+                            logger.warning("(datacenter:%s, chain:%s, metadata:%s) invalid metadata name.",
+                                         datacenter, chain, key)
+                            continue
 
                         try:
-                            logger.info("Writing metadata '%s' ...", key)
+                            logger.info("(datacenter:%s, chain:%s, metadata:%s) Writing metadata ...",
+                                        datacenter, chain, key)
 
                             await client.metadata_set(key, value, chain=chain)
 
@@ -281,8 +295,8 @@ async def _apply(file):
                             error_type = error.get("type")
                             error_message = error.get("message")
 
-                            logger.warning("Error creating the metadata '%s' at entrypoint URL '%s' (chain:%s): %s: %s",
-                                           key, client.base_url, chain, error_type, error_message)
+                            logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) error writing the metadata: %s",
+                                           datacenter, chain, key, error_type, error_message)
 
                             continue
 
@@ -299,6 +313,6 @@ async def _apply(file):
         error_type = error.get("type")
         error_message = error.get("message")
 
-        logger.exception("%s: %s", error_type, error_message)
+        logger.exception("(exception:%s) %s", error_type, error_message)
 
         sys.exit(EX_SOFTWARE)

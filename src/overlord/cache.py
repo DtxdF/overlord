@@ -157,6 +157,9 @@ def save_project_status_up(project, status):
 def save_project_status_down(project, status):
     return save(f"overlord_project_status_down_{project}", status)
 
+def save_project_status_autoscale(project, status):
+    return save(f"overlord_project_status_autoscale_{project}", status)
+
 def get_jails():
     data = get("overlord_jails")
 
@@ -293,12 +296,20 @@ def get_project_status_down(project):
 
     return data
 
+def get_project_status_autoscale(project):
+    data = get(f"overlord_project_status_autoscale_{project}")
+
+    if data is None:
+        return {}
+
+    return data
+
 def remove_jail(jail):
     for keyword in ("info", "stats", "cpuset", "devfs", "expose", "healthcheck", "limits", "fstab", "label", "nat", "volume", "fstab"):
         delete(f"overlord_jail_{keyword}_{jail}")
 
 def remove_project(project):
-    for keyword in ("info", "status_up", "status_down"):
+    for keyword in ("info", "status_up", "status_down", "status_autoscale"):
         delete(f"overlord_project_{keyword}_{project}")
 
 def gc_jails(jails):

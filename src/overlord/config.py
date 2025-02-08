@@ -63,6 +63,7 @@ def get_config():
             "jails" : get_polling_jails(),
             "jail_extras" : get_polling_jail_extras(),
             "project_info" : get_polling_project_info(),
+            "autoscale" : get_polling_autoscale(),
             "skew" : get_polling_skew(),
             "keywords" : {
                 "stats" : get_polling_keywords_stats(),
@@ -228,6 +229,11 @@ def get_polling_project_info():
     polling = get_polling()
 
     return get_default(polling.get("project_info"), overlord.default.POLLING["project_info"])
+
+def get_polling_autoscale():
+    polling = get_polling()
+
+    return get_default(polling.get("autoscale"), overlord.default.POLLING["autoscale"])
 
 def get_polling_skew():
     polling = get_polling()
@@ -1220,6 +1226,7 @@ def validate_polling(document):
         "jails",
         "jail_extras",
         "project_info",
+        "metadata",
         "skew",
         "keywords"
     )
@@ -1234,6 +1241,7 @@ def validate_polling(document):
     validate_polling_jails(polling)
     validate_polling_jail_extras(polling)
     validate_polling_project_info(polling)
+    validate_polling_metadata(polling)
     validate_polling_skew(polling)
     validate_polling_keywords(polling)
 
@@ -1308,6 +1316,18 @@ def validate_polling_project_info(document):
 
     if interval < 0:
         raise ValueError(f"{interval}: invalid value for 'polling.project_info'")
+
+def validate_polling_metadata(document):
+    interval = document.get("metadata")
+
+    if interval is None:
+        return
+
+    if not isinstance(interval, int):
+        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.metadata'")
+
+    if interval < 0:
+        raise ValueError(f"{interval}: invalid value for 'polling.metadata'")
 
 def validate_polling_skew(document):
     skew = document.get("skew")

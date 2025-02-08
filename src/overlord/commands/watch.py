@@ -108,8 +108,11 @@ async def _async_watch_projects():
 
             type = job_body.get("type")
 
+            if ignore_project(project):
+                continue
+
             if type == "create":
-                logger.debug(f"Creating project '{project}'")
+                logger.debug("(project:%s) creating project ...", project)
 
                 overlord.cache.save_project_status_up(project, {
                     "operation" : "RUNNING",
@@ -156,7 +159,7 @@ async def _async_watch_projects():
                     })
 
             elif type == "destroy":
-                logger.debug(f"Destroying project '{project}'")
+                logger.debug("(project:%s) destroying project ...", project)
 
                 special_labels_response = await run_special_labels(project, type)
 
@@ -203,9 +206,27 @@ async def _async_watch_projects():
         error_type = error.get("type")
         error_message = error.get("message")
 
-        logger.exception("%s: %s:", error_type, error_message)
+        logger.exception("(exception:%s) %s:", error_type, error_message)
 
         sys.exit(EX_SOFTWARE)
+
+def ignore_project(project):
+    if not overlord.director.check(project):
+        return False
+
+    (rc, info) = overlord.director.describe(project)
+
+    if rc != 0:
+        return False
+
+    state = info["state"]
+
+    if state == "UNFINISHED" \
+            or state == "DESTROYING":
+        return True
+
+    else:
+        return False
 
 async def run_special_labels(project, type):
     response = {
@@ -245,7 +266,7 @@ async def run_special_labels(project, type):
         (rc, labels) = overlord.jail.get_labels(jail)
 
         if rc != 0:
-            logger.warning("Error retrieving the labels of service '%s.%s' - exit status code is %d", project, name, rc)
+            logger.warning("(status:%d, service:%s) error when retrieving the labels", rc, name)
 
         else:
             data = {}
@@ -257,7 +278,7 @@ async def run_special_labels(project, type):
                 (rc, label) = overlord.jail.list_label(jail, label)
 
                 if rc != 0:
-                    logger.warning("Error retrieving the label of service '%s.%s' - exit status code is %d", project, name, rc)
+                    logger.warning("(status:%d, service:%s, label:%s) error when retrieving the label", rc, name, label)
 
                 else:
                     label_name = label["name"]
@@ -288,7 +309,7 @@ async def run_special_labels(project, type):
                     error_type = error.get("type")
                     error_message = error.get("message")
 
-                    logger.exception("Exception in %s: %s: %s", integration, error_type, error_message)
+                    logger.exception("(integration:%s, exception:%s) %s", integration, error_type, error_message)
 
                     response[integration][name] = {
                         "error" : True,
@@ -616,7 +637,8 @@ async def run_special_label_load_balancer(project, type, service, labels):
         body["address"] = address
         body["port"] = port
 
-        logger.debug("Body request: %s", body)
+        logger.debug("(project:%s, service:%s) body request: %s",
+                     project, service_name, json.dumps(body, indent=4))
 
         if code == 200:
             replace_server_info = await client.replace_server(

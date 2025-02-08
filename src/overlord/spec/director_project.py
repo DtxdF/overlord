@@ -29,7 +29,17 @@
 
 import copy
 
+import humanfriendly
+
+import overlord.exceptions
+
 CONFIG = {}
+
+def get_default(value, default=None):
+    if value is None:
+        return default
+
+    return value
 
 def get_projectName():
     return CONFIG.get("projectName")
@@ -44,7 +54,7 @@ def get_environFromMetadata():
     return CONFIG.get("environFromMetadata")
 
 def get_environment(datacenter=None, chain=None, labels=[]):
-    environment = CONFIG.get("environment", {})
+    environment = get_default(CONFIG.get("environment"), {})
     environment = copy.copy(environment)
 
     for label in labels:
@@ -64,33 +74,33 @@ def get_environment(datacenter=None, chain=None, labels=[]):
     return environment
 
 def get_labelsEnvironment():
-    return CONFIG.get("labelsEnvironment", {})
+    return get_default(CONFIG.get("labelsEnvironment"), {})
 
 def get_labelEnvironment(label):
     labelsEnvironment = get_labelsEnvironment()
 
-    return labelsEnvironment.get(label, {})
+    return get_default(labelsEnvironment.get(label), {})
 
 def list_labelsEnvironment():
-    labelsEnvironment = CONFIG.get("labelsEnvironment", {})
+    labelsEnvironment = get_labelsEnvironment()
 
     return list(labelsEnvironment)
 
 def get_datacentersEnvironment():
-    return CONFIG.get("datacentersEnvironment", {})
+    return get_default(CONFIG.get("datacentersEnvironment"), {})
 
 def get_datacenterEnvironment(datacenter):
     datacentersEnvironment = get_datacentersEnvironment()
 
-    return datacentersEnvironment.get(datacenter, {})
+    return get_default(datacentersEnvironment.get(datacenter), {})
 
 def list_datacentersEnvironment():
-    datacentersEnvironment = CONFIG.get("datacentersEnvironment", {})
+    datacentersEnvironment = get_datacentersEnvironment()
 
     return list(datacentersEnvironment)
 
 def get_chainsEnvironment():
-    return CONFIG.get("chainsEnvironment", {})
+    return get_default(CONFIG.get("chainsEnvironment"), {})
 
 def get_chainEnvironment(chain):
     chainsEnvironment = get_chainsEnvironment()
@@ -101,9 +111,47 @@ def get_chainEnvironment(chain):
     return chainsEnvironment.get(chain, {})
 
 def list_chainsEnvironment():
-    chainsEnvironment = CONFIG.get("chainsEnvironment", {})
+    chainsEnvironment = get_chainsEnvironment()
 
     return list(chainsEnvironment)
+
+def get_autoScale():
+    return get_default(CONFIG.get("autoScale"), {})
+
+def get_autoScale_replicas():
+    autoScale = get_autoScale()
+
+    return get_default(autoScale.get("replicas"), overlord.default.SCALE["replicas"])
+
+def get_autoScale_replicas_min():
+    replicas = get_autoScale_replicas()
+
+    return get_default(replicas.get("min"), overlord.default.SCALE["replicas"]["min"])
+
+def get_autoScale_replicas_max():
+    replicas = get_autoScale_replicas()
+
+    return replicas.get("max")
+
+def get_autoScale_type():
+    autoScale = get_autoScale()
+
+    return get_default(autoScale.get("type"), overlord.default.SCALE["type"])
+
+def get_autoScale_value():
+    autoScale = get_autoScale()
+
+    return autoScale.get("value")
+
+def get_autoScale_rules():
+    autoScale = get_autoScale()
+
+    return get_default(autoScale.get("rules"), {})
+
+def get_autoScale_labels():
+    autoScale = get_autoScale()
+
+    return get_default(autoScale.get("labels"), overlord.default.LABELS)
 
 def validate(document):
     global CONFIG
@@ -123,7 +171,8 @@ def validate(document):
         "datacentersEnvironment",
         "chainsEnvironment",
         "labelsEnvironment",
-        "environFromMetadata"
+        "environFromMetadata",
+        "autoScale"
     )
 
     for key in document:
@@ -137,8 +186,174 @@ def validate(document):
     validate_chainsEnvironment(document)
     validate_labelsEnvironment(document)
     validate_environFromMetadata(document)
+    validate_autoScale(document)
 
     CONFIG = document
+
+def validate_autoScale(document):
+    autoScale = document.get("autoScale")
+
+    if autoScale is None:
+        return
+
+    if not isinstance(autoScale, dict):
+        raise overlord.exceptions.InvalidSpec("'autoScale' is invalid.")
+
+    keys = (
+        "replicas",
+        "type",
+        "value",
+        "rules",
+        "labels"
+    )
+
+    for key in autoScale:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"autoScale.{key}: this key is invalid.")
+
+    validate_autoScale_replicas(autoScale)
+    validate_autoScale_type(autoScale)
+    validate_autoScale_rules(autoScale)
+    validate_autoScale_labels(autoScale)
+
+def validate_autoScale_replicas(document):
+    replicas = document.get("replicas")
+
+    if replicas is None:
+        return
+
+    if not isinstance(replicas, dict):
+        raise overlord.exceptions.InvalidSpec("'autoScale.replicas' is invalid.")
+
+    keys = ("min", "max")
+
+    for key in replicas:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"autoScale.replicas.{key}: this key is invalid.")
+
+    validate_autoScale_replicas_min(replicas)
+    validate_autoScale_replicas_max(replicas)
+
+def validate_autoScale_replicas_min(document):
+    min = document.get("min")
+
+    if min is None:
+        return
+
+    if not isinstance(min, int) \
+            or min < 1:
+        raise overlord.exceptions.InvalidSpec(f"{min}: invalid value type for 'autoScale.replicas.min'")
+
+def validate_autoScale_replicas_max(document):
+    max = document.get("max")
+
+    if max is None:
+        return
+
+    if not isinstance(max, int) \
+            or max < 1:
+        raise overlord.exceptions.InvalidSpec(f"{max}: invalid value type for 'autoScale.replicas.max'")
+
+def validate_autoScale_type(document):
+    type = document.get("type")
+
+    if type is None:
+        return
+
+    if not isinstance(type, str):
+        raise overlord.exceptions.InvalidSpec(f"{type}: invalid value type for 'autoScale.type'")
+
+    if type == "any-jail" \
+            or type == "any-project" \
+            or type == "average":
+        pass # ignore
+
+    elif type == "percent-jail" \
+            or type == "percent-project":
+        value = document.get("value")
+
+        if value is None:
+            raise overlord.exceptions.InvalidSpec("'autoScale.value' is required but hasn't been specified.")
+
+        if not isinstance(value, int):
+            raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.value'")
+    else:
+        raise overlord.exceptions.InvalidSpec(f"{type}: invalid scale type.")
+
+def validate_autoScale_rules(document):
+    rules = document.get("rules")
+
+    if rules is None:
+        return
+
+    if not isinstance(rules, dict):
+        raise overlord.exceptions.InvalidSpec("'autoScale.rules' is invalid.")
+
+    for rule, value in rules.items():
+        if rule == "datasize" \
+                or rule == "stacksize" \
+                or rule == "coredumpsize" \
+                or rule == "memoryuse" \
+                or rule == "memorylocked" \
+                or rule == "vmemoryuse" \
+                or rule == "swapuse" \
+                or rule == "shmsize" \
+                or rule == "readbps" \
+                or rule == "writebps":
+            if isinstance(value, str):
+                try:
+                    value = humanfriendly.parse_size(value, binary=True)
+
+                    document["rules"][rule] = value
+
+                except Exception as err:
+                    raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.rules.{rule}': {err}")
+
+            if not isinstance(value, int) \
+                    or value < 0:
+                raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.rules.{rule}'")
+
+        elif rule == "cputime" \
+                or rule == "maxproc" \
+                or rule == "openfiles" \
+                or rule == "pseudoterminals" \
+                or rule == "nthr" \
+                or rule == "msgqqueued" \
+                or rule == "nmsgq" \
+                or rule == "nsem" \
+                or rule == "nsemop" \
+                or rule == "nshm" \
+                or rule == "wallclock" \
+                or rule == "pcpu" \
+                or rule == "readiops" \
+                or rule == "writeiops":
+            if not isinstance(value, int) \
+                    or value < 0:
+                raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.rules.{rule}'")
+
+        else:
+            raise overlord.exceptions.InvalidSpec(f"autoScale.rules.{rule}: invalid resource.")
+
+def validate_autoScale_labels(document):
+    labels = document.get("labels")
+
+    if labels is None:
+        return
+
+    if not isinstance(labels, list):
+        raise overlord.exceptions.InvalidSpec("'autoScale.labels' is invalid.")
+
+    for index, entry in enumerate(labels):
+        if not isinstance(entry, str):
+            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'autoScale.labels.{index}'")
+
+        if not overlord.chains.check_chain_label(entry):
+            raise overlord.exceptions.InvalidSpec(f"'autoScale.labels.{index}.{entry}': invalid label.")
+
+    length = len(labels)
+
+    if length < 1:
+        raise overlord.exceptions.InvalidSpec("'autoScale.labels': at least one label must be specified.")
 
 def validate_projectName(document):
     projectName = document.get("projectName")

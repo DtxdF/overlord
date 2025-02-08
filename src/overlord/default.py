@@ -43,6 +43,7 @@ POLLING = {
     "jails" : 4,
     "jail_extras" : 6,
     "project_info" : 9,
+    "autoscale" : 15,
     "skew" : [6, 10],
     "keywords" : {
         "jail" : [
@@ -230,3 +231,9 @@ METADATA = {
 SERVERID = os.path.join(PREFIX, "serverid")
 METADATA_MAX_SIZE = 2**10 # 1 KiB
 CPU_COUNT = os.cpu_count()
+SCALE = {
+    "replicas" : {
+        "min" : 1
+    },
+    "type" : "any-jail"
+}

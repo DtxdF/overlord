@@ -153,8 +153,7 @@ class OverlordClient(httpx.AsyncClient):
                 The chain that the server(s) should use to redirect the request.
 
         Returns:
-            dict: Dictionary representing a the information included in the operation created by
-            ``up``.
+            dict: Dictionary representing the information created by ``up``.
 
         Raises:
             - overlord.exceptions.InvalidProjectName
@@ -180,8 +179,7 @@ class OverlordClient(httpx.AsyncClient):
                 The chain that the server(s) should use to redirect the request.
 
         Returns:
-            dict: Dictionary representing a the information included in the operation created
-            by ``down``.
+            dict: Dictionary representing the information created by ``down``.
 
         Raises:
             - overlord.exceptions.InvalidProjectName
@@ -194,6 +192,33 @@ class OverlordClient(httpx.AsyncClient):
             raise overlord.exceptions.InvalidProjectName(f"{name}: Invalid project name.")
 
         parsed = await self.__get_entity(name, "down", OverlordEntityTypes.PROJECT, chain)
+
+        return parsed.get("status", {})
+
+    async def get_status_autoscale(self, name, chain=None):
+        """
+        If the project was created by autoscaling, it reveals the information created by
+        this operation.
+
+        Args:
+            name (str): Project name.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            dict: Dictionary representing the information created by autoscaling.
+
+        Raises:
+            - overlord.exceptions.InvalidProjectName
+            - overlord.exceptions.InvalidEntityType
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.APIError
+        """
+
+        if not overlord.director.check_project_name(name):
+            raise overlord.exceptions.InvalidProjectName(f"{name}: Invalid project name.")
+
+        parsed = await self.__get_entity(name, "autoscale", OverlordEntityTypes.PROJECT, chain)
 
         return parsed.get("status", {})
 
@@ -401,7 +426,7 @@ class OverlordClient(httpx.AsyncClient):
 
         Raises:
             - overlord.exceptions.InvalidArguments
-            - overlord.exceptions.InvalidEntityTypes
+            - overlord.exceptions.InvalidEntityType
             - overlord.exceptions.InvalidProjectName
             - overlord.exceptions.InvalidJailName
             - overlord.exceptions.APIError
@@ -416,6 +441,50 @@ class OverlordClient(httpx.AsyncClient):
                 raise overlord.exceptions.InvalidJailName(f"{name}: Invalid jail name.")
 
         return await self.__get_entity_parsed(name, "info", {}, type, chain)
+
+    async def check(self, name, type=OverlordEntityTypes.JAIL, chain=None):
+        if re.match(r"[/]", name):
+            raise overlord.exceptions.InvalidArguments(f"{name}: The project name contains a character not allowed.")
+
+        if not overlord.director.check_project_name(name):
+            raise overlord.exceptions.InvalidKeyName(f"{name}: Invalid project name.")
+
+        if type == OverlordEntityTypes.PROJECT:
+            entity = "project"
+
+        elif type == OverlordEntityTypes.JAIL:
+            entity = "jail"
+
+        else:
+            raise overlord.exceptions.InvalidEntityType("Invalid entity type.")
+
+        if chain is None:
+            url = f"/v1/{entity}/info/{name}"
+
+        else:
+            if re.match(r"[/]", chain):
+                raise overlord.exceptions.InvalidArguments(f"{chain}: The chain contains a character not allowed.")
+
+            url = f"/v1/chain/{chain}/{entity}/info/{name}"
+
+        request = await self.head(url)
+
+        status_code = request.status_code
+
+        if status_code == 200:
+            return True
+
+        elif status_code == 404:
+            return False
+
+        else:
+            reason = request.reason_phrase
+
+            try:
+                request.raise_for_status()
+
+            except httpx.HTTPStatusError:
+                raise overlord.exceptions.APIError(f"Error {status_code}: {reason}")
 
     async def get_stats(self, name, type=OverlordEntityTypes.JAIL, chain=None):
         """
@@ -438,7 +507,7 @@ class OverlordClient(httpx.AsyncClient):
         Raises:
             - overlord.exceptions.TypeNotAllowed
             - overlord.exceptions.InvalidArguments
-            - overlord.exceptions.InvalidEntityTypes
+            - overlord.exceptions.InvalidEntityType
             - overlord.exceptions.InvalidJailName
             - overlord.exceptions.APIError
         """
@@ -659,13 +728,17 @@ class OverlordClient(httpx.AsyncClient):
 
         return await self.__get_entity_parsed(name, "volumes", [], chain=chain)
 
-    async def get_all_chains(self, chain=None):
+    async def get_all_chains(self, chain=None, on_fail=None):
         """
         Gets all chains recursively.
 
         Args:
-            chain (str, optional):
+            chain (list(str), optional):
                 The chain that the server(s) should use to redirect the request.
+            on_fail (callable, optional):
+                Function called when an error is detected. The first argument is the chain (str),
+                the second is the type of error (str), the third is the error description (str)
+                and the fourth is the exception (object).
 
         Yields:
             str: The next chain.
@@ -679,7 +752,10 @@ class OverlordClient(httpx.AsyncClient):
             error_type = error.get("type")
             error_message = error.get("message")
 
-            logger.warning("Error obtaining the chains of entrypoint URL '%s' (chain:%s): %s: %s",
+            if on_fail is not None:
+                on_fail(chain, error_type, error_message, err)
+
+            logger.warning("(entrypoint:%s, chain:%s, exception:%s) error obtaining the chains: %s",
                            self.base_url, chain, error_type, error_message)
 
             return
@@ -695,7 +771,7 @@ class OverlordClient(httpx.AsyncClient):
 
             yield chain
 
-            async for chain in self.get_all_chains(chain=chain):
+            async for chain in self.get_all_chains(chain=chain, on_fail=on_fail):
                 yield chain
 
     async def metadata_set(self, key, value, chain=None):
@@ -779,7 +855,7 @@ class OverlordClient(httpx.AsyncClient):
             raise overlord.exceptions.InvalidArguments(f"{key}: The key contains a character not allowed.")
 
         if not overlord.metadata.check_keyname(key):
-            raise overlord.exceptions.InvalidKeyName(f"{key}: invalid key name.")
+            raise overlord.exceptions.InvalidKeyName(f"{key}: Invalid key name.")
 
         if chain is None:
             url = f"/v1/metadata/{key}"
@@ -798,13 +874,13 @@ class OverlordClient(httpx.AsyncClient):
             return True
 
         else:
-            response = request.text
+            reason = request.reason_phrase
 
             try:
                 request.raise_for_status()
 
             except httpx.HTTPStatusError:
-                raise overlord.exceptions.APIError(f"Error {status_code}: {response}")
+                raise overlord.exceptions.APIError(f"Error {status_code}: {reason}")
 
     async def metadata_check(self, key, chain=None):
         """
@@ -831,7 +907,7 @@ class OverlordClient(httpx.AsyncClient):
             raise overlord.exceptions.InvalidArguments(f"{key}: The key contains a character not allowed.")
 
         if not overlord.metadata.check_keyname(key):
-            raise overlord.exceptions.InvalidKeyName(f"{key}: invalid key name.")
+            raise overlord.exceptions.InvalidKeyName(f"{key}: Invalid key name.")
 
         if chain is None:
             url = f"/v1/metadata/{key}"
@@ -840,7 +916,7 @@ class OverlordClient(httpx.AsyncClient):
             if re.match(r"[/]", chain):
                 raise overlord.exceptions.InvalidArguments(f"{chain}: The chain contains a character not allowed.")
 
-            url = f"/v1/chain/{chain}/{path}"
+            url = f"/v1/chain/{chain}/metadata/{key}"
 
         request = await self.head(url)
 
@@ -853,13 +929,13 @@ class OverlordClient(httpx.AsyncClient):
             return False
 
         else:
-            response = request.text
+            reason = request.reason_phrase
 
             try:
                 request.raise_for_status()
 
             except httpx.HTTPStatusError:
-                raise overlord.exceptions.APIError(f"Error {status_code}: {response}")
+                raise overlord.exceptions.APIError(f"Error {status_code}: {reason}")
 
     async def __post_parsed(self, path, *args, chain=None, **kwargs):
         return await self.__parsed("post", path, *args, chain=chain, **kwargs)
@@ -934,15 +1010,10 @@ class OverlordClient(httpx.AsyncClient):
     async def __request(self, *args, method, **kwargs):
         request = await getattr(self, method)(*args, **kwargs)
 
-        parsed = request.json()
-
-        status_code = parsed.get("status_code", request.status_code)
-        message = parsed.get("message", "Unknown error.")
-
         try:
             request.raise_for_status()
 
         except httpx.HTTPStatusError:
-            raise overlord.exceptions.APIError(f"Error {status_code}: {message}")
+            raise overlord.exceptions.APIError("(status:%d, reason:%s) %s" % (request.status_code, request.reason_phrase, request.text))
 
         return request

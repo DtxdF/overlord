@@ -62,7 +62,7 @@ async def _get_project_log(file, date, service, log, entrypoint):
         (entrypoint, chain) = overlord.chains.get_chain(entrypoint)
 
         if entrypoint not in overlord.spec.list_datacenters():
-            logger.error("Datacenter '%s' cannot be found.", entrypoint)
+            logger.error("(datacenter:%s) data center cannot be found.", entrypoint)
             sys.exit(EX_NOINPUT)
 
         if chain:
@@ -103,7 +103,7 @@ async def _get_project_log(file, date, service, log, entrypoint):
         error_type = error.get("type")
         error_message = error.get("message")
 
-        logger.exception("%s: %s:", error_type, error_message)
+        logger.exception("(exception%s) %s:", error_type, error_message)
 
         sys.exit(EX_SOFTWARE)
 
@@ -126,7 +126,7 @@ async def _get_jail_log(file, type, entity, subtype, log, entrypoint):
         (entrypoint, chain) = overlord.chains.get_chain(entrypoint)
 
         if entrypoint not in overlord.spec.list_datacenters():
-            logger.error("Datacenter '%s' cannot be found.", entrypoint)
+            logger.error("(datacenter:%s) data center cannot be found.", entrypoint)
             sys.exit(EX_NOINPUT)
 
         if chain:
@@ -167,6 +167,6 @@ async def _get_jail_log(file, type, entity, subtype, log, entrypoint):
         error_type = error.get("type")
         error_message = error.get("message")
 
-        logger.exception("%s: %s:", error_type, error_message)
+        logger.exception("(exception:%s) %s:", error_type, error_message)
 
         sys.exit(EX_SOFTWARE)

@@ -55,10 +55,11 @@ logger = logging.getLogger(__name__)
 @click.option("--all-labels", is_flag=True, default=False)
 @click.option("--filter", default=[], multiple=True)
 @click.option("--filter-per-project", is_flag=True, default=False)
+@click.option("--use-autoscale-labels", is_flag=True, default=False)
 def get_info(*args, **kwargs):
     asyncio.run(_get_info(*args, **kwargs))
 
-async def _get_info(file, type, jail_item, all_labels, filter, filter_per_project):
+async def _get_info(file, type, jail_item, all_labels, filter, filter_per_project, use_autoscale_labels):
     try:
         tree_chain = {}
 
@@ -68,34 +69,35 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
         exclude_labels = overlord.spec.get_deployIn_exclude()
 
-        labels = overlord.spec.get_deployIn_labels()
+        if use_autoscale_labels:
+            labels = overlord.spec.director_project.get_autoScale_labels()
 
-        if len(labels) == 0:
-            labels = overlord.default.LABELS
+        else:
+            labels = overlord.spec.get_deployIn_labels()
 
         entrypoints = overlord.spec.get_deployIn_entrypoints()
 
         for entrypoint in entrypoints:
-            (main_entrypoint, chain) = overlord.chains.get_chain(entrypoint)
+            (datacenter, chain) = overlord.chains.get_chain(entrypoint)
 
-            if main_entrypoint not in overlord.spec.list_datacenters():
-                logger.error("Datacenter '%s' cannot be found.", main_entrypoint)
+            if datacenter not in overlord.spec.list_datacenters():
+                logger.error("(datacenter:%s) data center cannot be found.", datacenter)
                 sys.exit(EX_NOINPUT)
 
-            entrypoint = overlord.spec.get_datacenter_entrypoint(main_entrypoint)
-            access_token = overlord.spec.get_datacenter_access_token(main_entrypoint)
+            entrypoint = overlord.spec.get_datacenter_entrypoint(datacenter)
+            access_token = overlord.spec.get_datacenter_access_token(datacenter)
 
             limits_settings = {
-                "max_keepalive_connections" : overlord.spec.get_datacenter_max_keepalive_connections(main_entrypoint),
-                "max_connections" : overlord.spec.get_datacenter_max_connections(main_entrypoint),
-                "keepalive_expiry" : overlord.spec.get_datacenter_keepalive_expiry(main_entrypoint)
+                "max_keepalive_connections" : overlord.spec.get_datacenter_max_keepalive_connections(datacenter),
+                "max_connections" : overlord.spec.get_datacenter_max_connections(datacenter),
+                "keepalive_expiry" : overlord.spec.get_datacenter_keepalive_expiry(datacenter)
             }
             timeout_settings = {
-                "timeout" : overlord.spec.get_datacenter_timeout(main_entrypoint),
-                "read" : overlord.spec.get_datacenter_read_timeout(main_entrypoint),
-                "write" : overlord.spec.get_datacenter_write_timeout(main_entrypoint),
-                "connect" : overlord.spec.get_datacenter_connect_timeout(main_entrypoint),
-                "pool" : overlord.spec.get_datacenter_pool_timeout(main_entrypoint)
+                "timeout" : overlord.spec.get_datacenter_timeout(datacenter),
+                "read" : overlord.spec.get_datacenter_read_timeout(datacenter),
+                "write" : overlord.spec.get_datacenter_write_timeout(datacenter),
+                "connect" : overlord.spec.get_datacenter_connect_timeout(datacenter),
+                "pool" : overlord.spec.get_datacenter_pool_timeout(datacenter)
             }
 
             if chain:
@@ -127,8 +129,8 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                         error_type = error.get("type")
                         error_message = error.get("message")
 
-                        logger.warning("Error obtaining the labels of entrypoint URL '%s' (chain:%s): %s: %s",
-                                       client.base_url, chain, error_type, error_message)
+                        logger.warning("(datacenter:%s, chain:%s, exception:%s) error obtaining API labels: %s",
+                                       datacenter, chain, error_type, error_message)
                         continue
 
                     exclude = False
@@ -137,13 +139,12 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                         if label in exclude_labels:
                             exclude = True
 
-                            logger.debug("Entrypoint '%s' (chain:%s) will be excluded because it matches the label '%s'", main_entrypoint, chain, label)
+                            logger.debug("(datacenter:%s, chain:%s, label:%s) excluding ...",
+                                         datacenter, chain, label)
 
                             break
 
                     if exclude:
-                        logger.debug("Ignoring entrypoint '%s' (chain:%s)", main_entrypoint, chain)
-
                         continue
 
                     match = False
@@ -152,18 +153,17 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                         if label in labels:
                             match = True
 
-                            logger.debug("Entrypoint '%s' (chain:%s) matches with label '%s'", main_entrypoint, chain, label)
+                            logger.debug("(datacenter:%s, chain:%s, label:%s) match!",
+                                         datacenter, chain, label)
 
                             break
 
                     if not match:
-                        logger.debug("Ignoring entrypoint '%s' (chain:%s)", main_entrypoint, chain)
-
                         continue
 
                 info = {
                     "datacenter" : entrypoint,
-                    "entrypoint" : main_entrypoint,
+                    "entrypoint" : datacenter,
                     "chain" : chain,
                     "labels" : entrypoint_labels
                 }
@@ -232,7 +232,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
         error_type = error.get("type")
         error_message = error.get("message")
 
-        logger.exception("%s: %s:", error_type, error_message)
+        logger.exception("(exception:%s) %s:", error_type, error_message)
 
         sys.exit(EX_SOFTWARE)
 
@@ -256,7 +256,7 @@ async def print_info_metadata(client, chain, api_info, patterns):
 
     for pattern in patterns:
         if not await client.metadata_check(pattern):
-            logger.debug(f"Metadata '%s' cannot be found ...", pattern)
+            logger.warning("(metadata:%s) metadata cannot be found", pattern)
             continue
 
         info["metadata"][pattern] = await client.metadata_get(pattern, chain=chain)
@@ -264,7 +264,7 @@ async def print_info_metadata(client, chain, api_info, patterns):
     metadata = info["metadata"]
 
     if len(metadata) == 0:
-        logger.debug("Nothing to show in '%s' (chain:%s)",
+        logger.debug("(datacenter:%s, chain:%s) nothing to show.",
                      api_info.get("datacenter"), api_info.get("chain"))
         return
 
@@ -321,7 +321,7 @@ async def print_info_jails(client, chain, api_info, items, patterns):
     jails = info.get("jails")
 
     if len(jails) == 0:
-        logger.debug("Nothing to show in '%s' (chain:%s)",
+        logger.debug("(datacenter:%s, chain:%s) nothing to show.",
                      api_info.get("datacenter"), api_info.get("chain"))
         return
 
@@ -413,10 +413,15 @@ async def print_info_projects(client, chain, api_info, patterns):
         if result is not None:
             info["projects"][project]["down"] = result
 
+        result = await _safe_client(client, "get_status_autoscale", project, chain=chain)
+
+        if result is not None:
+            info["projects"][project]["autoscale"] = result
+
     project_info = info["projects"]
 
     if len(project_info) == 0:
-        logger.debug("Nothing to show in '%s' (chain:%s)",
+        logger.debug("(datacenter:%s, chain:%s) nothing to show.",
                      api_info.get("datacenter"), api_info.get("chain"))
         return
 
@@ -431,6 +436,7 @@ async def print_info_projects(client, chain, api_info, patterns):
         services = info.get("services", [])
         up = info.get("up", {})
         down = info.get("down", {})
+        autoscale = info.get("autoscale", {})
 
         print(f"    {name}:")
         print(f"      state: {state}")
@@ -520,6 +526,47 @@ async def print_info_projects(client, chain, api_info, patterns):
                     else:
                         print(f"        {key}: {value}")
 
+        print_status_name = True
+
+        for key, value in autoscale.items():
+            if print_status_name:
+                print("      autoScale:")
+
+                print_status_name = False
+
+            if isinstance(value, list):
+                print(f"        {key}:")
+
+                for _value in value:
+                    print(f"        - {_value}")
+
+            else:
+                if key == "last_update":
+                    last_update = humanfriendly.format_timespan(value)
+
+                    print("        last_update: %s" % last_update)
+
+                elif key == "output":
+                    output = value
+
+                    print_output = True
+
+                    for key, value in output.items():
+                        if print_output:
+                            print("        output:")
+
+                            print_output = False
+
+                        if key == "nodes":
+                            for node, node_info in value.items():
+                                print(f"          {node}: {node_info}")
+
+                        else:
+                            print(f"         {key}: {value}")
+
+                else:
+                    print(f"        {key}: {value}")
+
 async def print_info_projects_logs(client, chain, api_info, patterns):
     logs = await _safe_client(client, "get_projects_logs", chain=chain)
 
@@ -539,7 +586,7 @@ async def print_info_projects_logs(client, chain, api_info, patterns):
                 files.append(log_file)
 
     if len(files) == 0:
-        logger.debug("Nothing to show in '%s' (chain:%s)",
+        logger.debug("(datacenter:%s, chain:%s) nothing to show.",
                      api_info.get("datacenter"), api_info.get("chain"))
         return
 
@@ -570,7 +617,7 @@ async def print_info_jails_logs(client, chain, api_info, patterns):
                     files.append(log_file)
 
     if len(files) == 0:
-        logger.debug("Nothing to show in '%s' (chain:%s)",
+        logger.debug("(datacenter:%s, chain:%s) nothing to show.",
                      api_info.get("datacenter"), api_info.get("chain"))
         return
 
@@ -610,4 +657,5 @@ async def _safe_client(client, func, *args, **kwargs):
         error_type = error.get("type")
         error_message = error.get("message")
 
-        logger.warning("Error executing the function '%s': %s: %s", func, error_type, error_message)
+        logger.warning("(function:%s, exception:%s) error executing the remote call: %s",
+                       func, error_type, error_message)

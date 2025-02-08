@@ -28,12 +28,17 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
+import logging
 import sys
 
 import click
 
 import overlord.commands
 import overlord.spec
+
+from overlord.sysexits import EX_SOFTWARE
+
+logger = logging.getLogger(__name__)
 
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
@@ -48,6 +53,6 @@ def print_spec(file):
         error_type = error.get("type")
         error_message = error.get("message")
 
-        logger.exception("%s: %s", error_type, error_message)
+        logger.exception("(exception:%s) %s", error_type, error_message)
 
         sys.exit(EX_SOFTWARE)
