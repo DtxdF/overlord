@@ -91,6 +91,9 @@ async def _poll_autoscale():
         while True:
             files = overlord.metadata.glob("overlord.autoscale.*")
 
+            if files:
+                files = []
+
             for metadata_file in files:
                 metadata = metadata_file.name
 
