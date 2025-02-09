@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
-@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "chains:tree", "projects:logs", "jails:logs", "metadata")))
+@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "chains:tree", "projects:logs", "jails:logs", "metadata", "autoscale")))
 @click.option("--jail-item", multiple=True, default=[], type=click.Choice(["stats", "info", "cpuset", "devfs", "expose", "healthcheck", "limits", "fstab", "labels", "nat", "volumes"]))
 @click.option("--all-labels", is_flag=True, default=False)
 @click.option("--filter", default=[], multiple=True)
@@ -222,6 +222,18 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
                     await print_info_metadata(client, chain, info, filter)
 
+                elif type == "autoscale":
+                    if filter_per_project:
+                        projectName = overlord.spec.director_project.get_projectName()
+
+                        if projectName is None:
+                            logger.warning("Project is not specified in the deployment file!")
+                            sys.exit(EX_OK)
+
+                        filter = [projectName]
+
+                    await print_info_autoscale(client, chain, info, filter)
+
         if tree_chain:
             tree = asciitree.LeftAligned()
 
@@ -248,6 +260,86 @@ def match_pattern(value, patterns):
             return True
 
     return False
+
+async def print_info_autoscale(client, chain, api_info, patterns):
+    info = {}
+    info.update(api_info)
+    info["projects"] = {}
+
+    if patterns:
+        projects = patterns
+
+    else:
+        projects = await _safe_client(client, "get_projects", chain=chain)
+
+    if projects is None:
+        return
+
+    for project in projects:
+        info["projects"][project] = {}
+
+        result = await _safe_client(client, "get_status_autoscale", project, chain=chain)
+
+        if result is not None:
+            info["projects"][project]["autoscale"] = result
+
+    project_info = info["projects"]
+
+    if len(project_info) == 0:
+        logger.debug("(datacenter:%s, chain:%s) nothing to show.",
+                     api_info.get("datacenter"), api_info.get("chain"))
+        return
+
+    print_header(info)
+
+    print("  projects:")
+
+    for name, info in project_info.items():
+        autoscale = info.get("autoscale", {})
+
+        print(f"    {name}:")
+
+        print_status_name = True
+
+        for key, value in autoscale.items():
+            if print_status_name:
+                print("      autoScale:")
+
+                print_status_name = False
+
+            if isinstance(value, list):
+                print(f"        {key}:")
+
+                for _value in value:
+                    print(f"        - {_value}")
+
+            else:
+                if key == "last_update":
+                    last_update = humanfriendly.format_timespan(value)
+
+                    print("        last_update: %s" % last_update)
+
+                elif key == "output":
+                    output = value
+
+                    print_output = True
+
+                    for key, value in output.items():
+                        if print_output:
+                            print("        output:")
+
+                            print_output = False
+
+                        if key == "nodes":
+                            for node, node_info in value.items():
+                                print(f"          {node}: {node_info}")
+
+                        else:
+                            print(f"         {key}: {value}")
+
+                else:
+                    print(f"        {key}: {value}")
+
 
 async def print_info_metadata(client, chain, api_info, patterns):
     info = {}
@@ -413,11 +505,6 @@ async def print_info_projects(client, chain, api_info, patterns):
         if result is not None:
             info["projects"][project]["down"] = result
 
-        result = await _safe_client(client, "get_status_autoscale", project, chain=chain)
-
-        if result is not None:
-            info["projects"][project]["autoscale"] = result
-
     project_info = info["projects"]
 
     if len(project_info) == 0:
@@ -436,7 +523,6 @@ async def print_info_projects(client, chain, api_info, patterns):
         services = info.get("services", [])
         up = info.get("up", {})
         down = info.get("down", {})
-        autoscale = info.get("autoscale", {})
 
         print(f"    {name}:")
         print(f"      state: {state}")
@@ -525,47 +611,6 @@ async def print_info_projects(client, chain, api_info, patterns):
 
                     else:
                         print(f"        {key}: {value}")
-
-        print_status_name = True
-
-        for key, value in autoscale.items():
-            if print_status_name:
-                print("      autoScale:")
-
-                print_status_name = False
-
-            if isinstance(value, list):
-                print(f"        {key}:")
-
-                for _value in value:
-                    print(f"        - {_value}")
-
-            else:
-                if key == "last_update":
-                    last_update = humanfriendly.format_timespan(value)
-
-                    print("        last_update: %s" % last_update)
-
-                elif key == "output":
-                    output = value
-
-                    print_output = True
-
-                    for key, value in output.items():
-                        if print_output:
-                            print("        output:")
-
-                            print_output = False
-
-                        if key == "nodes":
-                            for node, node_info in value.items():
-                                print(f"          {node}: {node_info}")
-
-                        else:
-                            print(f"         {key}: {value}")
-
-                else:
-                    print(f"        {key}: {value}")
 
 async def print_info_projects_logs(client, chain, api_info, patterns):
     logs = await _safe_client(client, "get_projects_logs", chain=chain)
