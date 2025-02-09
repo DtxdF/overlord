@@ -591,7 +591,7 @@ class ChainMetadataHandler(ChainInternalHandler):
         if result:
             self.set_status(204)
 
-    async def head(self, key):
+    async def head(self, chain, key):
         result = await self.remote_call(chain, "metadata_check", key)
 
         if result:
@@ -656,7 +656,7 @@ class ChainJailInfoHandler(ChainInternalHandler):
             "info" : result
         })
 
-    async def head(self, jail):
+    async def head(self, chain, jail):
         result = await self.remote_call(chain, "check", jail)
 
         if result:
