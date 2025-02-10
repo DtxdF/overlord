@@ -290,18 +290,22 @@ async def print_info_autoscale(client, chain, api_info, patterns):
                      api_info.get("datacenter"), api_info.get("chain"))
         return
 
-    print_header(info)
+    print_headers = True
 
-    print("  projects:")
-
-    for name, info in project_info.items():
-        autoscale = info.get("autoscale", {})
-
-        print(f"    {name}:")
+    for name, _info in project_info.items():
+        autoscale = _info.get("autoscale", {})
 
         print_status_name = True
 
         for key, value in autoscale.items():
+            if print_headers:
+                print_header(info)
+
+                print("  projects:")
+                print(f"    {name}:")
+
+                print_headers = False
+
             if print_status_name:
                 print("      autoScale:")
 
