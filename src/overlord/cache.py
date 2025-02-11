@@ -68,12 +68,12 @@ def _get_key(key):
 
     return key
 
-def save(key, value):
+def save(key, value, *args, **kwargs):
     key = _get_key(key)
 
     conn = connect()
 
-    result = conn.set(key, json.dumps(value))
+    result = conn.set(key, json.dumps(value), *args, **kwargs)
 
     conn.quit()
 
@@ -158,7 +158,9 @@ def save_project_status_down(project, status):
     return save(f"overlord_project_status_down_{project}", status)
 
 def save_project_status_autoscale(project, status):
-    return save(f"overlord_project_status_autoscale_{project}", status)
+    expire_time = 60 * 10 # 10 minutes
+
+    return save(f"overlord_project_status_autoscale_{project}", status, expire=expire_time)
 
 def get_jails():
     data = get("overlord_jails")
