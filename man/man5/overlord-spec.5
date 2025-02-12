@@ -382,6 +382,17 @@ to leave the responsability of discovering the API version to the library.
 Maximum number of jobs to wait in parallel to create or destroy projects, which
 must be greater than or equal to 1. By default, the number of available CPUs is
 used.
+.It Sy metadata
+Metadata configuration parameters.
+.Pp
+.It Sy metadata.location
+Path to a directory to store the metadata. If the specified directory doesn't exist,
+it will be created when writing any metadata.
+.Pp
+.It Sy metadata.size
+Size of each metadata. If a user tries to create a metadata with a size greater
+than or equal to this parameter, an error occurs. By default this parameter is
+set to 1 MiB.
 .El
 .Sh DEPLOYMENT
 .Bl -tag -compact -width xxx
