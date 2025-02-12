@@ -122,7 +122,7 @@ async def _async_watch_projects():
                     "job_id" : job_id
                 })
 
-                director_file = message.get("director_file") + "\n"
+                director_file = message.get("director_file")
 
                 with tempfile.NamedTemporaryFile(prefix="overlord", mode="wb", buffering=0) as fd:
                     fd.write(director_file.encode())

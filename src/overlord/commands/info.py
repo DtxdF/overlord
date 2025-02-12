@@ -375,6 +375,8 @@ async def print_info_metadata(client, chain, api_info, patterns):
             continue
 
         elif len(lines) == 1:
+            metadata_value = metadata_value.rstrip("\n")
+
             print(f"    {metadata_name}: {metadata_value}")
 
         elif len(lines) > 1:

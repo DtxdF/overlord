@@ -351,7 +351,7 @@ class ProjectUpHandler(InternalHandler):
         })
 
     async def post(self, project):
-        director_file = self.get_json_argument("director_file", value_type=str)
+        director_file = self.get_json_argument("director_file", value_type=str, strip=False)
         environment = self.get_json_argument("environment", {}, value_type=dict)
 
         for env_name, env_value in environment.items():
@@ -486,7 +486,7 @@ class MetadataHandler(InternalHandler):
             }, status_code=409)
             return
 
-        value = self.get_json_argument("value", value_type=str)
+        value = self.get_json_argument("value", value_type=str, strip=False)
 
         if key not in METADATA:
             METADATA[key] = asyncio.Lock()
@@ -511,7 +511,7 @@ class MetadataHandler(InternalHandler):
         if not self.check_metadata(key):
             return
 
-        value = self.get_json_argument("value", value_type=str)
+        value = self.get_json_argument("value", value_type=str, strip=False)
 
         if key not in METADATA:
             METADATA[key] = asyncio.Lock()
@@ -568,7 +568,7 @@ class ChainMetadataHandler(ChainInternalHandler):
         })
 
     async def post(self, chain, key):
-        value = self.get_json_argument("value", value_type=str)
+        value = self.get_json_argument("value", value_type=str, strip=False)
 
         result = await self.remote_call(chain, "metadata_set", key, value)
 
@@ -577,7 +577,7 @@ class ChainMetadataHandler(ChainInternalHandler):
         })
 
     async def put(self, chain, key):
-        value = self.get_json_argument("value", value_type=str)
+        value = self.get_json_argument("value", value_type=str, strip=False)
 
         result = await self.remote_call(chain, "metadata_set", key, value)
 
@@ -771,7 +771,7 @@ class ChainProjectUpHandler(ChainInternalHandler):
         })
 
     async def post(self, chain, project):
-        director_file = self.get_json_argument("director_file", value_type=str)
+        director_file = self.get_json_argument("director_file", value_type=str, strip=False)
         environment = self.get_json_argument("environment", {}, value_type=dict)
 
         result = await self.remote_call(chain, "up", project, director_file, environment)
