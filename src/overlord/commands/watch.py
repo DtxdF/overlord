@@ -106,6 +106,8 @@ async def _async_watch_projects():
             environment = dict(os.environ)
             environment.update(message.get("environment"))
 
+            environment["OVERLORD_METADATA"] = overlord.config.get_metadata_location()
+
             type = job_body.get("type")
 
             if ignore_project(project):
