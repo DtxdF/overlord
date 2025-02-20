@@ -36,12 +36,14 @@ import overlord.default
 import overlord.exceptions
 import overlord.spec.director_project
 import overlord.spec.metadata
+import overlord.spec.vm_jail
 
 CONFIG = {}
 
 class OverlordKindTypes(enum.Enum):
     PROJECT = "directorProject"
     METADATA = "metadata"
+    VMJAIL = "vmJail"
 
 def load(file):
     global CONFIG
@@ -76,6 +78,14 @@ def get_config():
 
     elif kind == OverlordKindTypes.METADATA.value:
         config["metadata"] = overlord.spec.metadata.get_metadata()
+
+    elif kind == OverlordKindTypes.VMJAIL.value:
+        config["vmName"] = overlord.spec.vm_jail.get_vmName()
+        config["makejail"] = overlord.spec.vm_jail.get_makejail()
+        config["template"] = overlord.spec.vm_jail.get_template()
+        config["diskLayout"] = overlord.spec.vm_jail.get_diskLayout()
+        config["script"] = overlord.spec.vm_jail.get_script()
+        config["metadata"] = overlord.spec.vm_jail.get_metadata()
 
     return config
 
@@ -257,6 +267,9 @@ def validate_kind(document):
 
     elif kind == OverlordKindTypes.METADATA.value:
         overlord.spec.metadata.validate(document)
+
+    elif kind == OverlordKindTypes.VMJAIL.value:
+        overlord.spec.vm_jail.validate(document)
 
     else:
         raise overlord.exceptions.InvalidKind(f"{kind}: Unknown value for 'kind'.")

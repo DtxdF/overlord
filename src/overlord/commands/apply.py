@@ -271,6 +271,38 @@ async def _apply(file):
                             }, indent=4)
                         }
 
+                elif kind == overlord.spec.OverlordKindTypes.VMJAIL.value:
+                    vm_name = overlord.spec.vm_jail.get_vmName()
+
+                    profile = {
+                        "makejail" : overlord.spec.vm_jail.get_makejail(),
+                        "template" : overlord.spec.vm_jail.get_template(),
+                        "diskLayout" : overlord.spec.vm_jail.get_diskLayout(),
+                        "script" : overlord.spec.vm_jail.get_script(),
+                        "metadata" : overlord.spec.vm_jail.get_metadata()
+                    }
+
+                    try:
+                        response = await client.create_vm(vm_name, profile, chain=chain)
+
+                        deployments += 1
+
+                    except Exception as err:
+                        error = overlord.util.get_error(err)
+                        error_type = error.get("type")
+                        error_message = error.get("message")
+
+                        logger.warning("(datacenter:%s, chain:%s, VM:%s, exception:%s) error creating the VM: %s",
+                                       datacenter, chain, vm_name, error_type, error_message)
+
+                        continue
+
+                    job_id = response.get("job_id")
+
+                    if job_id is not None:
+                        logger.debug("(datacenter:%s, chain:%s, VM:%s, job:%d) request for creating has been made!",
+                                     datacenter, chain, vm_name, job_id)
+
                 if len(metadata) > 0 or \
                         kind == overlord.spec.OverlordKindTypes.METADATA.value:
                     if len(metadata) == 0:

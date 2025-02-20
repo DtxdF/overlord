@@ -157,6 +157,8 @@ What kind of information to get. The elements are
 to get information about jails,
 .Sy projects
 to get information about projects,
+.Sy vm
+to get information about VM deployments,
 .Sy chains
 to simply display chains recursively,
 .Sy autoscale
@@ -199,13 +201,13 @@ Depending on the value specified with
 .Fl Fl type Ns ,
 it can be used to filter the information to be displayed. The value of this parameter
 is a valid regular expression. The value to compare can be the jail name, the project
-name, a chain or a log file name.
+name, the VM name, a chain or a log file name.
 .Pp
 This parameter can be specified multiple times.
 .It Fl Fl filter-per-project
 Like
 .Fl Fl filter
-but matching only the project specified in the deployment file.
+but matching only the project or VM specified in the deployment file.
 .Pp
 .It Fl Fl use-autoscale-labels
 Use the labels defined in the

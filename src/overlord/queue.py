@@ -88,8 +88,17 @@ async def reserve(tube):
 async def reserve_project():
     return await reserve("overlord_project")
 
+async def reserve_vm():
+    return await reserve("overlord_vm")
+
 async def put_create_project(message):
     return await put({ "type" : "create", "message" : message }, "overlord_project")
 
 async def put_destroy_project(message):
     return await put({ "type" : "destroy", "message" : message }, "overlord_project")
+
+async def put_create_vm(message):
+    return await put({ "type" : "create", "message" : message }, "overlord_vm")
+
+async def put_destroy_vm(message):
+    return await put({ "type" : "destroy", "message" : message }, "overlord_vm")

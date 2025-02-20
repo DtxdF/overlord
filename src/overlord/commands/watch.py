@@ -38,6 +38,7 @@ import time
 
 import click
 import httpx
+import yaml
 
 import overlord.cache
 import overlord.commands
@@ -45,11 +46,14 @@ import overlord.config
 import overlord.dataplaneapi
 import overlord.default
 import overlord.director
+import overlord.jail
+import overlord.vm
 import overlord.process
 import overlord.trap
 import overlord.skydns
 import overlord.queue
 import overlord.util
+import overlord.metadata
 
 from concurrent.futures import ProcessPoolExecutor
 
@@ -73,6 +77,19 @@ def watch_projects():
     for _ in range(max_watch_projects):
         EXECUTOR.submit(_watch_projects)
 
+@overlord.commands.cli.command(add_help_option=False)
+def watch_vm():
+    global EXECUTOR
+
+    max_watch_vm = overlord.config.get_max_watch_vm()
+
+    overlord.trap.add(clean)
+
+    EXECUTOR = ProcessPoolExecutor(max_workers=max_watch_vm)
+
+    for _ in range(max_watch_vm):
+        EXECUTOR.submit(_watch_vm)
+
 def clean(*args, **kwargs):
     if CHILD is not None:
         logger.info("My work is finished :D")
@@ -84,6 +101,220 @@ def clean(*args, **kwargs):
 
     if EXECUTOR is not None:
         EXECUTOR.shutdown(wait=False)
+
+def _watch_vm(*args, **kwargs):
+    asyncio.run(_async_watch_vm())
+
+async def _async_watch_vm():
+    global CHILD
+
+    try:
+        CHILD = os.getpid()
+
+        overlord.process.init()
+
+        while True:
+            logger.debug("Waiting for new jobs ...")
+
+            (job_id, job_body) = await overlord.queue.reserve_vm()
+
+            message = job_body.get("message")
+            vm = message.get("name")
+
+            if ignore_project(vm):
+                continue
+
+            profile = {
+                "name" : vm,
+                "makejail" : message.get("makejail"),
+                "template" : message.get("template"),
+                "diskLayout" : message.get("diskLayout"),
+                "script" : message.get("script"),
+                "metadata" : message.get("metadata"),
+                "environment" : dict(os.environ)
+            }
+
+            try:
+                await create_vm(job_id, **profile)
+
+            except Exception as err:
+                error = overlord.util.get_error(err)
+                error_type = error.get("type")
+                error_message = error.get("message")
+
+                logger.exception("(exception:%s) %s:", error_type, error_message)
+                
+                overlord.cache.save_vm_status(profile["name"], {
+                    "operation" : "FAILED",
+                    "exception" : {
+                        "type" : error_type,
+                        "message" : error_message
+                    },
+                    "last_update" : time.time(),
+                    "job_id" : job_id
+                })
+
+    except Exception as err:
+        error = overlord.util.get_error(err)
+        error_type = error.get("type")
+        error_message = error.get("message")
+
+        logger.exception("(exception:%s) %s:", error_type, error_message)
+
+        sys.exit(EX_SOFTWARE)
+
+async def create_vm(job_id, *, name, makejail, template, diskLayout, script, metadata, environment):
+    vm = name
+
+    logger.debug("(VM:%s) creating VM ...", vm)
+
+    overlord.cache.save_project_status_up(vm, {
+        "operation" : "RUNNING",
+        "last_update" : time.time(),
+        "job_id" : job_id
+    })
+
+    overlord.cache.save_vm_status(vm, {
+        "operation" : "RUNNING",
+        "last_update" : time.time(),
+        "job_id" : job_id
+    })
+
+    director_file = yaml.dump({
+        "services" : {
+            "vm" : {
+                "name" : vm,
+                "makejail" : makejail,
+                "options" : [
+                    { "label" : "overlord.vm:1" }
+                ]
+            }
+        }
+    })
+
+    with tempfile.NamedTemporaryFile(prefix="overlord", mode="wb", buffering=0) as fd:
+        fd.write(director_file.encode())
+
+        result = overlord.director.up(vm, fd.name, env=environment)
+
+        errlevel = result["stdout"]["errlevel"]
+
+        if errlevel == 0:
+            failed = result["stdout"]["failed"]
+
+            error = len(failed) > 0
+
+        else:
+            error = True
+
+        if error:
+            operation_status = "INCOMPLETED"
+
+        else:
+            operation_status = "COMPLETED"
+
+        overlord.cache.save_project_status_up(vm, {
+            "operation" : operation_status,
+            "output" : result,
+            "last_update" : time.time(),
+            "job_id" : job_id
+        })
+
+        if error:
+            return
+
+        from_ = diskLayout["from"]
+
+        disk = diskLayout["disk"]
+
+        driver = diskLayout["driver"]
+        size = diskLayout["size"]
+
+        template["disk0_type"] = driver
+        template["disk0_name"] = "disk0.img"
+        template["disk0_dev"] = "file"
+        template["disk0_size"] = size
+
+        (rc, jail_path) = overlord.jail.get_jail_path(vm)
+
+        if rc != 0:
+            return
+
+        overlord.vm.write_template(jail_path, "overlord", template)
+
+        (rc, result) = overlord.vm.create(vm, vm, template="overlord")
+
+        if rc != 0:
+            overlord.cache.save_vm_status(vm, {
+                "operation" : "FAILED",
+                "output" : result,
+                "last_update" : time.time(),
+                "job_id" : job_id
+            })
+
+            return
+
+        for metadata_name in metadata:
+            await overlord.vm.write_metadata(jail_path, metadata_name)
+
+        scheme = disk["scheme"]
+        partitions = disk["partitions"]
+        bootcode = disk["bootcode"]
+
+        await overlord.vm.write_partitions(jail_path, scheme, partitions, bootcode)
+
+        fstab = diskLayout["fstab"]
+
+        await overlord.vm.write_fstab(jail_path, fstab)
+
+        if script is not None:
+            await overlord.vm.write_script(jail_path, script)
+
+        from_type = from_["type"]
+
+        (rc, result) = (0, "")
+
+        if from_type == "components":
+            components = from_["components"]
+            osVersion = from_["osVersion"]
+            osArch = from_["osArch"]
+            downloadURL = from_.get("downloadURL")
+
+            if downloadURL is None:
+                downloadURL = overlord.default.VM["from"]["downloadURL"]
+
+            downloadURL = downloadURL.format(
+                ARCH=osArch, VERSION=osVersion
+            )
+
+            components_path = os.path.join(
+                overlord.config.get_components(), osArch, osVersion
+            )
+
+            (rc, result) = overlord.vm.install_from_components(vm, downloadURL, components_path, components)
+
+        elif from_type == "appjailImage":
+            entrypoint = from_["entrypoint"]
+            imageName = from_["imageName"]
+            imageArch = from_["imageArch"]
+            imageTag = from_["imageTag"]
+
+            (rc, result) = overlord.vm.install_from_appjail_image(vm, entrypoint, imageName, imageArch, imageTag)
+
+        result = overlord.util.sansi(result)
+
+        if rc == 0:
+            operation_status = "COMPLETED"
+
+        else:
+            operation_status = "FAILED"
+
+        overlord.cache.save_vm_status(vm, {
+            "operation" : operation_status,
+            "output" : result,
+            "last_update" : time.time(),
+            "job_id" : job_id
+        })
 
 def _watch_projects(*args, **kwargs):
     asyncio.run(_async_watch_projects())

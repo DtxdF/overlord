@@ -54,6 +54,9 @@ class InvalidProjectName(Exception):
 class InvalidJailName(Exception):
     pass
 
+class InvalidVMName(Exception):
+    pass
+
 class InvalidArguments(Exception):
     pass
 

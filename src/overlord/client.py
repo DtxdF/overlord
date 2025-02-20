@@ -39,6 +39,7 @@ import overlord.jail
 import overlord.metadata
 import overlord.util
 import overlord.exceptions
+import overlord.vm
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ class OverlordEntityTypes(enum.Enum):
     JAIL = 1
     PROJECT = 2
     METADATA = 3
+    VMJAIL = 4
 
 class OverlordAuth(httpx.Auth):
     def __init__(self, token):
@@ -221,6 +223,62 @@ class OverlordClient(httpx.AsyncClient):
         parsed = await self.__get_entity(name, "autoscale", OverlordEntityTypes.PROJECT, chain)
 
         return parsed.get("status", {})
+
+    async def get_status_vm(self, name, chain=None):
+        """
+        Gets the status of the operation created by the ``create_vm`` method.
+
+        Args:
+            name (str): VM name.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            dict: Dictionary representing the information created by ``create_vm``.
+
+        Raises:
+            - overlord.exceptions.InvalidVMName
+            - overlord.exceptions.InvalidEntityType
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.APIError
+        """
+
+        if not overlord.vm.check_vm_name(name):
+            raise overlord.exceptions.InvalidVMName(f"{name}: Invalid VM name.")
+
+        parsed = await self.__get_entity(name, type=OverlordEntityTypes.VMJAIL, chain=chain)
+
+        return parsed.get("status", {})
+
+    async def create_vm(self, name, profile, chain=None):
+        """
+        Create a new VM.
+
+        Args:
+            name (str): VM name.
+            profile (dict):
+                A profile is a dictionary that follows the same specification as the ``vmJail`` kind
+                in a deployment file, excluding ``vmName`` which is implicitly set.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            dict:
+                dict: Dictionary containing the key ``job_id`` representing the job identifier
+                in beanstalkd, which is mostly useful for debugging.
+
+        Raises:
+            - overlord.exceptions.InvalidVMName
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.APIError
+        """
+
+        if not overlord.vm.check_vm_name(name):
+            raise overlord.exceptions.InvalidVMName(f"{name}: Invalid VM name.")
+
+        parsed = await self.__post_parsed(f"vm/{name}", chain=chain, json=profile)
+
+        return parsed
 
     async def get_projects_logs(self, chain=None):
         """
@@ -846,7 +904,6 @@ class OverlordClient(httpx.AsyncClient):
 
         Raises:
             - overlord.exceptions.InvalidArguments
-            - overlord.exceptions.InvalidEntityType
             - overlord.exceptions.InvalidKeyName
             - overlord.exceptions.APIError
         """
@@ -978,6 +1035,9 @@ class OverlordClient(httpx.AsyncClient):
 
         elif type == OverlordEntityTypes.METADATA:
             entity = "metadata"
+
+        elif type == OverlordEntityTypes.VMJAIL:
+            entity = "vm"
 
         else:
             raise overlord.exceptions.InvalidEntityType("Invalid entity type.")

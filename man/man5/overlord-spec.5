@@ -308,6 +308,12 @@ AppJail configuration.
 .It Sy appjail.logs
 Path to the logs directory created by AppJail.
 .Pp
+.It Sy appjail.images
+Location of AppJail images.
+.Pp
+.It Sy components
+Where to store components used in some operations such as creating virtual machines.
+.Pp
 .It Sy beanstalkd_addr
 Beanstalkd address to connect to. Use the
 .Sy unix:
@@ -382,6 +388,12 @@ to leave the responsability of discovering the API version to the library.
 Maximum number of jobs to wait in parallel to create or destroy projects, which
 must be greater than or equal to 1. By default, the number of available CPUs is
 used.
+.Pp
+.It Sy max_watch_vm
+Like
+.Sy max_watch_projects
+but for virtual machines.
+.Pp
 .It Sy metadata
 Metadata configuration parameters.
 .Pp
@@ -395,14 +407,14 @@ than or equal to this parameter, an error occurs. By default this parameter is
 set to 1 MiB.
 .El
 .Sh DEPLOYMENT
+.Ss GLOBAL
+.Pp
 .Bl -tag -compact -width xxx
 .It Sy kind
 What kind of deployment is this file.
 .Pp
 Valid choices are
-.Sy directorProject
-and
-.Sy metadata Ns "."
+.Sy directorProject Ns , Sy metadata No and Sy vmJail Ns "."
 .Pp
 .It Sy datacenters
 Servers to perform HTTP requests.
@@ -441,39 +453,48 @@ label is used.
 .It Sy deployIn.exclude
 Exclude servers matching the specified labels.
 .Pp
+.It Sy maximumDeployments
+The maximum number of times to deploy a project.
+.Pp
+.El
+.Ss metadata
+Metadata allows simple text files to be created in the corresponding
+.Sy Overlord
+instances.
+Metadata is integrated with other
+.Sy Overlord
+parameters or subsystems, so it can be reused for multiple things.
+.Pp
+.Bl -tag -compact -width xxx
+.It Sy metadata
+A dictionary specifiying the metadata to be stored.
+.Pp
+.El
+.Ss directorProject
+Director is used for the creation of a project, a simple text file in YAML format
+that deploys one or more services
+.Pq aka jails
+on a single system.
+.Pp
+.Bl -tag -compact -width xxx
 .It Sy projectName
 Project name.
 .Pp
-Valid only for
-.Sy deployProject Ns "."
-.Pp
 .It Sy projectFile
 Content of the project.
-.Pp
-Valid only for
-.Sy deployProject Ns "."
 .Pp
 .It Sy projectFromMetadata
 Like
 .Sy projectFile
 but it obtains the content of the project from a metadata.
 .Pp
-Valid only for
-.Sy deployProject Ns "."
-.Pp
 .It Sy environment
 A dictionary with each key-value environment. Both the key and the value must be a string.
-.Pp
-Valid only for
-.Sy deployProject Ns "."
 .Pp
 .It Sy environFromMetadata
 Like
 .Sy environment
 but obtains a dictionary from a metadata in YAML format.
-.Pp
-Valid only for
-.Sy deployProject Ns "."
 .Pp
 .It Sy datacentersEnvironment
 Each key must be a datacenter and its value a dictionary such as
@@ -481,9 +502,6 @@ Each key must be a datacenter and its value a dictionary such as
 specifying the environment to use depending on the datacenter.
 .Pp
 This parameter overrides any other environment-like option.
-.Pp
-Valid only for
-.Sy deployProject Ns "."
 .Pp
 .It Sy chainsEnvironment
 Each key must be a chain and its value a dictionary such as
@@ -495,10 +513,7 @@ This parameter overrides any other environment-like option except
 .Pp
 A special key
 .Sy <root>
-can be used when a request is to be made to a datacenter but without speciying a chain.
-.Pp
-Valid only for
-.Sy deployProject Ns "."
+can be used when a request is to be made to a datacenter but without specifiying a chain.
 .Pp
 .It Sy labelsEnvironment
 Each key must be a label and its value a dictionary such as
@@ -510,18 +525,6 @@ This parameter overrides any other environment-like option except
 .Sy datacentersEnvironment
 and
 .Sy chainsEnvironment Ns "."
-.Pp
-Valid only for
-.Sy deployProject Ns "."
-.Pp
-.It Sy maximumDeployments
-The maximum number of times to deploy a project.
-.Pp
-.It Sy metadata
-A dictionary speciying the metadata to be stored.
-.Pp
-Valid only for
-.Sy metadata Ns "."
 .Pp
 .It Sy autoScale
 When at least one option of this parameter is set, a metadata named
@@ -602,6 +605,265 @@ reached, more instances of the project will be created.
 See
 .Sy deployIn.labels
 for details.
+.Pp
+.El
+.Ss vmJail
+Deploy a new project that will create a new jail to then create a virtual machine.
+This kind of deployment integrates well with
+.Sy Overlord
+because the information it gets comes from the project and the jail.
+.Pp
+A virtual disk is created and partitioned. This deployment file specifies the
+files to be installed on the root partition that must correspond to the FreeBSD
+installation. Once this process is complete, a new virtual machine will be up
+and running.
+.Pp
+.Bl -tag -width xxxxx
+.It Sy vmName
+The name of the project, the jail and the virtual machine.
+.Pp
+.It Sy makejail
+The Makejail to create the environment. This Makejail must install at least
+.Xr vm-bhyve 8
+.Pq stable or devel
+for this kind of deployment to work properly. Apart from installing
+.Xr vm-bhyve 8
+you must specify the network options of the jail, such as using Virtual Networks, configure the bridge, create the switch, and unhide the devices for
+.Xr bhyve 4
+to work correctly.
+.Pp
+.It Sy template
+A dictionary where each key-value will be written as a
+.Xr vm-bhyve 8
+template. The parameters
+.Sy disk0_type Ns ,
+.Sy disk0_name Ns ,
+.Sy disk0_dev
+and
+.Sy disk0_size
+will be written by
+.Sy Overlord
+when creating the template.
+.Pp
+.Sy disk0_type
+is whatever is specified in
+.Sy diskLayout.driver Ns ,
+.Sy disk0_name
+is
+.Sy disk0.img Ns ,
+.Sy disk0_dev
+is
+.Sy file
+and
+.Sy disk0_size
+is whatever is specified in
+.Sy diskLayout.size Ns "." 
+.Pp
+.It Sy diskLayout
+Configuration parameters for the virtual disk.
+.Pp
+.It Sy diskLayout.driver
+The emulation type for the virtual disk.
+.Pp
+Only
+.Sy nvme
+and
+.Sy virtio-blk
+are supported.
+.Pp
+.It Sy diskLayout.size
+Size of the virtual disk.
+.Pp
+.It Sy diskLayout.from
+Configuration parameters to determine how FreeBSD will be installed.
+.Pp
+.It Sy diskLayout.from.type
+How to install FreeBSD. Depending on this parameter, some parameters
+may or may not be valid.
+.Pp
+Only
+.Sy appjailImage
+and
+.Sy components
+are supported.
+.Pp
+.It Sy diskLayout.from.components
+A list of components to download and extract into the VM root partition.
+.Pp
+This parameter is only valid for the
+.Sy components
+type.
+.Pp
+.It Sy diskLayout.from.osVersion
+FreeBSD version.
+.Pp
+This parameter is only valid for the
+.Sy components
+type.
+.Pp
+.It Sy diskLayout.from.osArch
+FreeBSD architecture.
+.Pp
+This parameter is only valid for the
+.Sy components
+type.
+.Pp
+.It Sy diskLayout.from.downloadURL
+URL of the web site where the components will be downloaded. The special strings
+.Sy {ARCH}
+and
+.Sy {VERSION}
+will be replaced by the values specified in the
+.Sy osArch
+and
+.Sy osVersion
+parameters.
+.Pp
+This parameter is only valid for the
+.Sy components
+type.
+.Pp
+.It Sy diskLayout.from.entrypoint
+Where and how to obtain the
+.Xr appjail-ajspec(5)
+file to then obtain the image to be extracted to the VM root partition.
+.Pp
+This parameter is only valid for the
+.Sy appjailImage
+type.
+.Pp
+.It Sy diskLayout.from.imageName
+Image name that does not necessarily correspond to the one specified in the
+.Xr appjail-ajspec 5
+file, although it is recommended to use the same value as the one specified in the
+.Sy name
+parameter of that file.
+.Pp
+This parameter is only valid for the
+.Sy appjailImage
+type.
+.Pp
+.It Sy diskLayout.from.imageArch
+Obtain and use the image that matches this architecture.
+.Pp
+This parameter is only valid for the
+.Sy appjailImage
+type.
+.Pp
+.It Sy diskLayout.from.imageTag
+Obtain and use the image that matches this tag.
+.Pp
+This parameter is only valid for the
+.Sy appjailImage
+type.
+.Pp
+.It Sy diskLayout.disk
+Configuration parameters of virtual disk partitions, scheme and boot code.
+.Pp
+.It Sy diskLayout.disk.scheme
+Specify the partitioning scheme to use.
+.Pp
+.It Sy diskLayout.disk.partitions
+A list of dictionaries specifying the configuration parameters of the virtual
+disk partition.
+.Pp
+.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .type
+Create a partition of type
+.Ar type Ns "."
+.Pp
+.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .alignment
+If specified, then
+.Sy Overlord
+tries to align
+.Ar start
+offset and partition
+.Ar size
+to be multiple of
+.Ar alignment
+value.
+.Pp
+.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .start
+The logical block address where the partition will begin.
+.Pp
+.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .size
+Create a partition of size
+.Ar size Ns "."
+.Pp
+.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .label
+The label attached to the partition.  This option is only valid when used on
+partitioning schemes that support partition labels.
+.Pp
+.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .format
+Configuration parameters for formatting the root partition.
+.Pp
+If this parameter is set, the root partition is not only formatted, but also mounted
+and FreeBSD files are installed on it. You can specify this parameter multiple times,
+but only the first one will be mounted, although all partitions with this parameter
+will be formatted.
+.Pp
+.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .format.flags
+.Xr newfs 8
+flags.
+.Pp
+.It Sy diskLayout.disk.bootcode
+Embed bootstrap code into the partitioning scheme's metadata on the root partition
+or write bootstrap code into a partition.
+.Pp
+.It Sy diskLayout.disk.bootcode.bootcode
+Embed bootstrap code from the file bootcode into the partitioning scheme's metadata.
+.Pp
+.It Sy diskLayout.disk.bootcode.partcode
+Write the bootstrap code from the file partcode into the root partition specified by
+.Sy diskLayout.disk.bootcode.index Ns "."
+.Pp
+.It Sy diskLayout.disk.bootcode.index
+Specify the target partition for
+.Sy diskLayout.disk.bootcode.partcode Ns "."
+.Pp
+.It Sy diskLayout.fstab
+Specifies the entries to create an
+.Xr fstab 5
+file on the root partition.
+.Pp
+.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .device
+Special device or remote file system to be mounted.
+.Pp
+.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .mountpoint
+Mount point for the file system.
+.Pp
+.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .type
+Type of file system.
+.Pp
+.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .options
+Mount options associated with the file system.
+.Pp
+.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .dump
+Used for these file systems by the
+.Xr dump 8
+command to determine which file systems need to be dumped.
+.Pp
+.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .pass
+Used by the
+.Xr fsck 8
+and
+.Xr quotacheck 8
+programs to determine the order in which file system and quota checks are done
+at reboot time.
+.Pp
+.It Sy script
+A
+.Xr sh 1
+script intended to further customize the virtual machine. The VM root partition
+is mounted on
+.Sy /mnt
+but inside the jail, however, the script runs in the jail directory not
+.Sy /mnt Ns "."
+.Pp
+.It Sy metadata
+A list of metadata to be copied to the
+.Sy /metadata
+directory inside the jail. The metadata must be previously deployed or it is
+simply ignored.
 .Pp
 .El
 .Sh SEE ALSO

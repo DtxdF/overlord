@@ -97,7 +97,8 @@ def get_config():
             "logs" : get_director_logs()
         },
         "appjail" : {
-            "logs" : get_appjail_logs()
+            "logs" : get_appjail_logs(),
+            "images" : get_appjail_images()
         },
         "beanstalkd_addr" : get_beanstalkd_addr(),
         "execution_time" : get_execution_time(),
@@ -122,10 +123,12 @@ def get_config():
         },
         "etcd" : {},
         "max_watch_projects" : get_max_watch_projects(),
+        "max_watch_vm" : get_max_watch_vm(),
         "metadata" : {
             "location" : get_metadata_location(),
             "size" : get_metadata_size()
-        }
+        },
+        "components" : get_components()
     }
 
     for host in list_etcd_hosts():
@@ -160,6 +163,9 @@ def get_default(value, default=None):
 
     return value
 
+def get_components():
+    return CONFIG.get("components", overlord.default.COMPONENTS)
+
 def get_serverid():
     return CONFIG.get("serverid", overlord.default.SERVERID)
 
@@ -184,6 +190,11 @@ def get_appjail_logs():
     appjail = get_appjail()
 
     return get_default(appjail.get("logs"), overlord.default.APPJAIL["logs"])
+
+def get_appjail_images():
+    appjail = get_appjail()
+
+    return get_default(appjail.get("images"), overlord.default.APPJAIL["images"])
 
 def get_labels():
     return get_default(CONFIG.get("labels"), overlord.default.LABELS)
@@ -674,6 +685,9 @@ def get_etcd_api_path(host):
 def get_max_watch_projects():
     return get_default(CONFIG.get("max_watch_projects"), overlord.default.CPU_COUNT)
 
+def get_max_watch_vm():
+    return get_default(CONFIG.get("max_watch_vm"), overlord.default.CPU_COUNT)
+
 def get_metadata():
     return get_default(CONFIG.get("metadata"), {})
 
@@ -710,7 +724,9 @@ def validate(document):
         "skydns",
         "etcd",
         "max_watch_projects",
-        "metadata"
+        "max_watch_vm",
+        "metadata",
+        "components"
     )
 
     for key in document:
@@ -735,7 +751,18 @@ def validate(document):
     validate_skydns(document)
     validate_etcd(document)
     validate_max_watch_projects(document)
+    validate_max_watch_vm(document)
     validate_metadata(document)
+    validate_components(document)
+
+def validate_components(document):
+    components = document.get("components")
+
+    if components is None:
+        return
+
+    if not isinstance(components, str):
+        raise overlord.exceptions.InvalidSpec(f"{components}: invalid value type for 'components'")
 
 def validate_serverid(document):
     serverid = document.get("serverid")
@@ -799,6 +826,18 @@ def validate_max_watch_projects(document):
 
     if max_watch_projects <= 0:
         raise ValueError(f"{max_watch_projects}: invalid value for 'max_watch_projects'.")
+
+def validate_max_watch_vm(document):
+    max_watch_vm = document.get("max_watch_vm")
+
+    if max_watch_vm is None:
+        return
+
+    if not isinstance(max_watch_vm, int):
+        raise overlord.exceptions.InvalidSpec(f"{max_watch_vm}: invalid value type for 'max_watch_vm'")
+
+    if max_watch_vm <= 0:
+        raise ValueError(f"{max_watch_vm}: invalid value for 'max_watch_vm'.")
 
 def validate_etcd(document):
     etcd = document.get("etcd")
@@ -1162,7 +1201,8 @@ def validate_appjail(document):
         raise overlord.exceptions.InvalidSpec("'appjail' is invalid.")
 
     keys = (
-        "logs"
+        "logs",
+        "images"
     )
 
     for key in appjail.keys():
@@ -1170,6 +1210,16 @@ def validate_appjail(document):
             raise overlord.exceptions.InvalidSpec(f"appjail.{key}: this key is invalid.")
 
     validate_appjail_logs(appjail)
+    validate_appjail_images(appjail)
+
+def validate_appjail_images(document):
+    images = document.get("images")
+
+    if images is None:
+        return
+
+    if not isinstance(images, str):
+        raise overlord.exceptions.InvalidSpec(f"{images}: invalid value type for 'appjail.images'")
 
 def validate_appjail_logs(document):
     logs = document.get("logs")

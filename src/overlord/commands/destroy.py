@@ -295,6 +295,28 @@ async def _destroy(file, filter_chain):
 
                             continue
 
+                elif kind == overlord.spec.OverlordKindTypes.VMJAIL.value:
+                    vm_name = overlord.spec.vm_jail.get_vmName()
+
+                    try:
+                        response = await client.down(vm_name, chain=chain)
+
+                    except Exception as err:
+                        error = overlord.util.get_error(err)
+                        error_type = error.get("type")
+                        error_message = error.get("message")
+
+                        logger.warning("(datacenter:%s, chain:%s, VM:%s, exception:%s) error destroying the VM!",
+                                       datacenter, chain, vm_name, error_type, error_message)
+
+                        continue
+
+                    job_id = response.get("job_id")
+
+                    if job_id is not None:
+                        logger.debug("(datacenter:%s, chain:%s, VM:%s, job:%d) request for destruction has been made!",
+                                     datacenter, chain, vm_name, job_id)
+
     except Exception as err:
         error = overlord.util.get_error(err)
         error_type = error.get("type")

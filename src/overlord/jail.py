@@ -42,6 +42,30 @@ def check_dependency():
 def check_jail_name(name):
     return re.match(r"^[a-zA-Z0-9_][a-zA-Z0-9_-]*$", name)
 
+def get_jail_path(jail):
+    proc = overlord.process.run(["appjail", "cmd", "local", jail, "realpath", "."])
+
+    value = None
+
+    for output in proc:
+        if "rc" in output:
+            rc = output["rc"]
+
+            if rc != 0:
+                return (rc, value)
+
+        elif "stderr" in output:
+            stderr = output["stderr"]
+            stderr = stderr.rstrip()
+
+            logger.warning("stderr: %s", stderr)
+
+        elif "line" in output:
+            value = output["line"]
+            value = value.strip()
+
+    return (rc, value)
+
 def get_list():
     proc = overlord.process.run(["appjail", "jail", "list", "-eHIpt", "name"])
 

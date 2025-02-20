@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
-@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "chains:tree", "projects:logs", "jails:logs", "metadata", "autoscale")))
+@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "chains:tree", "projects:logs", "jails:logs", "metadata", "autoscale", "vm")))
 @click.option("--jail-item", multiple=True, default=[], type=click.Choice(["stats", "info", "cpuset", "devfs", "expose", "healthcheck", "limits", "fstab", "labels", "nat", "volumes"]))
 @click.option("--all-labels", is_flag=True, default=False)
 @click.option("--filter", default=[], multiple=True)
@@ -173,13 +173,25 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
                 elif type == "projects":
                     if filter_per_project:
-                        projectName = overlord.spec.director_project.get_projectName()
+                        kind = overlord.spec.get_kind()
 
-                        if projectName is None:
-                            logger.warning("Project is not specified in the deployment file!")
-                            sys.exit(EX_OK)
+                        if kind == overlord.spec.OverlordKindTypes.PROJECT.value:
+                            projectName = overlord.spec.director_project.get_projectName()
 
-                        filter = [projectName]
+                            if projectName is None:
+                                logger.warning("Project is not specified in the deployment file!")
+                                sys.exit(EX_OK)
+
+                            filter = [projectName]
+
+                        elif kind == overlord.spec.OverlordKindTypes.VMJAIL.value:
+                            vmName = overlord.spec.vm_jail.get_vmName()
+
+                            if vmName is None:
+                                logger.warning("VM name is not specified in the deployment file!")
+                                sys.exit(EX_OK)
+
+                            filter = [vmName]
 
                     await print_info_projects(client, chain, info, filter)
 
@@ -234,6 +246,18 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
                     await print_info_autoscale(client, chain, info, filter)
 
+                elif type == "vm":
+                    if filter_per_project:
+                        vmName = overlord.spec.vm_jail.get_vmName()
+
+                        if vmName is None:
+                            logger.warning("VM name is not specified in the deployment file!")
+                            sys.exit(EX_OK)
+
+                        filter = [vmName]
+
+                    await print_info_vm(client, chain, info, filter)
+
         if tree_chain:
             tree = asciitree.LeftAligned()
 
@@ -260,6 +284,88 @@ def match_pattern(value, patterns):
             return True
 
     return False
+
+async def print_info_vm(client, chain, api_info, patterns):
+    info = {}
+    info.update(api_info)
+    info["projects"] = {}
+
+    if patterns:
+        projects = patterns
+
+    else:
+        projects = await _safe_client(client, "get_projects", chain=chain)
+
+    if projects is None:
+        return
+
+    for project in projects:
+        info["projects"][project] = {}
+
+        result = await _safe_client(client, "get_status_vm", project, chain=chain)
+
+        if result is not None:
+            info["projects"][project]["virtual-machines"] = result
+
+    project_info = info["projects"]
+
+    if len(project_info) == 0:
+        logger.debug("(datacenter:%s, chain:%s) nothing to show.",
+                     api_info.get("datacenter"), api_info.get("chain"))
+        return
+
+    print_headers = True
+
+    for name, _info in project_info.items():
+        virtual_machines = _info.get("virtual-machines", {})
+
+        print_status_name = True
+
+        for key, value in virtual_machines.items():
+            if print_headers:
+                print_header(info)
+
+                print("  projects:")
+                print(f"    {name}:")
+
+                print_headers = False
+
+            if print_status_name:
+                print("      virtual-machines:")
+
+                print_status_name = False
+
+            if isinstance(value, list):
+                print(f"        {key}:")
+
+                for _value in value:
+                    print(f"        - {_value}")
+
+            else:
+                if key == "last_update":
+                    last_update = humanfriendly.format_timespan(value)
+
+                    print("          last_update: %s" % last_update)
+
+                elif key == "output":
+                    lines = value.splitlines()
+
+                    if len(lines) == 0:
+                        continue
+
+                    elif len(lines) == 1:
+                        value = value.rstrip("\n")
+
+                        print(f"          {key}: {value}")
+
+                    elif len(lines) > 1:
+                        print(f"          {key}: |")
+
+                        for line in lines:
+                            print(f"            {line}")
+
+                else:
+                    print(f"          {key}: {value}")
 
 async def print_info_autoscale(client, chain, api_info, patterns):
     info = {}
@@ -343,7 +449,6 @@ async def print_info_autoscale(client, chain, api_info, patterns):
 
                 else:
                     print(f"        {key}: {value}")
-
 
 async def print_info_metadata(client, chain, api_info, patterns):
     info = {}

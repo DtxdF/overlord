@@ -45,6 +45,7 @@ import overlord.commands
 import overlord.config
 import overlord.metadata
 import overlord.queue
+import overlord.spec
 import overlord.tornado
 import overlord.util
 
@@ -547,6 +548,64 @@ class MetadataHandler(InternalHandler):
         else:
             self.set_status(404)
 
+class VMHandler(InternalHandler):
+    async def get(self, name):
+        if not self.check_jail(name):
+            return
+
+        result = overlord.cache.get_vm_status(name)
+
+        if "last_update" in result:
+            result["last_update"] = time.time() - result["last_update"]
+
+        self.write_template({
+            "status" : result
+        })
+
+    async def post(self, name):
+        try:
+            makejail = self.get_json_argument("makejail", strip=False, value_type=str)
+
+            template = self.get_json_argument("template", value_type=dict)
+
+            overlord.spec.vm_jail.validate_template({ "template" : template })
+
+            diskLayout = self.get_json_argument("diskLayout", value_type=dict)
+
+            overlord.spec.vm_jail.validate_diskLayout({ "diskLayout" : diskLayout })
+
+            script = self.get_json_argument("script", None, strip=False, value_type=str)
+
+            metadata = self.get_json_argument("metadata", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_metadata({ "metadata" : metadata })
+
+        except overlord.exceptions.InvalidSpec as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
+            self.write_template({
+                "message" : f"(exception:{error_type}) invalid specification: {error_message}"
+            }, status_code=400)
+
+            self.finish()
+
+            return
+
+        job_id = await overlord.queue.put_create_vm({
+            "name" : name,
+            "makejail" : makejail,
+            "template" : template,
+            "diskLayout" : diskLayout,
+            "script" : script,
+            "metadata" : metadata
+        })
+
+        self.write_template({
+            "job_id" : job_id
+        })
+
 class LabelsHandler(InternalHandler):
     async def get(self):
         self.write_template({
@@ -599,6 +658,57 @@ class ChainMetadataHandler(ChainInternalHandler):
 
         else:
             self.set_status(404)
+
+class ChainVMHandler(ChainInternalHandler):
+    async def get(self, name):
+        result = await self.remote_call(chain, "get_status_vm", name)
+
+        self.write_template({
+            "status" : result
+        })
+
+    async def post(self, name):
+        try:
+            makejail = self.get_json_argument("makejail", strip=False, value_type=str)
+
+            template = self.get_json_argument("template", value_type=dict)
+
+            overlord.spec.vm_jail.validate_template({ "template" : template })
+
+            diskLayout = self.get_json_argument("diskLayout", value_type=dict)
+
+            overlord.spec.vm_jail.validate_diskLayout({ "diskLayout" : diskLayout })
+
+            script = self.get_json_argument("script", None, strip=False, value_type=str)
+
+            metadata = self.get_json_argument("metadata", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_metadata({ "metadata" : metadata })
+
+        except overlord.exceptions.InvalidSpec as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
+            self.write_template({
+                "message" : f"(exception:{error_type}) invalid specification: {error_message}"
+            }, status_code=400)
+
+            self.finish()
+
+            return
+
+        profile = {
+            "makejail" : makejail,
+            "template" : template,
+            "diskLayout" : diskLayout,
+            "script" : script,
+            "metadata" : metadata
+        }
+
+        result = await self.remote_call(chain, "create_vm", name, profile)
+
+        self.write_template(result)
 
 class ChainChainsHandler(ChainInternalHandler):
     async def get(self, chain):
@@ -852,10 +962,12 @@ def make_app():
         (r"/v1/project/up/([a-zA-Z0-9._-]+)", ProjectUpHandler),
         (r"/v1/project/down/([a-zA-Z0-9._-]+)", ProjectDownHandler),
         (r"/v1/project/autoscale/([a-zA-Z0-9._-]+)", ProjectAutoScaleHandler),
+        (r"/v1/vm/([a-zA-Z0-9][.a-zA-Z0-9_-]{0,229}[a-zA-Z0-9])", VMHandler),
         (r"/v1/metadata/" + overlord.metadata.REGEX_KEY, MetadataHandler),
         (r"/v1/labels/?", LabelsHandler),
         (r"/v1/chains/?", ChainsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/metadata/" + overlord.metadata.REGEX_KEY, ChainMetadataHandler),
+        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/vm/([a-zA-Z0-9][.a-zA-Z0-9_-]{0,229}[a-zA-Z0-9])", ChainVMHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/labels/?", ChainLabelsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/chains/?", ChainChainsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/jails/?", ChainJailsHandler),

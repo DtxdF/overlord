@@ -199,7 +199,8 @@ DIRECTOR = {
     "logs" : os.path.expanduser("~/.director/logs")
 }
 APPJAIL = {
-    "logs" : "/var/log/appjail"
+    "logs" : "/var/log/appjail",
+    "images" : "/usr/local/appjail/cache/images"
 }
 BEANSTALKD_ADDR = ("127.0.0.1", 11300)
 EXECUTION_TIME = 60 * 60 * 3
@@ -228,6 +229,7 @@ METADATA = {
     "location" : os.path.join(PREFIX, "metadata"),
     "size" : 2**20 # 1 MiB
 }
+COMPONENTS = os.path.join(PREFIX, "components")
 SERVERID = os.path.join(PREFIX, "serverid")
 METADATA_MAX_SIZE = 2**10 # 1 KiB
 CPU_COUNT = os.cpu_count()
@@ -236,4 +238,9 @@ SCALE = {
         "min" : 1
     },
     "type" : "any-jail"
+}
+VM = {
+    "from" : {
+        "downloadURL" : "https://download.freebsd.org/releases/{ARCH}/{VERSION}"
+    }
 }

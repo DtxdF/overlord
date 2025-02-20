@@ -157,6 +157,9 @@ def save_project_status_up(project, status):
 def save_project_status_down(project, status):
     return save(f"overlord_project_status_down_{project}", status)
 
+def save_vm_status(vm, status):
+    return save(f"overlord_vm_status_{vm}", status)
+
 def save_project_status_autoscale(project, status):
     expire_time = 60 * 10 # 10 minutes
 
@@ -298,6 +301,14 @@ def get_project_status_down(project):
 
     return data
 
+def get_vm_status(vm):
+    data = get(f"overlord_vm_status_{vm}")
+
+    if data is None:
+        return {}
+
+    return data
+
 def get_project_status_autoscale(project):
     data = get(f"overlord_project_status_autoscale_{project}")
 
@@ -309,6 +320,8 @@ def get_project_status_autoscale(project):
 def remove_jail(jail):
     for keyword in ("info", "stats", "cpuset", "devfs", "expose", "healthcheck", "limits", "fstab", "label", "nat", "volume", "fstab"):
         delete(f"overlord_jail_{keyword}_{jail}")
+
+    delete(f"overlord_vm_status_{jail}")
 
 def remove_project(project):
     for keyword in ("info", "status_up", "status_down", "status_autoscale"):
