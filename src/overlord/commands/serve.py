@@ -660,14 +660,14 @@ class ChainMetadataHandler(ChainInternalHandler):
             self.set_status(404)
 
 class ChainVMHandler(ChainInternalHandler):
-    async def get(self, name):
+    async def get(self, chain, name):
         result = await self.remote_call(chain, "get_status_vm", name)
 
         self.write_template({
             "status" : result
         })
 
-    async def post(self, name):
+    async def post(self, chain, name):
         try:
             makejail = self.get_json_argument("makejail", strip=False, value_type=str)
 
