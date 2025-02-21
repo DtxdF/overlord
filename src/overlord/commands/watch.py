@@ -168,6 +168,17 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
 
     logger.debug("(VM:%s) creating VM ...", vm)
 
+    jail_path = None
+
+    if overlord.jail.status(vm) < 2:
+        (rc, jail_path) = overlord.jail.get_jail_path(vm)
+
+        if rc != 0:
+            return
+
+        if overlord.vm.is_done(jail_path):
+            return
+
     overlord.cache.save_project_status_up(vm, {
         "operation" : "RUNNING",
         "last_update" : time.time(),
@@ -235,10 +246,11 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
         template["disk0_dev"] = "file"
         template["disk0_size"] = size
 
-        (rc, jail_path) = overlord.jail.get_jail_path(vm)
+        if jail_path is None:
+            (rc, jail_path) = overlord.jail.get_jail_path(vm)
 
-        if rc != 0:
-            return
+            if rc != 0:
+                return
 
         overlord.vm.write_template(jail_path, "overlord", template)
 
@@ -305,6 +317,8 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
 
         if rc == 0:
             operation_status = "COMPLETED"
+
+            overlord.vm.write_done(jail_path)
 
         else:
             operation_status = "FAILED"

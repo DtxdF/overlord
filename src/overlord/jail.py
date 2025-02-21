@@ -103,7 +103,7 @@ def status(jail):
         if "rc" in output:
             rc = output["rc"]
 
-    return rc == 0
+    return rc
 
 def get_value(jail, keyword):
     proc = overlord.process.run(["appjail", "jail", "get", "-I", "--", jail, keyword])

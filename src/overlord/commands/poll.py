@@ -841,7 +841,7 @@ def poll_jail_extras(item):
             jails = overlord.cache.get_jails()
 
             for jail in jails:
-                if flags.get("cpuset") and overlord.jail.status(jail):
+                if flags.get("cpuset") and overlord.jail.status(jail) == 0:
                     (rc, cpuset) = overlord.jail.get_cpuset(jail)
 
                     if rc != 0:
@@ -1033,7 +1033,7 @@ def poll_jail_stats():
             jails = overlord.cache.get_jails()
 
             for jail in jails:
-                if not overlord.jail.status(jail):
+                if overlord.jail.status(jail) != 0:
                     continue
 
                 (rc, stats) = overlord.jail.stats(jail)

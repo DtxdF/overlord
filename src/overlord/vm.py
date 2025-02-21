@@ -42,6 +42,17 @@ logger = logging.getLogger(__name__)
 def check_vm_name(name):
     return re.match(r"[a-zA-Z0-9][.a-zA-Z0-9_-]{0,229}[a-zA-Z0-9]", name) is not None
 
+def is_done(jail_path):
+    done_file = os.path.join(jail_path, ".done")
+
+    return os.path.isfile(done_file)
+
+def write_done(jail_path):
+    done_file = os.path.join(jail_path, ".done")
+
+    with open(done_file, "w"):
+        pass
+
 def install_from_components(jail, download_url, components_path, components):
     args = []
 
