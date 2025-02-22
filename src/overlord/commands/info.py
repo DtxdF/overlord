@@ -456,7 +456,7 @@ async def print_info_metadata(client, chain, api_info, patterns):
     info["metadata"] = {}
 
     for pattern in patterns:
-        if not await client.metadata_check(pattern):
+        if not await client.metadata_check(pattern, chain=chain):
             logger.warning("(metadata:%s) metadata cannot be found", pattern)
             continue
 
