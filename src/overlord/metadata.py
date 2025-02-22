@@ -36,7 +36,7 @@ import aiofiles
 import overlord.config
 import overlord.exceptions
 
-REGEX_KEY = r"([a-zA-Z][a-zA-Z0-9]*(?:(?:\.|-)?[a-zA-Z][a-zA-Z0-9]*)*)"
+REGEX_KEY = r"([a-zA-Z][a-zA-Z0-9]*(?:(?:\.|-|_)?[a-zA-Z][a-zA-Z0-9]*)*)"
 
 def _raise_invalid_keyname(key):
     if not check_keyname(key):
