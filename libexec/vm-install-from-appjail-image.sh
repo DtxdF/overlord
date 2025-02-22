@@ -100,7 +100,7 @@ main()
 
     local partition_prefix="${JAIL_PATH}/metadata/overlord.diskLayout.disk.partitions"
 
-    local index=1
+    local mount_index= index=1
 
     while :; do
         local extra_flags=
@@ -154,10 +154,8 @@ main()
 
             sh -c "newfs ${format_flags} /dev/${MD}p${index}" || exit $?
 
-            if ! ${MOUNTED}; then
-                MOUNTED=true
-
-                mount "/dev/${MD}p${index}" "${JAIL_PATH}/mnt" || exit $?
+            if [ -z "${mount_index}" ]; then
+                mount_index="${index}"
             fi
         fi
 
@@ -179,6 +177,12 @@ main()
         index=`head -1 -- "${JAIL_PATH}/metadata/overlord.diskLayout.disk.bootcode.index"` || exit $?
 
         gpart bootcode -p "${partcode}" -i "${index}" "/dev/${MD}" || exit $?
+    fi
+
+    if [ -n "${mount_index}" ]; then
+        MOUNTED=true
+
+        mount "/dev/${MD}p${mount_index}" "${JAIL_PATH}/mnt" || exit $?
     fi
 
     LOCKFILE=`mktemp -t overlord` || exit $?
