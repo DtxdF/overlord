@@ -231,7 +231,7 @@ main()
         local pass="${fstab_prefix}.${index}.pass"
         pass=`head -1 -- "${pass}"` || exit $?
 
-        printf "%s\t%s\t%s\t%s\t%s\%s\n" "${device}" "${mountpoint}" "${type}" "${options}" "${dump}" "${pass}" >> "${JAIL_PATH}/mnt/etc/fstab" || exit $?
+        printf "%s\t%s\t%s\t%s\t%s\t%s\n" "${device}" "${mountpoint}" "${type}" "${options}" "${dump}" "${pass}" >> "${JAIL_PATH}/mnt/etc/fstab" || exit $?
 
         index=$((index+1))
     done
