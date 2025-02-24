@@ -150,7 +150,7 @@ def validate_diskLayout_fstab(document):
     fstab = document.get("fstab")
 
     if fstab is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.fstab' is required but hasn't been specified.")
+        return
 
     if not isinstance(fstab, list):
         raise overlord.exceptions.InvalidSpec("'diskLayout.fstab' is invalid.")
@@ -249,7 +249,8 @@ def validate_diskLayout_driver(document):
         raise overlord.exceptions.InvalidSpec(f"{driver}: invalid value type for 'diskLayout.driver'")
 
     if driver != "virtio-blk" \
-            and driver != "nvme":
+            and driver != "nvme" \
+            and driver != "ahci-hd":
          raise overlord.exceptions.InvalidSpec(f"{driver}: invalid value for 'diskLayout.driver'")
 
 def validate_diskLayout_size(document):
@@ -296,6 +297,12 @@ def validate_diskLayout_from_type(document):
             "imageTag"
         )
 
+    elif type == "iso":
+        keys = (
+            "type",
+            "isoFile"
+        )
+
     else:
         raise overlord.exceptions.InvalidSpec(f"{type}: invalid value for 'diskLayout.from.type'")
 
@@ -314,6 +321,18 @@ def validate_diskLayout_from_type(document):
         validate_diskLayout_from_imageName(document)
         validate_diskLayout_from_imageArch(document)
         validate_diskLayout_from_imageTag(document)
+
+    elif type == "iso":
+        validate_diskLayout_from_isoFile(document)
+
+def validate_diskLayout_from_isoFile(document):
+    isoFile = document.get("isoFile")
+
+    if isoFile is None:
+        raise overlord.exceptions.InvalidSpec("'isoFile' is required but hasn't been specified.")
+
+    if not isinstance(isoFile, str):
+        raise overlord.exceptions.InvalidSpec(f"{isoFile}: invalid value type for 'isoFile'")
 
 def validate_diskLayout_from_imageTag(document):
     imageTag = document.get("imageTag")
@@ -391,7 +410,7 @@ def validate_diskLayout_disk(document):
     disk = document.get("disk")
 
     if disk is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.disk' is required but hasn't been specified.")
+        return
 
     if not isinstance(disk, dict):
         raise overlord.exceptions.InvalidSpec("'diskLayout.disk' is invalid.")
@@ -589,7 +608,7 @@ def validate_script(document):
     script = document.get("script")
 
     if script is None:
-        raise overlord.exceptions.InvalidSpec("'script' is required but hasn't been specified.")
+        return
 
     if not isinstance(script, str):
         raise overlord.exceptions.InvalidSpec(f"{script}: invalid value type for 'script'")

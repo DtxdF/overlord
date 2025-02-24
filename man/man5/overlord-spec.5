@@ -682,10 +682,21 @@ How to install FreeBSD. Depending on this parameter, some parameters
 may or may not be valid.
 .Pp
 Only
-.Sy appjailImage
-and
+.Sy appjailImage Ns ,
 .Sy components
+and
+.Sy iso
 are supported.
+.Pp
+.It Sy diskLayout.from.isoFile
+The name of the ISO file containing the operating system to install. Due to the
+nature of
+.Sy Overlord Ns ,
+which deploys jails and VMs not necessarily on your local machine, you must use
+configure the VM template for use with VNC.
+.Pp
+See also
+.Lk https://github.com/churchers/vm-bhyve/wiki/UEFI-Graphics-(VNC) "UEFI Graphics (VNC)"
 .Pp
 .It Sy diskLayout.from.components
 A list of components to download and extract into the VM root partition.

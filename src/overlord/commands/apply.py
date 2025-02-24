@@ -277,10 +277,18 @@ async def _apply(file):
                     profile = {
                         "makejail" : overlord.spec.vm_jail.get_makejail(),
                         "template" : overlord.spec.vm_jail.get_template(),
-                        "diskLayout" : overlord.spec.vm_jail.get_diskLayout(),
-                        "script" : overlord.spec.vm_jail.get_script(),
-                        "metadata" : overlord.spec.vm_jail.get_metadata()
+                        "diskLayout" : overlord.spec.vm_jail.get_diskLayout()
                     }
+
+                    vm_script = overlord.spec.vm_jail.get_script()
+
+                    if vm_script is not None:
+                        profile["script"] = vm_script
+
+                    vm_metadata = overlord.spec.vm_jail.get_metadata()
+
+                    if vm_metadata:
+                        profile["metadata"] = vm_metadata
 
                     try:
                         response = await client.create_vm(vm_name, profile, chain=chain)

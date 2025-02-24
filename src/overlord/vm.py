@@ -97,6 +97,42 @@ def install_from_components(jail, download_url, components_path, components):
 
     return (rc, lines)
 
+def install_from_iso(jail, iso_file):
+    args = ["appjail", "cmd", "jexec", jail, "vm", "install", jail, iso_file]
+
+    proc = overlord.process.run(args)
+
+    rc = 0
+
+    lines = []
+
+    for output in proc:
+        if "rc" in output:
+            rc = output["rc"]
+
+            if rc != 0:
+                lines = "\n".join(lines) + "\n"
+
+                return (rc, lines)
+
+        elif "stderr" in output:
+            stderr = output["stderr"]
+            stderr = stderr.rstrip()
+
+            lines.append(stderr)
+
+            logger.warning("stderr: %s", stderr)
+
+        elif "line" in output:
+            value = output["line"]
+            value = value.rstrip()
+
+            lines.append(value)
+
+    lines = "\n".join(lines) + "\n"
+
+    return (rc, lines)
+
 def install_from_appjail_image(jail, entrypoint, image_name, image_arch, image_tag):
     imagesdir = overlord.config.get_appjail_images()
 
@@ -154,7 +190,7 @@ async def write_script(jail_path, content):
 
     os.chmod(script_path, 0o555)
 
-async def write_partitions(jail_path, scheme, partitions, bootcode):
+async def write_partitions(jail_path, scheme, partitions, bootcode=None):
     await _write_metadata(jail_path, "overlord.diskLayout.disk.scheme", scheme)
 
     for index, partition in enumerate(partitions, 1):
@@ -168,20 +204,21 @@ async def write_partitions(jail_path, scheme, partitions, bootcode):
 
             await _write_metadata(jail_path, f"overlord.diskLayout.disk.partitions.{index}.{key}", value)
 
-    _bootcode = bootcode.get("bootcode")
+    if bootcode is not None:
+        _bootcode = bootcode.get("bootcode")
 
-    if _bootcode is not None:
-        await _write_metadata(jail_path, "overlord.diskLayout.disk.bootcode.bootcode", _bootcode)
+        if _bootcode is not None:
+            await _write_metadata(jail_path, "overlord.diskLayout.disk.bootcode.bootcode", _bootcode)
 
-    partcode = bootcode.get("partcode")
-    
-    if partcode is not None:
-        await _write_metadata(jail_path, "overlord.diskLayout.disk.bootcode.partcode", partcode)
+        partcode = bootcode.get("partcode")
+        
+        if partcode is not None:
+            await _write_metadata(jail_path, "overlord.diskLayout.disk.bootcode.partcode", partcode)
 
-    index = bootcode.get("index")
+        index = bootcode.get("index")
 
-    if index is not None:
-        await _write_metadata(jail_path, "overlord.diskLayout.disk.bootcode.index", "%s" % index)
+        if index is not None:
+            await _write_metadata(jail_path, "overlord.diskLayout.disk.bootcode.index", "%s" % index)
 
 async def write_fstab(jail_path, fstab):
     for index, entry in enumerate(fstab):

@@ -46,6 +46,7 @@ import overlord.config
 import overlord.dataplaneapi
 import overlord.default
 import overlord.director
+import overlord.exceptions
 import overlord.jail
 import overlord.vm
 import overlord.process
@@ -236,8 +237,6 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
 
         from_ = diskLayout["from"]
 
-        disk = diskLayout["disk"]
-
         driver = diskLayout["driver"]
         size = diskLayout["size"]
 
@@ -266,52 +265,65 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
 
             return
 
-        for metadata_name in metadata:
-            await overlord.vm.write_metadata(jail_path, metadata_name)
-
-        scheme = disk["scheme"]
-        partitions = disk["partitions"]
-        bootcode = disk["bootcode"]
-
-        await overlord.vm.write_partitions(jail_path, scheme, partitions, bootcode)
-
-        fstab = diskLayout["fstab"]
-
-        await overlord.vm.write_fstab(jail_path, fstab)
-
-        if script is not None:
-            await overlord.vm.write_script(jail_path, script)
-
         from_type = from_["type"]
 
         (rc, result) = (0, "")
 
-        if from_type == "components":
-            components = from_["components"]
-            osVersion = from_["osVersion"]
-            osArch = from_["osArch"]
-            downloadURL = from_.get("downloadURL")
+        if from_type == "components" \
+                or from_type == "appjailImage":
+            for metadata_name in metadata:
+                await overlord.vm.write_metadata(jail_path, metadata_name)
+            disk = diskLayout.get("disk")
 
-            if downloadURL is None:
-                downloadURL = overlord.default.VM["from"]["downloadURL"]
+            if disk is None:
+                raise overlord.exceptions.InvalidSpec("'diskLayout.disk' is required but hasn't been specified.")
 
-            downloadURL = downloadURL.format(
-                ARCH=osArch, VERSION=osVersion
-            )
+            fstab = diskLayout.get("fstab")
 
-            components_path = os.path.join(
-                overlord.config.get_components(), osArch, osVersion
-            )
+            if fstab is None:
+                raise overlord.exceptions.InvalidSpec("'diskLayout.fstab' is required but hasn't been specified.")
 
-            (rc, result) = overlord.vm.install_from_components(vm, downloadURL, components_path, components)
+            scheme = disk["scheme"]
+            partitions = disk["partitions"]
+            bootcode = disk.get("bootcode")
 
-        elif from_type == "appjailImage":
-            entrypoint = from_["entrypoint"]
-            imageName = from_["imageName"]
-            imageArch = from_["imageArch"]
-            imageTag = from_["imageTag"]
+            await overlord.vm.write_partitions(jail_path, scheme, partitions, bootcode)
+            await overlord.vm.write_fstab(jail_path, fstab)
 
-            (rc, result) = overlord.vm.install_from_appjail_image(vm, entrypoint, imageName, imageArch, imageTag)
+            if script is not None:
+                await overlord.vm.write_script(jail_path, script)
+
+            if from_type == "components":
+                components = from_["components"]
+                osVersion = from_["osVersion"]
+                osArch = from_["osArch"]
+                downloadURL = from_.get("downloadURL")
+
+                if downloadURL is None:
+                    downloadURL = overlord.default.VM["from"]["downloadURL"]
+
+                downloadURL = downloadURL.format(
+                    ARCH=osArch, VERSION=osVersion
+                )
+
+                components_path = os.path.join(
+                    overlord.config.get_components(), osArch, osVersion
+                )
+
+                (rc, result) = overlord.vm.install_from_components(vm, downloadURL, components_path, components)
+
+            elif from_type == "appjailImage":
+                entrypoint = from_["entrypoint"]
+                imageName = from_["imageName"]
+                imageArch = from_["imageArch"]
+                imageTag = from_["imageTag"]
+
+                (rc, result) = overlord.vm.install_from_appjail_image(vm, entrypoint, imageName, imageArch, imageTag)
+
+        elif from_type == "iso":
+            isoFile = from_["isoFile"]
+
+            (rc, result) = overlord.vm.install_from_iso(vm, isoFile)
 
         result = overlord.util.sansi(result)
 
