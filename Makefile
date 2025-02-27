@@ -14,6 +14,7 @@ install-libexec:
 
 	${INSTALL} -m 555 libexec/vm-install-from-components.sh "${DESTDIR}${PREFIX}/libexec/overlord/vm-install-from-components.sh"
 	${INSTALL} -m 555 libexec/vm-install-from-appjail-image.sh "${DESTDIR}${PREFIX}/libexec/overlord/vm-install-from-appjail-image.sh"
+	${INSTALL} -m 555 libexec/vm-start.sh "${DESTDIR}${PREFIX}/libexec/overlord/vm-start.sh"
 	${INSTALL} -m 555 libexec/safe-exc.sh "${DESTDIR}${PREFIX}/libexec/overlord/safe-exc.sh"
 
 install-manpages:
@@ -31,6 +32,7 @@ uninstall-overlord:
 uninstall-libexec:
 	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/vm-install-from-components.sh"
 	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/vm-install-from-appjail-image.sh"
+	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/vm-start.sh"
 	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/safe-exc.sh"
 
 uninstall-manpages:

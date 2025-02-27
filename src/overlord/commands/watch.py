@@ -253,19 +253,32 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
 
         overlord.vm.write_template(jail_path, "overlord", template)
 
-        (rc, result) = overlord.vm.create(vm, vm, template="overlord")
-
-        if rc != 0:
-            overlord.cache.save_vm_status(vm, {
-                "operation" : "FAILED",
-                "output" : result,
-                "last_update" : time.time(),
-                "job_id" : job_id
-            })
-
-            return
-
         from_type = from_["type"]
+
+        ignore_done = False
+        ignore_create = False
+
+        if from_type == "iso":
+            installed = from_.get("installed")
+
+            if installed is None:
+                installed = False
+
+            if installed:
+                ignore_create = True
+
+        if not ignore_create:
+            (rc, result) = overlord.vm.create(vm, vm, template="overlord")
+
+            if rc != 0:
+                overlord.cache.save_vm_status(vm, {
+                    "operation" : "FAILED",
+                    "output" : result,
+                    "last_update" : time.time(),
+                    "job_id" : job_id
+                })
+
+                return
 
         (rc, result) = (0, "")
 
@@ -321,16 +334,23 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
                 (rc, result) = overlord.vm.install_from_appjail_image(vm, entrypoint, imageName, imageArch, imageTag)
 
         elif from_type == "iso":
-            isoFile = from_["isoFile"]
+            if installed:
+                (rc, result) = overlord.vm.start(vm)
 
-            (rc, result) = overlord.vm.install_from_iso(vm, isoFile)
+            else:
+                isoFile = from_["isoFile"]
+
+                (rc, result) = overlord.vm.install_from_iso(vm, isoFile)
+
+                ignore_done = True
 
         result = overlord.util.sansi(result)
 
         if rc == 0:
             operation_status = "COMPLETED"
 
-            overlord.vm.write_done(jail_path)
+            if not ignore_done:
+                overlord.vm.write_done(jail_path)
 
         else:
             operation_status = "FAILED"

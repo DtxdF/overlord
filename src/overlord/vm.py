@@ -180,6 +180,46 @@ def install_from_appjail_image(jail, entrypoint, image_name, image_arch, image_t
 
     return (rc, lines)
 
+def start(jail):
+    args = []
+
+    args.append(os.path.join(sys.prefix, "libexec/overlord/safe-exc.sh"))
+    args.append(os.path.join(sys.prefix, "libexec/overlord/vm-start.sh"))
+    args.extend(["-j", jail])
+
+    proc = overlord.process.run(args)
+
+    rc = 0
+
+    lines = []
+
+    for output in proc:
+        if "rc" in output:
+            rc = output["rc"]
+
+            if rc != 0:
+                lines = "\n".join(lines) + "\n"
+
+                return (rc, lines)
+
+        elif "stderr" in output:
+            stderr = output["stderr"]
+            stderr = stderr.rstrip()
+
+            lines.append(stderr)
+
+            logger.warning("stderr: %s", stderr)
+
+        elif "line" in output:
+            value = output["line"]
+            value = value.rstrip()
+
+            lines.append(value)
+
+    lines = "\n".join(lines) + "\n"
+
+    return (rc, lines)
+
 async def write_script(jail_path, content):
     script_path = os.path.join(jail_path, "run.sh")
     

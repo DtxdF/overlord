@@ -300,7 +300,8 @@ def validate_diskLayout_from_type(document):
     elif type == "iso":
         keys = (
             "type",
-            "isoFile"
+            "isoFile",
+            "installed"
         )
 
     else:
@@ -324,6 +325,16 @@ def validate_diskLayout_from_type(document):
 
     elif type == "iso":
         validate_diskLayout_from_isoFile(document)
+        validate_diskLayout_from_installed(document)
+
+def validate_diskLayout_from_installed(document):
+    installed = document.get("installed")
+
+    if installed is None:
+        return
+
+    if not isinstance(installed, bool):
+        raise overlord.exceptions.InvalidSpec(f"{installed}: invalid value type for 'installed'")
 
 def validate_diskLayout_from_isoFile(document):
     isoFile = document.get("isoFile")

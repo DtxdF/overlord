@@ -698,6 +698,20 @@ configure the VM template for use with VNC.
 See also
 .Lk https://github.com/churchers/vm-bhyve/wiki/UEFI-Graphics-(VNC) "UEFI Graphics (VNC)"
 .Pp
+This parameter is only valid for the
+.Sy iso
+type.
+.Pp
+.It Sy diskLayout.from.installed
+A boolean to indicate whether the VM can be enabled and started for persistent
+use. Or in other words, after installing the operating system, you must modify
+your deployment file and include this parameter set to
+.Sy true Ns "."
+.Pp
+This parameter is only valid for the
+.Sy iso
+type.
+.Pp
 .It Sy diskLayout.from.components
 A list of components to download and extract into the VM root partition.
 .Pp
