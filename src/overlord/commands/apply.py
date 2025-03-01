@@ -275,10 +275,17 @@ async def _apply(file):
                     vm_name = overlord.spec.vm_jail.get_vmName()
 
                     profile = {
-                        "makejail" : overlord.spec.vm_jail.get_makejail(),
                         "template" : overlord.spec.vm_jail.get_template(),
                         "diskLayout" : overlord.spec.vm_jail.get_diskLayout()
                     }
+
+                    makejail = overlord.spec.vm_jail.get_makejail()
+
+                    if makejail is None:
+                        profile["makejailFromMetadata"] = overlord.spec.vm_jail.get_makejailFromMetadata()
+
+                    else:
+                        profile["makejail"] = makejail
 
                     vm_script = overlord.spec.vm_jail.get_script()
 

@@ -564,7 +564,9 @@ class VMHandler(InternalHandler):
 
     async def post(self, name):
         try:
-            makejail = self.get_json_argument("makejail", strip=False, value_type=str)
+            makejail = self.get_json_argument("makejail", None, strip=False, value_type=str)
+
+            makejailFromMetadata = self.get_json_argument("makejailFromMetadata", None, strip=False, value_type=str)
 
             template = self.get_json_argument("template", value_type=dict)
 
@@ -596,6 +598,7 @@ class VMHandler(InternalHandler):
         job_id = await overlord.queue.put_create_vm({
             "name" : name,
             "makejail" : makejail,
+            "makejailFromMetadata" : makejailFromMetadata,
             "template" : template,
             "diskLayout" : diskLayout,
             "script" : script,
@@ -669,7 +672,9 @@ class ChainVMHandler(ChainInternalHandler):
 
     async def post(self, chain, name):
         try:
-            makejail = self.get_json_argument("makejail", strip=False, value_type=str)
+            makejail = self.get_json_argument("makejail", None, strip=False, value_type=str)
+
+            makejailFromMetadata = self.get_json_argument("makejailFromMetadata", None, strip=False, value_type=str)
 
             template = self.get_json_argument("template", value_type=dict)
 

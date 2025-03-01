@@ -43,6 +43,9 @@ def get_vmName():
 def get_makejail():
     return CONFIG.get("makejail")
 
+def get_makejailFromMetadata():
+    return CONFIG.get("makejailFromMetadata")
+
 def get_template():
     return CONFIG.get("template")
 
@@ -68,6 +71,7 @@ def validate(document):
         "maximumDeployments",
         "vmName",
         "makejail",
+        "makejailFromMetadata",
         "template",
         "diskLayout",
         "script",
@@ -98,12 +102,21 @@ def validate_vmName(document):
 
 def validate_makejail(document):
     makejail = document.get("makejail")
+    makejailFromMetadata = document.get("makejailFromMetadata")
 
-    if makejail is None:
-        raise overlord.exceptions.InvalidSpec("'makejail' is required but hasn't been specified.")
+    if makejail is None and makejailFromMetadata is None:
+        raise overlord.exceptions.InvalidSpec("'makejail' or 'makejailFromMetadata' are required but haven't been specified.")
 
-    if not isinstance(makejail, str):
-        raise overlord.exceptions.InvalidSpec(f"{makejail}: invalid value type for 'makejail'")
+    elif makejail is not None and makejailFromMetadata is not None:
+        raise overlord.exceptions.InvalidSpec("Only 'makejail' or 'makejailFromMetadata' should be specified, but not both.")
+
+    elif makejail is not None:
+        if not isinstance(makejail, str):
+            raise overlord.exceptions.InvalidSpec(f"{makejail}: invalid value type for 'makejail'")
+
+    elif makejailFromMetadata is not None:
+        if not isinstance(makejailFromMetadata, str):
+            raise overlord.exceptions.InvalidSpec(f"{makejailFromMetadata}: invalid value type for 'makejailFromMetadata'")
 
 def validate_template(document):
     template = document.get("template")

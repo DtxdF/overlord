@@ -125,17 +125,25 @@ async def _async_watch_vm():
             if ignore_project(vm):
                 continue
 
-            profile = {
-                "name" : vm,
-                "makejail" : message.get("makejail"),
-                "template" : message.get("template"),
-                "diskLayout" : message.get("diskLayout"),
-                "script" : message.get("script"),
-                "metadata" : message.get("metadata"),
-                "environment" : dict(os.environ)
-            }
-
             try:
+                makejailFromMetadata = message.get("makejailFromMetadata")
+
+                if makejailFromMetadata is None:
+                    makejail = message.get("makejail")
+
+                else:
+                    makejail = overlord.metadata.get_filename(makejailFromMetadata)
+
+                profile = {
+                    "name" : vm,
+                    "makejail" : makejail,
+                    "template" : message.get("template"),
+                    "diskLayout" : message.get("diskLayout"),
+                    "script" : message.get("script"),
+                    "metadata" : message.get("metadata"),
+                    "environment" : dict(os.environ)
+                }
+
                 await create_vm(job_id, **profile)
 
             except Exception as err:

@@ -112,6 +112,18 @@ def check(key):
 
     return result
 
+def get_filename(key):
+    _raise_invalid_keyname(key)
+
+    metadata_location = overlord.config.get_metadata_location()
+
+    metadata = os.path.join(metadata_location, key)
+
+    if not os.path.isfile(metadata):
+        raise overlord.exceptions.MetadataNotFound(f"{key}: metadata not found.")
+
+    return metadata
+
 def check_keyname(key):
     match = re.match(REGEX_KEY, key)
 
