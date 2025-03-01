@@ -152,7 +152,8 @@ def get_config():
             "pool_timeout" : get_chain_pool_timeout(chain),
             "max_keepalive_connections" : get_chain_max_keepalive_connections(chain),
             "max_connections" : get_chain_max_connections(chain),
-            "keepalive_expiry" : get_chain_keepalive_expiry(chain)
+            "keepalive_expiry" : get_chain_keepalive_expiry(chain),
+            "disable" : get_chain_disable(chain)
         }
 
     return config
@@ -498,6 +499,16 @@ def get_chain_keepalive_expiry(chain):
     keepalive_expiry = get_default(chain_conf.get("keepalive_expiry"), overlord.default.CHAIN_KEEPALIVE_EXPIRY)
 
     return keepalive_expiry
+
+def get_chain_disable(chain):
+    chain_conf = get_chain(chain)
+
+    if chain_conf is None:
+        return
+
+    disable = get_default(chain_conf.get("disable"), overlord.default.CHAIN_DISABLE)
+
+    return disable
 
 def get_dataplaneapi():
     return get_default(CONFIG.get("dataplaneapi"), {})
@@ -1812,7 +1823,8 @@ def validate_chain(chains, chain):
         "pool_timeout",
         "max_keepalive_connections",
         "max_connections",
-        "keepalive_expiry"
+        "keepalive_expiry",
+        "disable"
     )
 
     for key in chains[chain]:
@@ -1829,6 +1841,16 @@ def validate_chain(chains, chain):
     validate_chain_max_keepalive_connections(chains, chain)
     validate_chain_max_connections(chains, chain)
     validate_chain_keepalive_expiry(chains, chain)
+    validate_chain_disable(chains, chain)
+
+def validate_chain_disable(chains, chain):
+    disable = chains[chain].get("disable")
+
+    if disable is None:
+        return
+
+    if not isinstance(disable, bool):
+        raise overlord.exceptions.InvalidSpec(f"{disable}: invalid value type for 'chains.{chain}.disable'")
 
 def validate_chain_entrypoint(chains, chain):
     entrypoint = chains[chain].get("entrypoint")

@@ -615,7 +615,7 @@ class LabelsHandler(InternalHandler):
 class ChainsHandler(ChainInternalHandler):
     async def get(self):
         self.write_template({
-            "chains" : overlord.config.list_chains()
+            "chains" : list(CHAINS)
         })
 
 class ChainMetadataHandler(ChainInternalHandler):
@@ -1005,6 +1005,11 @@ def serve():
     overlord.trap.add(overlord.trap.exit_with_error)
 
     for chain in overlord.config.list_chains():
+        is_disable = overlord.config.get_chain_disable(chain)
+
+        if is_disable:
+            continue
+
         limits_settings = {
             "max_keepalive_connections" : overlord.config.get_chain_max_keepalive_connections(chain),
             "max_connections" : overlord.config.get_chain_max_connections(chain),
