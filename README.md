@@ -36,6 +36,4 @@ Overlord scales very well, it is easy to manage the projects created by Director
 
 ## Documentation
 
-* `man 1 overlord`
-* `man 5 overlord-spec`
 * [Wiki](https://github.com/DtxdF/overlord/wiki)
