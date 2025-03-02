@@ -22,7 +22,7 @@ install-manpages:
 	${MKDIR} -m 755 -p "${DESTDIR}${MANDIR}/man5"
 
 	${INSTALL} -m 444 man/man1/overlord.1 "${DESTDIR}${MANDIR}/man1/overlord.1"
-	${INSTALL} -m 444 man/man5/overlord-spec.5 "${DESTDIR}${MANDIR}/overlord-spec.5"
+	${INSTALL} -m 444 man/man5/overlord-spec.5 "${DESTDIR}${MANDIR}/man5/overlord-spec.5"
 
 uninstall: uninstall-overlord uninstall-libexec uninstall-manpages
 
