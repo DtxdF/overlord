@@ -34,13 +34,6 @@ cloud-machine, although it scales very well, it is difficult to manage VMs, so t
 
 Overlord scales very well, it is easy to manage the projects created by Director, get information about the jails, and offers an API so it can be easily extended.
 
-## Dependencies
-
-* `sysutils/appjail` or `sysutils/appjail-devel`
-* `sysutils/py-director`
-* `net/beanstalkd`
-* `databases/memcached`
-
 ## Documentation
 
 * `man 1 overlord`
