@@ -194,12 +194,6 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
         "job_id" : job_id
     })
 
-    overlord.cache.save_vm_status(vm, {
-        "operation" : "RUNNING",
-        "last_update" : time.time(),
-        "job_id" : job_id
-    })
-
     director_file = yaml.dump({
         "services" : {
             "vm" : {
@@ -242,6 +236,12 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
 
         if error:
             return
+
+        overlord.cache.save_vm_status(vm, {
+            "operation" : "RUNNING",
+            "last_update" : time.time(),
+            "job_id" : job_id
+        })
 
         from_ = diskLayout["from"]
 
