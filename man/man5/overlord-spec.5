@@ -898,6 +898,34 @@ A list of metadata to be copied to the
 directory inside the jail. The metadata must be previously deployed or it is
 simply ignored.
 .Pp
+.It Sy start-environment
+Array of dictionaries where each dictionary
+.Pq key and value
+represents the environment used by the
+.Sy start
+stage.
+.Pp
+.It Sy start-arguments
+Array of dictionaries where each dictionary
+.Pq key and value
+represents the arguments used by the
+.Sy start
+stage.
+.Pp
+.It Sy build-environment
+Array of dictionaries where each dictionary
+.Pq key and value
+represents the environment used by the
+.Sy build
+stage.
+.Pp
+.It Sy build-arguments
+Array of dictionaries where each dictionary
+.Pq key and value
+represents the arguments used by the
+.Sy build
+stage.
+.Pp
 .El
 .Sh SEE ALSO
 .Xr overlord 1

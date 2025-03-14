@@ -58,6 +58,18 @@ def get_script():
 def get_metadata():
     return get_default(CONFIG.get("metadata"), [])
 
+def get_start_environment():
+    return get_default(CONFIG.get("start-environment"), [])
+
+def get_start_arguments():
+    return get_default(CONFIG.get("start-arguments"), [])
+
+def get_build_environment():
+    return get_default(CONFIG.get("build-environment"), [])
+
+def get_build_arguments():
+    return get_default(CONFIG.get("build-arguments"), [])
+
 def validate(document):
     global CONFIG
 
@@ -75,7 +87,12 @@ def validate(document):
         "template",
         "diskLayout",
         "script",
-        "metadata"
+        "metadata",
+        "options",
+        "start-environment",
+        "start-arguments",
+        "build-environment",
+        "build-arguments"
     )
 
     for key in document:
@@ -88,8 +105,72 @@ def validate(document):
     validate_diskLayout(document)
     validate_script(document)
     validate_metadata(document)
+    validate_start_environment(document)
+    validate_start_arguments(document)
+    validate_build_environment(document)
+    validate_build_arguments(document)
 
     CONFIG = document
+
+def validate_start_environment(document):
+    environment = document.get("start-environment")
+
+    if environment is None:
+        return
+
+    if not isinstance(environment, list):
+        raise overlord.exceptions.InvalidSpec("'start-environment' is invalid.")
+
+    for index, entry in enumerate(environment):
+        for env_name, env_value in entry.items():
+            if not isinstance(env_name, str) \
+                    or not isinstance(env_value, str):
+                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (start-environment.{index}.{env_name}) or value (start-environment.{index}.{env_value}).")
+
+def validate_start_arguments(document):
+    arguments = document.get("start-arguments")
+
+    if arguments is None:
+        return
+
+    if not isinstance(arguments, list):
+        raise overlord.exceptions.InvalidSpec("'start-arguments' is invalid.")
+
+    for index, entry in enumerate(arguments):
+        for arg_name, arg_value in entry.items():
+            if not isinstance(arg_name, str) \
+                    or not isinstance(arg_value, str):
+                raise overlord.exceptions.InvalidSpec(f"Invalid arguments name (start-arguments.{index}.{arg_name}) or value (start-arguments.{index}.{arg_value}).")
+
+def validate_build_environment(document):
+    environment = document.get("build-environment")
+
+    if environment is None:
+        return
+
+    if not isinstance(environment, list):
+        raise overlord.exceptions.InvalidSpec("'build-environment' is invalid.")
+
+    for index, entry in enumerate(environment):
+        for env_name, env_value in entry.items():
+            if not isinstance(env_name, str) \
+                    or not isinstance(env_value, str):
+                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (build-environment.{index}.{env_name}) or value (build-environment.{index}.{env_value}).")
+
+def validate_build_arguments(document):
+    arguments = document.get("build-arguments")
+
+    if arguments is None:
+        return
+
+    if not isinstance(arguments, list):
+        raise overlord.exceptions.InvalidSpec("'build-arguments' is invalid.")
+
+    for index, entry in enumerate(arguments):
+        for arg_name, arg_value in entry.items():
+            if not isinstance(arg_name, str) \
+                    or not isinstance(arg_value, str):
+                raise overlord.exceptions.InvalidSpec(f"Invalid arguments name (build-arguments.{index}.{arg_name}) or value (build-arguments.{index}.{arg_value}).")
 
 def validate_vmName(document):
     vmName = document.get("vmName")

@@ -582,6 +582,22 @@ class VMHandler(InternalHandler):
 
             overlord.spec.vm_jail.validate_metadata({ "metadata" : metadata })
 
+            start_environment = self.get_json_argument("start-environment", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_start_environment({ "start-environment" : start_environment })
+
+            start_arguments = self.get_json_argument("start-arguments", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_start_arguments({ "start-arguments" : start_arguments })
+
+            build_environment = self.get_json_argument("build-environment", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_build_environment({ "build-environment" : build_environment })
+
+            build_arguments = self.get_json_argument("build-arguments", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_build_arguments({ "build-arguments" : build_arguments })
+
         except overlord.exceptions.InvalidSpec as err:
             error = overlord.util.get_error(err)
             error_type = error.get("type")
@@ -602,7 +618,11 @@ class VMHandler(InternalHandler):
             "template" : template,
             "diskLayout" : diskLayout,
             "script" : script,
-            "metadata" : metadata
+            "metadata" : metadata,
+            "start-environment" : start_environment,
+            "start-arguments" : start_arguments,
+            "build-environment" : build_environment,
+            "build-arguments" : build_arguments
         })
 
         self.write_template({
@@ -690,6 +710,22 @@ class ChainVMHandler(ChainInternalHandler):
 
             overlord.spec.vm_jail.validate_metadata({ "metadata" : metadata })
 
+            start_environment = self.get_json_argument("start-environment", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_start_environment({ "start-environment" : start_environment })
+
+            start_arguments = self.get_json_argument("start-arguments", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_start_arguments({ "start-arguments" : start_arguments })
+
+            build_environment = self.get_json_argument("build-environment", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_build_environment({ "build-environment" : build_environment })
+
+            build_arguments = self.get_json_argument("build-arguments", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_build_arguments({ "build-arguments" : build_arguments })
+
         except overlord.exceptions.InvalidSpec as err:
             error = overlord.util.get_error(err)
             error_type = error.get("type")
@@ -708,7 +744,11 @@ class ChainVMHandler(ChainInternalHandler):
             "template" : template,
             "diskLayout" : diskLayout,
             "script" : script,
-            "metadata" : metadata
+            "metadata" : metadata,
+            "start-environment" : start_environment,
+            "start-arguments" : start_arguments,
+            "build-environment" : build_environment,
+            "build-arguments" : build_arguments
         }
 
         result = await self.remote_call(chain, "create_vm", name, profile)

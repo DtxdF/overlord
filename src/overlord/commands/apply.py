@@ -276,7 +276,11 @@ async def _apply(file):
 
                     profile = {
                         "template" : overlord.spec.vm_jail.get_template(),
-                        "diskLayout" : overlord.spec.vm_jail.get_diskLayout()
+                        "diskLayout" : overlord.spec.vm_jail.get_diskLayout(),
+                        "start-environment" : overlord.spec.vm_jail.get_start_environment(),
+                        "start-arguments" : overlord.spec.vm_jail.get_start_arguments(),
+                        "build-environment" : overlord.spec.vm_jail.get_build_environment(),
+                        "build-arguments" : overlord.spec.vm_jail.get_build_arguments()
                     }
 
                     makejail = overlord.spec.vm_jail.get_makejail()

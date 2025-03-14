@@ -141,7 +141,15 @@ async def _async_watch_vm():
                     "diskLayout" : message.get("diskLayout"),
                     "script" : message.get("script"),
                     "metadata" : message.get("metadata"),
-                    "environment" : dict(os.environ)
+                    "environment" : {
+                        "process" : dict(os.environ),
+                        "build" : message.get("build-environment"),
+                        "start" : message.get("start-environment")
+                    },
+                    "arguments" : {
+                        "build" : message.get("build-arguments"),
+                        "start" : message.get("start-environment")
+                    }
                 }
 
                 await create_vm(job_id, **profile)
@@ -172,7 +180,7 @@ async def _async_watch_vm():
 
         sys.exit(EX_SOFTWARE)
 
-async def create_vm(job_id, *, name, makejail, template, diskLayout, script, metadata, environment):
+async def create_vm(job_id, *, name, makejail, template, diskLayout, script, metadata, environment, arguments):
     vm = name
 
     logger.debug("(VM:%s) creating VM ...", vm)
@@ -194,7 +202,7 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
         "job_id" : job_id
     })
 
-    director_file = yaml.dump({
+    director_file = {
         "services" : {
             "vm" : {
                 "name" : vm,
@@ -204,12 +212,26 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
                 ]
             }
         }
-    })
+    }
+
+    if environment["start"]:
+        director_file["services"]["vm"]["start-environment"] = environment["start"]
+
+    if environment["build"]:
+        director_file["services"]["vm"]["environment"] = environment["build"]
+
+    if arguments["start"]:
+        director_file["services"]["vm"]["start"] = arguments["start"]
+
+    if arguments["build"]:
+        director_file["services"]["vm"]["arguments"] = arguments["build"]
+
+    director_file = yaml.dump(director_file)
 
     with tempfile.NamedTemporaryFile(prefix="overlord", mode="wb", buffering=0) as fd:
         fd.write(director_file.encode())
 
-        result = overlord.director.up(vm, fd.name, env=environment)
+        result = overlord.director.up(vm, fd.name, env=environment["process"])
 
         errlevel = result["stdout"]["errlevel"]
 
