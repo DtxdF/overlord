@@ -598,6 +598,10 @@ class VMHandler(InternalHandler):
 
             overlord.spec.vm_jail.validate_build_arguments({ "build-arguments" : build_arguments })
 
+            options = self.get_json_argument("options", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_options({ "options" : options })
+
         except overlord.exceptions.InvalidSpec as err:
             error = overlord.util.get_error(err)
             error_type = error.get("type")
@@ -622,7 +626,8 @@ class VMHandler(InternalHandler):
             "start-environment" : start_environment,
             "start-arguments" : start_arguments,
             "build-environment" : build_environment,
-            "build-arguments" : build_arguments
+            "build-arguments" : build_arguments,
+            "options" : options
         })
 
         self.write_template({
@@ -726,6 +731,10 @@ class ChainVMHandler(ChainInternalHandler):
 
             overlord.spec.vm_jail.validate_build_arguments({ "build-arguments" : build_arguments })
 
+            options = self.get_json_argument("options", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_options({ "options" : options })
+
         except overlord.exceptions.InvalidSpec as err:
             error = overlord.util.get_error(err)
             error_type = error.get("type")
@@ -748,7 +757,8 @@ class ChainVMHandler(ChainInternalHandler):
             "start-environment" : start_environment,
             "start-arguments" : start_arguments,
             "build-environment" : build_environment,
-            "build-arguments" : build_arguments
+            "build-arguments" : build_arguments,
+            "options" : options
         }
 
         result = await self.remote_call(chain, "create_vm", name, profile)

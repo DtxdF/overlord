@@ -898,6 +898,14 @@ A list of metadata to be copied to the
 directory inside the jail. The metadata must be previously deployed or it is
 simply ignored.
 .Pp
+.It Sy options
+Array of dictionaries where each dictionary
+.Pq key and value
+represents the option used by
+.Xr appjail-quick 1 Ns "."
+.Pp
+Keys are mandatory, but values are optional.
+.Pp
 .It Sy start-environment
 Array of dictionaries where each dictionary
 .Pq key and value

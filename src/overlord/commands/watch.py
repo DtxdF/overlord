@@ -149,7 +149,8 @@ async def _async_watch_vm():
                     "arguments" : {
                         "build" : message.get("build-arguments"),
                         "start" : message.get("start-environment")
-                    }
+                    },
+                    "options" : message.get("options")
                 }
 
                 await create_vm(job_id, **profile)
@@ -180,7 +181,7 @@ async def _async_watch_vm():
 
         sys.exit(EX_SOFTWARE)
 
-async def create_vm(job_id, *, name, makejail, template, diskLayout, script, metadata, environment, arguments):
+async def create_vm(job_id, *, name, makejail, template, diskLayout, script, metadata, environment, arguments, options):
     vm = name
 
     logger.debug("(VM:%s) creating VM ...", vm)
@@ -213,6 +214,9 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
             }
         }
     }
+
+    if options:
+        director_file["options"] = options
 
     if environment["start"]:
         director_file["services"]["vm"]["start-environment"] = environment["start"]

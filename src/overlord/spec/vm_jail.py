@@ -58,6 +58,9 @@ def get_script():
 def get_metadata():
     return get_default(CONFIG.get("metadata"), [])
 
+def get_options():
+    return get_default(CONFIG.get("options"), [])
+
 def get_start_environment():
     return get_default(CONFIG.get("start-environment"), [])
 
@@ -105,12 +108,31 @@ def validate(document):
     validate_diskLayout(document)
     validate_script(document)
     validate_metadata(document)
+    validate_options(document)
     validate_start_environment(document)
     validate_start_arguments(document)
     validate_build_environment(document)
     validate_build_arguments(document)
 
     CONFIG = document
+
+def validate_options(document):
+    options = document.get("options")
+
+    if options is None:
+        return
+
+    if not isinstance(options, list):
+        raise overlord.exceptions.InvalidSpec("'options' is invalid.")
+
+    for index, entry in enumerate(options):
+        for opt_name, opt_value in entry.items():
+            if not isinstance(opt_name, str):
+                raise overlord.exceptions.InvalidSpec(f"Invalid option name (options.{index}.{opt_name}).")
+
+            if opt_value is not None \
+                    and not isinstance(opt_value, str):
+                raise overlord.exceptions.InvalidSpec(f"Invalid option value (options.{index}.{opt_value}).")
 
 def validate_start_environment(document):
     environment = document.get("start-environment")
