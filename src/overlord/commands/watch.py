@@ -504,6 +504,9 @@ async def _async_watch_projects():
 
                 else:
                     operation_status = "COMPLETED"
+
+                    poweroff_if_vm(project)
+
                     result = overlord.director.down(project, destroy=True, ignore_failed=True, env=environment)
 
                 overlord.cache.save_project_status_down(project, {
@@ -522,6 +525,41 @@ async def _async_watch_projects():
         logger.exception("(exception:%s) %s:", error_type, error_message)
 
         sys.exit(EX_SOFTWARE)
+
+def poweroff_if_vm(project):
+    if not overlord.director.check(project):
+        return
+
+    (rc, info) = overlord.director.describe(project)
+
+    if rc != 0:
+        return
+
+    services = info["services"]
+
+    if len(services) != 1:
+        return
+
+    jail = services[0]["jail"]
+
+    value = None
+
+    rc = 0
+
+    proc = overlord.process.run(["appjail", "label", "get", "-I", "-l", "overlord.vm", "--", jail, "value"])
+
+    for output in proc:
+        if "rc" in output:
+            rc = output["rc"]
+
+        elif "line" in output:
+            value = output["line"]
+            value = value.rstrip("\n")
+
+    if rc != 0:
+        return
+
+    overlord.vm.poweroff(jail, jail)
 
 def ignore_project(project):
     if not overlord.director.check(project):

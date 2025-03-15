@@ -349,3 +349,39 @@ def create(jail, name, datastore=None, template=None, size=None):
     lines = "\n".join(lines) + "\n"
 
     return (rc, lines)
+
+def poweroff(jail, name):
+    args = ["appjail", "cmd", "jexec", jail, "vm", "poweroff", "-f", name]
+
+    proc = overlord.process.run(args)
+
+    rc = 0
+
+    lines = []
+
+    for output in proc:
+        if "rc" in output:
+            rc = output["rc"]
+
+            if rc != 0:
+                lines = "\n".join(lines) + "\n"
+
+                return (rc, lines)
+
+        elif "stderr" in output:
+            stderr = output["stderr"]
+            stderr = stderr.rstrip()
+
+            lines.append(stderr)
+
+            logger.warning("stderr: %s", stderr)
+
+        elif "line" in output:
+            value = output["line"]
+            value = value.rstrip()
+
+            lines.append(value)
+
+    lines = "\n".join(lines) + "\n"
+
+    return (rc, lines)
