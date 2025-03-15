@@ -552,12 +552,10 @@ def poweroff_if_vm(project):
         if "rc" in output:
             rc = output["rc"]
 
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip("\n")
-
     if rc != 0:
         return
+
+    logger.debug("(jail:%s, vm:1) doing a forced shutdown!", jail)
 
     overlord.vm.poweroff(jail, jail)
 
