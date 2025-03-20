@@ -474,9 +474,11 @@ async def _async_watch_projects():
                     })
 
             elif type == "destroy":
-                logger.debug("(project:%s) destroying project ...", project)
+                force = message.get("force", False)
 
-                special_labels_response = await run_special_labels(project, type)
+                logger.debug("(project:%s, force:%s) destroying project ...", project, force)
+
+                special_labels_response = await run_special_labels(project, type, force)
 
                 overlord.cache.save_project_status_down(project, {
                     "operation" : "RUNNING",
@@ -573,11 +575,14 @@ def ignore_project(project):
     else:
         return False
 
-async def run_special_labels(project, type):
+async def run_special_labels(project, type, force=False):
     response = {
         "error" : False,
         "message" : None
     }
+
+    if force:
+        return response
 
     if not overlord.director.check(project):
         return response

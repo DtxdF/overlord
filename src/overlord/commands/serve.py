@@ -388,6 +388,7 @@ class ProjectDownHandler(InternalHandler):
         })
 
     async def post(self, project):
+        force = self.get_json_argument("force", False, value_type=bool)
         environment = self.get_json_argument("environment", {}, value_type=dict)
 
         for env_name, env_value in environment.items():
@@ -400,7 +401,8 @@ class ProjectDownHandler(InternalHandler):
 
         job_id = await overlord.queue.put_destroy_project({
             "name" : project,
-            "environment" : environment
+            "environment" : environment,
+            "force" : force
         })
 
         self.write_template({
@@ -952,9 +954,10 @@ class ChainProjectDownHandler(ChainInternalHandler):
         })
 
     async def post(self, chain, project):
+        force = self.get_json_argument("force", False, value_type=bool)
         environment = self.get_json_argument("environment", {}, value_type=dict)
 
-        result = await self.remote_call(chain, "down", project, environment)
+        result = await self.remote_call(chain, "down", project, environment, force)
 
         self.write_template(result)
 

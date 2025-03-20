@@ -114,7 +114,7 @@ class OverlordClient(httpx.AsyncClient):
 
         return parsed
 
-    async def down(self, name, environment={}, chain=None):
+    async def down(self, name, environment={}, force=False, chain=None):
         """
         Destroy a project.
 
@@ -122,6 +122,11 @@ class OverlordClient(httpx.AsyncClient):
             name (str): Project name.
             environment (dict(str, str), optional):
                 A dictionary with additional environments to include when destroying the project.
+            force (bool, optional):
+                Force the destruction of a project without running the special labels. If a special
+                label has been previously run using ``up``, be careful when using this option, as it
+                may cause undefined behavior in the integration (e.g., pointing to a nonexistent
+                service on the load balancer).
             chain (str, optional):
                 The chain that the server(s) should use to redirect the request.
 
@@ -140,7 +145,8 @@ class OverlordClient(httpx.AsyncClient):
             raise overlord.exceptions.InvalidProjectName(f"{name}: Invalid project name.")
 
         parsed = await self.__post_parsed(f"project/down/{name}", chain=chain, json={
-            "environment" : environment
+            "environment" : environment,
+            "force" : force
         })
 
         return parsed

@@ -48,11 +48,12 @@ logger = logging.getLogger(__name__)
 
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
+@click.option("-F", "--force", is_flag=True, default=False)
 @click.option("--filter-chain", default=[], multiple=True)
 def destroy(*args, **kwargs):
     asyncio.run(_destroy(*args, **kwargs))
 
-async def _destroy(file, filter_chain):
+async def _destroy(file, force, filter_chain):
     try:
         overlord.spec.load(file)
 
@@ -255,7 +256,7 @@ async def _destroy(file, filter_chain):
 
                     else:
                         try:
-                            response = await client.down(project_name, environment, chain=chain)
+                            response = await client.down(project_name, environment, force, chain=chain)
 
                         except Exception as err:
                             error = overlord.util.get_error(err)
@@ -299,7 +300,7 @@ async def _destroy(file, filter_chain):
                     vm_name = overlord.spec.vm_jail.get_vmName()
 
                     try:
-                        response = await client.down(vm_name, chain=chain)
+                        response = await client.down(vm_name, force=force, chain=chain)
 
                     except Exception as err:
                         error = overlord.util.get_error(err)
