@@ -44,96 +44,47 @@ def check_project_name(name):
     return re.match(r"^[a-zA-Z0-9._-]+$", name) is not None
 
 def get_list():
-    proc = overlord.process.run("appjail-director ls | tail -n +2 | cut -d' ' -f3-")
+    args = "appjail-director ls | tail -n +2 | cut -d' ' -f3-"
 
-    rc = 0
+    (rc, stdout, stderr) = overlord.process.run_proc(args)
 
-    projects = []
+    if rc != 0:
+        logger.warning("(rc:%d, args:%s, stderr:1): %s", rc, repr(args), stderr.rstrip())
 
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
+        return (rc, None)
 
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            project = output["line"]
-            project = project.strip()
-
-            projects.append(project)
+    projects = stdout.splitlines()
+    projects = [project.strip() for project in projects]
 
     return (rc, projects)
 
 def describe(project):
-    proc = overlord.process.run(["appjail-director", "describe", "-p", project])
+    args = ["appjail-director", "describe", "-p", project]
 
-    rc = 0
+    (rc, stdout, stderr) = overlord.process.run_proc(args)
 
-    data = []
+    if rc != 0:
+        logger.warning("(rc:%d, args:%s, stderr:1): %s", rc, repr(args), stderr.rstrip())
 
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
+        return (rc, None)
 
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
+    data = json.loads(stdout)
 
-            logger.warning("stderr: %s", stderr)
+    last_log = data.get("last_log")
 
-        elif "line" in output:
-            value = output["line"]
-            
-            data.append(value)
+    if last_log is not None:
+        last_log = last_log.split("/")[-1]
 
-    if data:
-        project_info = json.loads("".join(data))
+        data["last_log"] = last_log
 
-        last_log = project_info.get("last_log")
-
-        if last_log is not None:
-            last_log = last_log.split("/")[-1]
-
-            project_info["last_log"] = last_log
-
-    else:
-        project_info = {}
-
-    return (rc, project_info)
+    return (rc, data)
 
 def up(name, director_file, env=None, cwd=None):
-    proc = overlord.process.run(["appjail-director", "up", "-j", "-f", director_file, "-p", name], env=env, cwd=cwd)
+    args = ["appjail-director", "up", "-j", "-f", director_file, "-p", name]
 
-    rc = 0
+    (rc, stdout, stderr) = overlord.process.run_proc(args, env=env, cwd=cwd)
 
-    stdout = []
-    stderr = []
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-        elif "stderr" in output:
-            value = output["stderr"]
-
-            stderr.append(value)
-        
-        elif "line" in output:
-            value = output["line"]
-
-            stdout.append(value)
-
-    stderr = "".join(stderr)
-
-    if stdout:
-        stdout = json.loads("".join(stdout))
-
-    else:
-        stdout = {}
+    stdout = json.loads(stdout)
 
     output = {
         "rc" : rc,
@@ -144,47 +95,22 @@ def up(name, director_file, env=None, cwd=None):
     return output
 
 def down(name, destroy=False, ignore_failed=False, ignore_services=False, env=None, cwd=None):
-    cmd = ["appjail-director", "down", "-j"]
+    args = ["appjail-director", "down", "-j"]
 
     if destroy:
-        cmd.append("-d")
+        args.append("-d")
 
     if ignore_failed:
-        cmd.append("--ignore-failed")
+        args.append("--ignore-failed")
 
     if ignore_services:
-        cmd.append("--ignore-services")
+        args.append("--ignore-services")
 
-    cmd.extend(["-p", name])
+    args.extend(["-p", name])
 
-    proc = overlord.process.run(cmd, env=env, cwd=cwd)
+    (rc, stdout, stderr) = overlord.process.run_proc(args, env=env, cwd=cwd)
 
-    rc = 0
-
-    stdout = []
-    stderr = []
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-        elif "stderr" in output:
-            value = output["stderr"]
-
-            stderr.append(value)
-
-        elif "line" in output:
-            value = output["line"]
-
-            stdout.append(value)
-
-    stderr = "".join(stderr)
-
-    if stdout:
-        stdout = json.loads("".join(stdout))
-
-    else:
-        stdout = {}
+    stdout = json.loads(stdout)
 
     output = {
         "rc" : rc,
@@ -195,12 +121,8 @@ def down(name, destroy=False, ignore_failed=False, ignore_services=False, env=No
     return output
 
 def check(project):
-    proc = overlord.process.run(["appjail-director", "check", "-p", project])
+    args = ["appjail-director", "check", "-p", project]
 
-    rc = 0
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
+    (rc, _, _) = overlord.process.run_proc(args)
 
     return rc == 0

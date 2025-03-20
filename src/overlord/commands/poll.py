@@ -31,6 +31,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import sys
 import time
 
@@ -49,7 +50,7 @@ import overlord.metadata
 import overlord.process
 import overlord.util
 
-from overlord.sysexits import EX_SOFTWARE, EX_UNAVAILABLE
+from overlord.sysexits import EX_SOFTWARE, EX_UNAVAILABLE, EX_NOPERM
 
 logger = logging.getLogger(__name__)
 
@@ -759,13 +760,10 @@ def poll_jails():
 
     try:
         while True:
-            (rc, jails) = overlord.jail.get_list()
+            jails = overlord.jail.get_list()
 
-            if rc != 0:
-                logger.error("(status:%d) error retrieving the list of jails.", rc)
-                sys.exit(rc)
-
-            overlord.cache.gc_jails(jails)
+            if jails is not None:
+                overlord.cache.gc_jails(jails)
 
             time.sleep(overlord.config.get_polling_jails() + overlord.util.get_skew())
 
@@ -851,162 +849,130 @@ def poll_jail_extras(item):
                         overlord.cache.save_jail_cpuset(jail, cpuset)
 
                 if flags.get("devfs"):
-                    (rc, nros) = overlord.jail.get_devfs_nros(jail)
+                    nros = overlord.jail.get_devfs_nros(jail)
 
-                    if rc != 0:
-                        logger.warning("(status:%d, jail:%s) error when retrieving DEVFS rules", rc, jail)
-
-                    else:
+                    if nros is not None:
                         data = []
 
                         for nro in nros:
-                            (rc, devfs) = overlord.jail.list_devfs(jail, nro)
+                            devfs = overlord.jail.list_devfs(jail, nro)
 
-                            if rc != 0:
-                                logger.warning("(status:%d, jail:%s, nro:%d) error when retrieving the DEVFS rule", rc, jail, nro)
+                            if devfs is None:
+                                continue
 
-                            else:
-                                data.append(devfs)
+                            data.append(devfs)
 
                         overlord.cache.save_jail_devfs(jail, data)
 
                 if flags.get("expose"):
-                    (rc, nros) = overlord.jail.get_expose_nros(jail)
+                    nros = overlord.jail.get_expose_nros(jail)
 
-                    if rc != 0:
-                        logger.warning("(status:%d, jail:%s) error when retrieving port-forwarding rules", rc, jail)
-
-                    else:
+                    if nros is not None:
                         data = []
 
                         for nro in nros:
-                            (rc, expose) = overlord.jail.list_expose(jail, nro)
+                            expose = overlord.jail.list_expose(jail, nro)
 
-                            if rc != 0:
-                                logger.warning("(status:%d, jail:%s, nro:%d) error when retrieving the port-forwarding rule", rc, jail, nro)
+                            if expose is None:
+                                continue
 
-                            else:
-                                data.append(expose)
+                            data.append(expose)
 
                         overlord.cache.save_jail_expose(jail, data)
 
                 if flags.get("healthcheck"):
-                    (rc, nros) = overlord.jail.get_healthcheck_nros(jail)
+                    nros = overlord.jail.get_healthcheck_nros(jail)
 
-                    if rc != 0:
-                        logger.warning("(status:%d, jail:%s) error when retrieving healthcheckers", rc, jail)
-
-                    else:
+                    if nros is not None:
                         data = []
 
                         for nro in nros:
-                            (rc, healthcheck) = overlord.jail.list_healthcheck(jail, nro)
+                            healthcheck = overlord.jail.list_healthcheck(jail, nro)
 
-                            if rc != 0:
-                                logger.warning("(status:%d, jail:%s, nro:%d) error when retrieving the healthchecker", rc, jail, nro)
+                            if healthcheck is None:
+                                continue
 
-                            else:
-                                data.append(healthcheck)
+                            data.append(healthcheck)
 
                         overlord.cache.save_jail_healthcheck(jail, data)
 
                 if flags.get("limits"):
-                    (rc, nros) = overlord.jail.get_limits_nros(jail)
+                    nros = overlord.jail.get_limits_nros(jail)
 
-                    if rc != 0:
-                        logger.warning("(status:%d, jail:%s) error when retrieving limits rules", rc, jail)
-
-                    else:
+                    if nros is not None:
                         data = []
 
                         for nro in nros:
-                            (rc, limits) = overlord.jail.list_limits(jail, nro)
+                            limits = overlord.jail.list_limits(jail, nro)
 
-                            if rc != 0:
-                                logger.warning("(status:%d, jail:%s, nro:%d) error when retrieving the limits rule", rc, jail, nro)
+                            if limits is None:
+                                continue
 
-                            else:
-                                data.append(limits)
+                            data.append(limits)
 
                         overlord.cache.save_jail_limits(jail, data)
 
                 if flags.get("fstab"):
-                    (rc, nros) = overlord.jail.get_fstab_nros(jail)
+                    nros = overlord.jail.get_fstab_nros(jail)
 
-                    if rc != 0:
-                        logger.warning("(status:%d, jail:%s) error when retrieving fstab entries", rc, jail)
-
-                    else:
+                    if nros is not None:
                         data = []
 
                         for nro in nros:
-                            (rc, fstab) = overlord.jail.list_fstab(jail, nro)
+                            fstab = overlord.jail.list_fstab(jail, nro)
 
-                            if rc != 0:
-                                logger.warning("(status:%d, jail:%s, nro:%d) error when retrieving the fstab entry", rc, jail, nro)
+                            if fstab is None:
+                                continue
 
-                            else:
-                                data.append(fstab)
+                            data.append(fstab)
 
                         overlord.cache.save_jail_fstab(jail, data)
 
                 if flags.get("label"):
-                    (rc, labels) = overlord.jail.get_labels(jail)
+                    labels = overlord.jail.get_labels(jail)
 
-                    if rc != 0:
-                        logger.warning("(status:%d, jail:%s) error when retrieving the labels", rc, jail)
-
-                    else:
+                    if labels is not None:
                         data = []
 
                         for label in labels:
-                            (rc, label) = overlord.jail.list_label(jail, label)
+                            label = overlord.jail.list_label(jail, label)
 
-                            if rc != 0:
-                                logger.warning("(status:%d, jail:%s, label:%s) error when retrieving the label", rc, jail, label)
+                            if label is None:
+                                continue
 
-                            else:
-                                data.append(label)
+                            data.append(label)
 
                         overlord.cache.save_jail_label(jail, data)
 
                 if flags.get("nat"):
-                    (rc, networks) = overlord.jail.get_nat_networks(jail)
+                    networks = overlord.jail.get_nat_networks(jail)
 
-                    if rc != 0:
-                        logger.warning("(status:%d, jail:%s) error when retrieving the NAT networks", rc, jail)
-
-                    else:
+                    if networks is not None:
                         data = []
 
                         for network in networks:
-                            (rc, entries) = overlord.jail.list_nat(jail, network)
+                            entries = overlord.jail.list_nat(jail, network)
 
-                            if rc != 0:
-                                logger.warning("(status:%d, jail:%s, network:%s) error when retrieving the NAT entry", rc, jail, network)
+                            if entries is None:
+                                continue
 
-                            else:
-                                data.append(entries)
+                            data.append(entries)
 
                         overlord.cache.save_jail_nat(jail, data)
 
                 if flags.get("volume"):
-                    (rc, volumes) = overlord.jail.get_volumes(jail)
+                    volumes = overlord.jail.get_volumes(jail)
 
-                    if rc != 0:
-                        logger.warning("(status:%d, jail:%s) error when retrieving volumes", rc, jail)
-
-                    else:
+                    if volumes is not None:
                         data = []
 
                         for volume in volumes:
-                            (rc, entries) = overlord.jail.list_volume(jail, volume)
+                            entries = overlord.jail.list_volume(jail, volume)
 
-                            if rc != 0:
-                                logger.warning("(status:%d, jail:%s, volume:%s) error when retrieving the volume", rc, jail, volume)
+                            if entries is None:
+                                continue
 
-                            else:
-                                data.append(entries)
+                            data.append(entries)
 
                         overlord.cache.save_jail_volume(jail, data)
 
@@ -1025,6 +991,7 @@ def poll_jail_extras(item):
 def poll_jail_stats():
     check_appjail()
     check_rctl()
+    check_privileges()
 
     try:
         overlord.process.init()
@@ -1116,20 +1083,17 @@ def check_appjail():
         sys.exit(EX_UNAVAILABLE)
 
 def check_rctl():
-    proc = overlord.process.run(["sysctl", "-n", "kern.racct.enable"])
+    args = ["sysctl", "-n", "kern.racct.enable"]
 
-    rc = 0
-    value = None
+    (rc, stdout, stderr) = overlord.process.run_proc(args)
 
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
+    if rc != 0:
+        logger.warning("(rc:%d, args:%s, stderr:1): %s", rc, repr(args), stderr.rstrip())
+        sys.exit(EX_SOFTWARE)
 
-        elif "line" in output:
-            value = output["line"]
-            value = int(value)
+    enabled = int(stdout) == 1
 
-    if value == 0:
+    if not enabled:
         logger.error("rctl(4) framework is not enabled. Cannot continue ...")
         sys.exit(EX_UNAVAILABLE)
 
@@ -1137,3 +1101,11 @@ def check_director():
     if not overlord.director.check_dependency():
         logger.error("Director is not installed. Cannot continue ...")
         sys.exit(EX_UNAVAILABLE)
+
+def check_privileges():
+    uid = os.getuid()
+
+    if uid != 0:
+        logger.error("(uid:%d) you are not root!", uid)
+        sys.exit(EX_NOPERM)
+

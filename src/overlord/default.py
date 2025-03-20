@@ -36,6 +36,130 @@ DEBUG = False
 ENV_FILE = ".env"
 COMPRESS_RESPONSE = True
 DATABASE = ".overlord.db"
+VALID_KEYWORDS = {
+    "jail" : {
+        "appjail_version",
+        "arch",
+        "boot",
+        "container",
+        "container_boot",
+        "container_image",
+        "container_pid",
+        "created",
+        "devfs_ruleset",
+        "dirty",
+        "hostname",
+        "inet",
+        "inet6",
+        "ip4",
+        "ip6",
+        "is_container",
+        "locked",
+        "name",
+        "network_ip4",
+        "networks",
+        "path",
+        "priority",
+        "ports",
+        "release_name",
+        "status",
+        "type",
+        "version",
+        "version_extra"
+    },
+    "stats" : {
+        "cputime",
+        "datasize",
+        "stacksize",
+        "coredumpsize",
+        "memoryuse",
+        "memorylocked",
+        "maxproc",
+        "openfiles",
+        "vmemoryuse",
+        "pseudoterminals",
+        "swapuse",
+        "nthr",
+        "msgqqueued",
+        "msgqsize",
+        "nmsgq",
+        "nsem",
+        "nsemop",
+        "nshm",
+        "shmsize",
+        "wallclock",
+        "pcpu",
+        "readbps",
+        "writebps",
+        "readiops",
+        "writeiops"
+    },
+    "devfs" : {
+        "enabled",
+        "name",
+        "rule"
+    },
+    "expose" : {
+        "enabled",
+        "name",
+        "network_name",
+        "hport",
+        "jport",
+        "protocol",
+        "rule"
+    },
+    "healthcheck" : {
+        "enabled",
+        "health_cmd",
+        "health_type",
+        "interval",
+        "kill_after",
+        "name",
+        "recover_cmd",
+        "recover_kill_after",
+        "recover_timeout",
+        "recover_timeout_signal",
+        "recover_total",
+        "recover_type",
+        "retries",
+        "start_period",
+        "status",
+        "timeout",
+        "timeout_signal"
+    },
+    "label" : {
+        "value"
+    },
+    "limits" : {
+        "action",
+        "enabled",
+        "name",
+        "per",
+        "resource",
+        "rule"
+    },
+    "nat" : {
+        "rule"
+    },
+    "volume" : {
+        "name",
+        "mountpoint",
+        "type",
+        "uid",
+        "gid",
+        "perm"
+    },
+    "fstab" : {
+        "enabled",
+        "name",
+        "device",
+        "mountpoint",
+        "type",
+        "options",
+        "dump",
+        "pass"
+    }
+}
 POLLING = {
     "jail_stats" : 12,
     "jail_info" : 8,
@@ -47,34 +171,12 @@ POLLING = {
     "skew" : [6, 10],
     "keywords" : {
         "jail" : [
-            "appjail_version",
-            "arch",
-            "boot",
-            "container",
-            "container_boot",
-            "container_image",
-            "container_pid",
-            "created",
-            "devfs_ruleset",
-            "dirty",
-            "hostname",
-            "inet",
-            "inet6",
-            "ip4",
-            "ip6",
-            "is_container",
-            "locked",
             "name",
             "network_ip4",
-            "networks",
-            "path",
-            "priority",
             "ports",
-            "release_name",
             "status",
             "type",
-            "version",
-            "version_extra"
+            "version"
         ],
         "stats" : [
             "cputime",
@@ -105,46 +207,34 @@ POLLING = {
         ],
         "devfs" : [
             "enabled",
-            "name",
-            "rule"
+            "rule",
+            "name"
         ],
         "expose" : [
             "enabled",
             "name",
             "network_name",
-            "ports",
+            "hport",
+            "jport",
             "protocol",
-            "rule"
+            "ext_if",
+            "on_if"
         ],
         "healthcheck" : [
             "enabled",
+            "name",
+            "status",
             "health_cmd",
             "health_type",
-            "interval",
-            "kill_after",
-            "name",
             "recover_cmd",
-            "recover_kill_after",
-            "recover_timeout",
-            "recover_timeout_signal",
-            "recover_total",
-            "recover_type",
-            "retries",
-            "start_period",
-            "status",
-            "timeout",
-            "timeout_signal"
+            "recover_type"
         ],
         "label" : [
             "value"
         ],
         "limits" : [
-            "loaded",
-            "action",
             "enabled",
             "name",
-            "per",
-            "resource",
             "rule"
         ],
         "nat" : [
@@ -201,7 +291,8 @@ DIRECTOR = {
 }
 APPJAIL = {
     "logs" : "/var/log/appjail",
-    "images" : "/usr/local/appjail/cache/images"
+    "images" : "/usr/local/appjail/cache/images",
+    "jails" : "/usr/local/appjail/jails"
 }
 BEANSTALKD_ADDR = ("127.0.0.1", 11300)
 EXECUTION_TIME = 60 * 60 * 3

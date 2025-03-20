@@ -64,74 +64,12 @@ def install_from_components(jail, download_url, components_path, components):
     args.append("--")
     args.extend(components)
 
-    proc = overlord.process.run(args)
-
-    rc = 0
-
-    lines = []
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                lines = "\n".join(lines) + "\n"
-
-                return (rc, lines)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            lines.append(stderr)
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip()
-
-            lines.append(value)
-
-    lines = "\n".join(lines) + "\n"
-
-    return (rc, lines)
+    return _run(args)
 
 def install_from_iso(jail, iso_file):
     args = ["appjail", "cmd", "jexec", jail, "vm", "install", jail, iso_file]
 
-    proc = overlord.process.run(args)
-
-    rc = 0
-
-    lines = []
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                lines = "\n".join(lines) + "\n"
-
-                return (rc, lines)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            lines.append(stderr)
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip()
-
-            lines.append(value)
-
-    lines = "\n".join(lines) + "\n"
-
-    return (rc, lines)
+    return _run(args)
 
 def install_from_appjail_image(jail, entrypoint, image_name, image_arch, image_tag):
     imagesdir = overlord.config.get_appjail_images()
@@ -147,38 +85,7 @@ def install_from_appjail_image(jail, entrypoint, image_name, image_arch, image_t
     args.extend(["-j", jail])
     args.extend(["-t", image_tag])
 
-    proc = overlord.process.run(args)
-
-    rc = 0
-
-    lines = []
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                lines = "\n".join(lines) + "\n"
-
-                return (rc, lines)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            lines.append(stderr)
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip()
-
-            lines.append(value)
-
-    lines = "\n".join(lines) + "\n"
-
-    return (rc, lines)
+    return _run(args)
 
 def start(jail):
     args = []
@@ -187,38 +94,7 @@ def start(jail):
     args.append(os.path.join(sys.prefix, "libexec/overlord/vm-start.sh"))
     args.extend(["-j", jail])
 
-    proc = overlord.process.run(args)
-
-    rc = 0
-
-    lines = []
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                lines = "\n".join(lines) + "\n"
-
-                return (rc, lines)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            lines.append(stderr)
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip()
-
-            lines.append(value)
-
-    lines = "\n".join(lines) + "\n"
-
-    return (rc, lines)
+    return _run(args)
 
 async def write_script(jail_path, content):
     script_path = os.path.join(jail_path, "run.sh")
@@ -317,71 +193,19 @@ def create(jail, name, datastore=None, template=None, size=None):
 
     args.append(name)
 
-    proc = overlord.process.run(args)
-
-    rc = 0
-
-    lines = []
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                lines = "\n".join(lines) + "\n"
-
-                return (rc, lines)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            lines.append(stderr)
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip()
-
-            lines.append(value)
-
-    lines = "\n".join(lines) + "\n"
-
-    return (rc, lines)
+    return _run(args)
 
 def poweroff(jail, name):
     args = ["appjail", "cmd", "jexec", jail, "vm", "poweroff", "-f", name]
 
-    proc = overlord.process.run(args)
+    return _run(args)
 
-    rc = 0
+def _run(args):
+    (rc, stdout, stderr) = overlord.process.run_proc(args)
 
-    lines = []
+    if stderr:
+        logger.warning("(rc:%d, args:%s, stderr:1): %s", rc, repr(args), stderr.rstrip())
 
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
+    output = stdout + stderr
 
-            if rc != 0:
-                lines = "\n".join(lines) + "\n"
-
-                return (rc, lines)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            lines.append(stderr)
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip()
-
-            lines.append(value)
-
-    lines = "\n".join(lines) + "\n"
-
-    return (rc, lines)
+    return (rc, output)

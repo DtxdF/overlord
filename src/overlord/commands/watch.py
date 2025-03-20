@@ -189,9 +189,10 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
     jail_path = None
 
     if overlord.jail.status(vm) < 2:
-        (rc, jail_path) = overlord.jail.get_jail_path(vm)
+        jail_path = overlord.jail.get_jail_path(vm)
 
-        if rc != 0:
+        if jail_path is None:
+            logger.error("(jail:%s) can't get jail path!", vm)
             return
 
         if overlord.vm.is_done(jail_path):
@@ -280,9 +281,10 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
         template["disk0_size"] = size
 
         if jail_path is None:
-            (rc, jail_path) = overlord.jail.get_jail_path(vm)
+            jail_path = overlord.jail.get_jail_path(vm)
 
-            if rc != 0:
+            if jail_path is None:
+                logger.error("(jail:%s) can't get jail path!", vm)
                 return
 
         overlord.vm.write_template(jail_path, "overlord", template)
@@ -542,15 +544,9 @@ def poweroff_if_vm(project):
 
     jail = services[0]["jail"]
 
-    value = None
+    args = ["appjail", "label", "get", "-I", "-l", "overlord.vm", "--", jail, "value"]
 
-    rc = 0
-
-    proc = overlord.process.run(["appjail", "label", "get", "-I", "-l", "overlord.vm", "--", jail, "value"])
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
+    (rc, _, _) = overlord.process.run_proc(args)
 
     if rc != 0:
         return
@@ -612,28 +608,36 @@ async def run_special_labels(project, type):
         if status != 0:
             continue
 
-        (rc, labels) = overlord.jail.get_labels(jail)
+        labels = overlord.jail.get_labels(jail)
 
-        if rc != 0:
-            logger.warning("(status:%d, service:%s) error when retrieving the labels", rc, name)
+        if labels is None:
+            continue
 
         else:
             data = {}
+            error = False
 
             for label in labels:
                 if not label.startswith("overlord."):
                     continue
 
-                (rc, label) = overlord.jail.list_label(jail, label)
+                label = overlord.jail.list_label(jail, label)
 
-                if rc != 0:
-                    logger.warning("(status:%d, service:%s, label:%s) error when retrieving the label", rc, name, label)
+                if label is None:
+                    logger.warning("(service:%s, label:%s) error when retrieving the label", name, label)
+
+                    error = True
+                    
+                    break
 
                 else:
                     label_name = label["name"]
                     label_value = label["value"]
 
                     data[label_name] = label_value
+
+            if error:
+                continue
 
             for integration in ("load-balancer", "skydns"):
                 if integration not in response:

@@ -28,11 +28,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import logging
+import os
 import re
 import shutil
 
 import overlord.config
 import overlord.process
+import overlord.util
 
 logger = logging.getLogger(__name__)
 
@@ -43,753 +45,234 @@ def check_jail_name(name):
     return re.match(r"^[a-zA-Z0-9_][a-zA-Z0-9_-]*$", name)
 
 def get_jail_path(jail):
-    proc = overlord.process.run(["appjail", "cmd", "local", jail, "realpath", "."])
+    jailsdir = overlord.config.get_appjail_jails()
+    jaildir = os.path.join(jailsdir, jail, "jail")
 
-    value = None
+    if not os.path.isdir(jaildir):
+        return
 
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, value)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-
-    return (rc, value)
+    return jaildir
 
 def get_list():
-    proc = overlord.process.run(["appjail", "jail", "list", "-eHIpt", "name"])
+    jailsdir = overlord.config.get_appjail_jails()
 
-    rc = 0
+    if not os.path.isdir(jailsdir):
+        logger.warning("(dir:%s) can't find jails directory!", jailsdir)
 
-    jails = []
+        return None
 
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
+    jails = os.listdir(jailsdir)
 
-            if rc != 0:
-                return (rc, jails)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            jail = output["line"]
-            jail = jail.strip()
-
-            jails.append(jail)
-
-    return (rc, jails)
+    return jails
 
 def status(jail):
-    proc = overlord.process.run(["appjail", "status", "-q", jail])
+    args = ["appjail", "status", "-q", jail]
 
-    rc = 0
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
+    (rc, _, _) = overlord.process.run_proc(args)
 
     return rc
 
 def get_value(jail, keyword):
-    proc = overlord.process.run(["appjail", "jail", "get", "-I", "--", jail, keyword])
+    args = ["appjail", "jail", "get", "-I", "--", jail, keyword]
 
-    rc = 0
-
-    value = None
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, value)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-
-    return (rc, value)
-
-def get_stat(jail, keyword):
-    proc = overlord.process.run(["appjail", "limits", "stats", "-heHIpt", "--", jail, keyword])
-
-    rc = 0
-
-    value = None
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, value)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-            value = int(value)
-
-    return (rc, value)
+    return _get_value(args)
 
 def get_cpuset(jail):
-    proc = overlord.process.run(["appjail", "cpuset", jail])
+    args = ["appjail", "cpuset", jail]
 
-    rc = 0
-
-    value = None
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, value)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-
-    return (rc, value)
+    return _get_value(args)
 
 def get_devfs_nros(jail):
-    data = []
+    ids = _list_ids(jail, "boot/devfs")
+    
+    if ids is None:
+        return
 
-    proc = overlord.process.run(["appjail", "devfs", "list", "-eHIpt", "--", jail, "nro"])
+    ids = [int(id) for id in ids]
 
-    rc = 0
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, data)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-            value = int(value)
-
-            data.append(value)
-
-    return (rc, data)
+    return ids
 
 def get_devfs(jail, nro, keyword):
-    value = None
+    value = _read(jail, f"boot/devfs/{nro}", keyword)
 
-    rc = 0
-
-    proc = overlord.process.run(["appjail", "devfs", "get", "-I", "-n", f"{nro}", "--", jail, keyword])
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, value)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-
-    return (rc, value)
+    return value
 
 def list_devfs(jail, nro):
-    data = {}
-
-    rc = 0
-
     keywords = overlord.config.get_polling_keywords_devfs()
 
-    if len(keywords) == 0:
-        return (rc, data)
-
-    for keyword in keywords:
-        (rc, value) = get_devfs(jail, nro, keyword)
-
-        if rc != 0:
-            return (rc, data)
-
-        data[keyword] = value
-
-    data.update({ "nro" : nro })
-
-    return (rc, data)
+    data = _list(jail, "nro", f"{nro}", get_devfs, keywords)
+    
+    return data
 
 def get_expose_nros(jail):
-    data = []
+    ids = _list_ids(jail, "boot/expose")
+    
+    if ids is None:
+        return
 
-    proc = overlord.process.run(["appjail", "expose", "list", "-eHIpt", "--", jail, "nro"])
+    ids = [int(id) for id in ids]
 
-    rc = 0
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, data)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-            value = int(value)
-
-            data.append(value)
-
-    return (rc, data)
+    return ids
 
 def get_expose(jail, nro, keyword):
-    value = None
+    value = _read(jail, f"boot/expose/{nro}", keyword)
 
-    rc = 0
-
-    proc = overlord.process.run(["appjail", "expose", "get", "-I", "-n", f"{nro}", "--", jail, keyword])
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, value)
-
-        else:
-            value = output["line"]
-            value = value.strip()
-
-    return (rc, value)
+    return value
 
 def list_expose(jail, nro):
-    data = {}
-
-    rc = 0
-
     keywords = overlord.config.get_polling_keywords_expose()
 
-    if len(keywords) == 0:
-        return (rc, data)
-
-    for keyword in keywords:
-        (rc, value) = get_expose(jail, nro, keyword)
-
-        if rc != 0:
-            return (rc, data)
-
-        data[keyword] = value
-
-    data.update({ "nro" : nro })
-
-    return (rc, data)
+    data = _list(jail, "nro", f"{nro}", get_expose, keywords)
+    
+    return data
 
 def get_healthcheck_nros(jail):
-    data = []
+    ids = _list_ids(jail, "boot/health")
+    
+    if ids is None:
+        return
 
-    proc = overlord.process.run(["appjail", "healthcheck", "list", "-eHIpt", "--", jail, "nro"])
+    ids = [int(id) for id in ids]
 
-    rc = 0
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, data)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-            value = int(value)
-
-            data.append(value)
-
-    return (rc, data)
+    return ids
 
 def get_healthcheck(jail, nro, keyword):
-    value = None
+    value = _read(jail, f"boot/health/{nro}", keyword)
 
-    rc = 0
-
-    proc = overlord.process.run(["appjail", "healthcheck", "get", "-I", "-n", f"{nro}", "--", jail, keyword])
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, value)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-
-    return (rc, value)
+    return value
 
 def list_healthcheck(jail, nro):
-    data = {}
-
-    rc = 0
-
     keywords = overlord.config.get_polling_keywords_healthcheck()
 
-    if len(keywords) == 0:
-        return (rc, data)
+    data = _list(jail, "nro", f"{nro}", get_healthcheck, keywords)
 
-    for keyword in keywords:
-        (rc, value) = get_healthcheck(jail, nro, keyword)
-
-        if rc != 0:
-            return (rc, data)
-
-        data[keyword] = value
-
-    data.update({ "nro" : nro })
-
-    return (rc, data)
+    return data
 
 def get_limits_nros(jail):
-    data = []
+    ids = _list_ids(jail, "boot/limits")
+    
+    if ids is None:
+        return
 
-    proc = overlord.process.run(["appjail", "limits", "list", "-eHIpt", "--", jail, "nro"])
+    ids = [int(id) for id in ids]
 
-    rc = 0
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, data)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-            value = int(value)
-
-            data.append(value)
-
-    return (rc, data)
+    return ids
 
 def get_limits(jail, nro, keyword):
-    value = None
+    value = _read(jail, f"boot/limits/{nro}", keyword)
 
-    rc = 0
-
-    proc = overlord.process.run(["appjail", "limits", "get", "-I", "-n", f"{nro}", "--", jail, keyword])
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, value)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-
-    return (rc, value)
+    return value
 
 def list_limits(jail, nro):
-    data = {}
-
-    rc = 0
-
     keywords = overlord.config.get_polling_keywords_limits()
 
-    if len(keywords) == 0:
-        return (rc, data)
+    data = _list(jail, "nro", f"{nro}", get_limits, keywords)
 
-    for keyword in keywords:
-        (rc, value) = get_limits(jail, nro, keyword)
-
-        if rc != 0:
-            return (rc, data)
-
-        data[keyword] = value
-
-    data.update({ "nro" : nro })
-
-    return (rc, data)
+    return data
 
 def get_fstab_nros(jail):
-    data = []
+    ids = _list_ids(jail, "boot/fstab")
 
-    proc = overlord.process.run(["appjail", "fstab", "jail", jail, "list", "-eHIpt", "nro"])
+    if ids is None:
+        return
 
-    rc = 0
+    ids = [int(id) for id in ids]
 
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, data)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-            value = int(value)
-
-            data.append(value)
-
-    return (rc, data)
+    return ids
 
 def get_fstab(jail, nro, keyword):
-    value = None
+    if keyword == "device":
+        keyword = "fs_spec"
 
-    rc = 0
+    elif keyword == "mountpoint":
+        keyword = "fs_file"
 
-    proc = overlord.process.run(["appjail", "fstab", "jail", jail, "get", "-I", "-n", f"{nro}", "--", keyword])
+    elif keyword == "type":
+        keyword = "fs_vfstype"
 
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
+    elif keyword == "options":
+        keyword = "fs_mntops"
 
-            if rc != 0:
-                return (rc, value)
+    elif keyword == "dump":
+        keyword = "fs_freq"
 
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
+    elif keyword == "pass":
+        keyword == "fs_passno"
 
-            logger.warning("stderr: %s", stderr)
+    value = _read(jail, f"boot/fstab/{nro}", keyword)
 
-        elif "line" in output:
-            value = output["line"]
-            value = value.strip()
-
-    return (rc, value)
+    return value
 
 def list_fstab(jail, nro):
-    data = {}
-
-    rc = 0
-
     keywords = overlord.config.get_polling_keywords_fstab()
 
-    if len(keywords) == 0:
-        return (rc, data)
+    data = _list(jail, "nro", f"{nro}", get_fstab, keywords)
 
-    for keyword in keywords:
-        (rc, value) = get_fstab(jail, nro, keyword)
-
-        if rc != 0:
-            return (rc, data)
-
-        data[keyword] = value
-
-    data.update({ "nro" : nro })
-
-    return (rc, data)
+    return data
 
 def get_labels(jail):
-    data = []
+    ids = _list_ids(jail, "labels")
 
-    proc = overlord.process.run(["appjail", "label", "list", "-eHIpt", "--", jail, "name"])
+    if ids is None:
+        return
 
-    rc = 0
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, data)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip("\n")
-
-            data.append(value)
-
-    return (rc, data)
+    return ids
 
 def get_label(jail, label, keyword):
-    value = None
+    value = _read(jail, f"labels/{label}", keyword)
 
-    rc = 0
-
-    proc = overlord.process.run(["appjail", "label", "get", "-I", "-l", f"{label}", "--", jail, keyword])
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, value)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip("\n")
-
-    return (rc, value)
+    return value
 
 def list_label(jail, label):
-    data = {}
-
-    rc = 0
-
     keywords = overlord.config.get_polling_keywords_label()
 
-    if len(keywords) == 0:
-        return (rc, data)
+    data = _list(jail, "name", label, get_label, keywords)
 
-    for keyword in keywords:
-        (rc, value) = get_label(jail, label, keyword)
-
-        if rc != 0:
-            return (rc, data)
-
-        data[keyword] = value
-
-    data.update({ "name" : label })
-
-    return (rc, data)
+    return data
 
 def get_nat_networks(jail):
-    data = []
+    ids = _list_ids(jail, "boot/nat")
 
-    proc = overlord.process.run(["appjail", "nat", "list", "jail", "-eHIpt", "--", jail, "network"])
+    if ids is None:
+        return
 
-    rc = 0
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, data)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip("\n")
-
-            data.append(value)
-
-    return (rc, data)
+    return ids
 
 def get_nat(jail, network, keyword):
     value = None
 
-    rc = 0
+    if keyword == "rule":
+        # pf
+        value = _read(jail, f"boot/nat/{network}", "pf-nat.conf")
 
-    proc = overlord.process.run(["appjail", "nat", "get", "jail", "-I", "-n", f"{network}", "--", jail, keyword])
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, value)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip("\n")
-
-    return (rc, value)
+    return value
 
 def list_nat(jail, network):
-    data = {}
-
-    rc = 0
-
     keywords = overlord.config.get_polling_keywords_nat()
 
-    if len(keywords) == 0:
-        return (rc, data)
+    data = _list(jail, "network", network, get_nat, keywords)
 
-    for keyword in keywords:
-        (rc, value) = get_nat(jail, network, keyword)
-
-        if rc != 0:
-            return (rc, data)
-
-        data[keyword] = value
-
-    data.update({ "network" : network })
-
-    return (rc, data)
+    return data
 
 def get_volumes(jail):
-    data = []
+    ids = _list_ids(jail, "volumes")
 
-    proc = overlord.process.run(["appjail", "volume", "list", "-eHIpt", "--", jail, "name"])
+    if ids is None:
+        return
 
-    rc = 0
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, data)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip("\n")
-
-            data.append(value)
-
-    return (rc, data)
+    return ids
 
 def get_volume(jail, volume, keyword):
-    value = None
+    value = _read(jail, f"volumes/{volume}", keyword)
 
-    rc = 0
-
-    proc = overlord.process.run(["appjail", "volume", "get", "-I", "-v", f"{volume}", "--", jail, keyword])
-
-    for output in proc:
-        if "rc" in output:
-            rc = output["rc"]
-
-            if rc != 0:
-                return (rc, value)
-
-        elif "stderr" in output:
-            stderr = output["stderr"]
-            stderr = stderr.rstrip()
-
-            logger.warning("stderr: %s", stderr)
-
-        elif "line" in output:
-            value = output["line"]
-            value = value.rstrip("\n")
-
-    return (rc, value)
+    return value
 
 def list_volume(jail, volume):
-    data = {}
-
-    rc = 0
-
     keywords = overlord.config.get_polling_keywords_volume()
 
-    if len(keywords) == 0:
-        return (rc, data)
+    data = _list(jail, "name", volume, get_volume, keywords)
 
-    for keyword in keywords:
-        (rc, value) = get_volume(jail, volume, keyword)
-
-        if rc != 0:
-            return (rc, data)
-
-        data[keyword] = value
-
-    data.update({ "name" : volume })
-
-    return (rc, data)
+    return data
 
 def info(jail):
     data = {}
@@ -802,25 +285,136 @@ def info(jail):
         (rc, value) = get_value(jail, keyword)
 
         if rc != 0:
-            return (rc, data)
+            return (rc, None)
 
         data[keyword] = value
 
     return (rc, data)
 
 def stats(jail):
-    data = {}
-
     rc = 0
-
+    data = {}
+    
     keywords = overlord.config.get_polling_keywords_stats()
 
-    for keyword in keywords:
-        (rc, value) = get_stat(jail, keyword)
+    if len(keywords) == 0:
+        return (rc, data)
 
-        if rc != 0:
-            return (rc, data)
+    args = ["rctl", "-u", f"jail:{jail}"]
 
-        data[keyword] = value
+    (rc, stdout, stderr) = overlord.process.run_proc(args)
+
+    if rc != 0:
+        logger.warning("(rc:%d, stderr:1): %s", rc, stderr.rstrip())
+
+        return (rc, None)
+
+    raw = stdout.splitlines()
+
+    for raw_line in raw:
+        (key, value) = raw_line.split("=", 1)
+
+        key = key.strip()
+
+        if key not in keywords:
+            continue
+
+        value = int(value)
+
+        data[key] = value
         
     return (rc, data)
+
+def _get_nros(args):
+    (rc, stdout, stderr) = overlord.process.run_proc(args)
+
+    if rc != 0:
+        logger.warning("(rc:%d, args:%s, stderr:1): %s", rc, repr(args), stderr.rstrip())
+
+        return (rc, None)
+
+    nros = stdout.splitlines()
+    nros = [int(nro) for nro in nros]
+
+    return (rc, nros)
+
+def _get_values(args):
+    (rc, stdout, stderr) = overlord.process.run_proc(args)
+
+    if rc != 0:
+        logger.warning("(rc:%d, args:%s, stderr:1): %s", rc, repr(args), stderr.rstrip())
+
+        return (rc, None)
+
+    values = stdout.splitlines()
+    values = [value.strip() for value in values]
+
+    return (rc, values)
+
+def _get_value(args):
+    (rc, stdout, stderr) = overlord.process.run_proc(args)
+
+    if rc != 0:
+        logger.warning("(rc:%d, args:%s, stderr:1): %s", rc, repr(args), stderr.rstrip())
+
+        return (rc, None)
+
+    if stdout[-1] == "\n":
+        value = stdout[:-1]
+
+    return (rc, value)
+
+def _list(jail, key, index, callback, keywords):
+    data = {}
+
+    if len(keywords) == 0:
+        return data
+
+    for keyword in keywords:
+        value = callback(jail, index, keyword)
+
+        data[keyword] = value
+
+    data.update({ key : index })
+
+    return data
+
+def _list_ids(jail, namespace):
+    jailsdir = overlord.config.get_appjail_jails()
+    basedir = os.path.join(jailsdir, jail, f"conf/{namespace}")
+
+    if not os.path.isdir(basedir):
+        return
+
+    values = os.listdir(basedir)
+
+    return values
+
+def _read(jail, namespace, keyword):
+    jailsdir = overlord.config.get_appjail_jails()
+    basedir = os.path.join(jailsdir, jail, f"conf/{namespace}")
+    key = os.path.join(basedir, keyword)
+
+    if not os.path.isfile(key):
+        return
+
+    value = None
+
+    try:
+        with open(key) as fd:
+            value = fd.read()
+
+            if value[-1] == "\n":
+                value = value[:-1]
+
+            if len(value) == 0:
+                value = None
+
+    except:
+        error = overlord.util.get_error(err)
+        error_type = error.get("type")
+        error_message = error.get("message")
+
+        logger.exception("(exception:%s) %s:", error_type, error_message)
+
+    return value

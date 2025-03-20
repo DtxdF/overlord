@@ -92,6 +92,25 @@ def run(cmd, env=None, timeout=None, cwd=None):
 
     PROCS.remove(proc.pid)
 
+def run_proc(*args, **kwargs):
+    proc = run(*args, **kwargs)
+
+    rc = 0
+    stdout = []
+    stderr = []
+
+    for output in proc:
+        if "line" in output:
+            stdout.append(output["line"])
+
+        elif "stderr" in output:
+            stderr.append(output["stderr"])
+
+        elif "rc" in output:
+            rc = output["rc"]
+
+    return (rc, " ".join(stdout), " ".join(stderr))
+
 def notexit():
     global EXIT
 

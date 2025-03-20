@@ -97,6 +97,7 @@ def get_config():
             "logs" : get_director_logs()
         },
         "appjail" : {
+            "jails" : get_appjail_jails(),
             "logs" : get_appjail_logs(),
             "images" : get_appjail_images()
         },
@@ -187,6 +188,11 @@ def get_director_logs():
 def get_appjail():
     return get_default(CONFIG.get("appjail"), overlord.default.APPJAIL)
 
+def get_appjail_jails():
+    appjail = get_appjail()
+
+    return get_default(appjail.get("jails"), overlord.default.APPJAIL["jails"])
+
 def get_appjail_logs():
     appjail = get_appjail()
 
@@ -255,57 +261,57 @@ def get_polling_skew():
 def get_polling_keywords():
     polling = get_polling()
 
-    return get_default(polling.get("keywords"), overlord.default.POLLING["keywords"])
+    return get_default(polling.get("keywords"), overlord.default.VALID_KEYWORDS)
 
 def get_polling_keywords_stats():
     polling_keywords = get_polling_keywords()
 
-    return get_default(polling_keywords.get("stats"), overlord.default.POLLING["keywords"]["stats"])
+    return get_default(polling_keywords.get("stats"), overlord.default.VALID_KEYWORDS["stats"])
 
 def get_polling_keywords_jail():
     polling_keywords = get_polling_keywords()
 
-    return get_default(polling_keywords.get("jail"), overlord.default.POLLING["keywords"]["jail"])
+    return get_default(polling_keywords.get("jail"), overlord.default.VALID_KEYWORDS["jail"])
 
 def get_polling_keywords_devfs():
     polling_keywords = get_polling_keywords()
 
-    return get_default(polling_keywords.get("devfs"), overlord.default.POLLING["keywords"]["devfs"])
+    return get_default(polling_keywords.get("devfs"), overlord.default.VALID_KEYWORDS["devfs"])
 
 def get_polling_keywords_expose():
     polling_keywords = get_polling_keywords()
 
-    return get_default(polling_keywords.get("expose"), overlord.default.POLLING["keywords"]["expose"])
+    return get_default(polling_keywords.get("expose"), overlord.default.VALID_KEYWORDS["expose"])
 
 def get_polling_keywords_healthcheck():
     polling_keywords = get_polling_keywords()
 
-    return get_default(polling_keywords.get("healthcheck"), overlord.default.POLLING["keywords"]["healthcheck"])
+    return get_default(polling_keywords.get("healthcheck"), overlord.default.VALID_KEYWORDS["healthcheck"])
 
 def get_polling_keywords_label():
     polling_keywords = get_polling_keywords()
 
-    return get_default(polling_keywords.get("label"), overlord.default.POLLING["keywords"]["label"])
+    return get_default(polling_keywords.get("label"), overlord.default.VALID_KEYWORDS["label"])
 
 def get_polling_keywords_limits():
     polling_keywords = get_polling_keywords()
 
-    return get_default(polling_keywords.get("limits"), overlord.default.POLLING["keywords"]["limits"])
+    return get_default(polling_keywords.get("limits"), overlord.default.VALID_KEYWORDS["limits"])
 
 def get_polling_keywords_nat():
     polling_keywords = get_polling_keywords()
 
-    return get_default(polling_keywords.get("nat"), overlord.default.POLLING["keywords"]["nat"])
+    return get_default(polling_keywords.get("nat"), overlord.default.VALID_KEYWORDS["nat"])
 
 def get_polling_keywords_volume():
     polling_keywords = get_polling_keywords()
 
-    return get_default(polling_keywords.get("volume"), overlord.default.POLLING["keywords"]["volume"])
+    return get_default(polling_keywords.get("volume"), overlord.default.VALID_KEYWORDS["volume"])
 
 def get_polling_keywords_fstab():
     polling_keywords = get_polling_keywords()
 
-    return get_default(polling_keywords.get("fstab"), overlord.default.POLLING["keywords"]["fstab"])
+    return get_default(polling_keywords.get("fstab"), overlord.default.VALID_KEYWORDS["fstab"])
 
 def get_memcache():
     return get_default(CONFIG.get("memcache"), overlord.default.MEMCACHE)
@@ -1212,6 +1218,7 @@ def validate_appjail(document):
         raise overlord.exceptions.InvalidSpec("'appjail' is invalid.")
 
     keys = (
+        "jails",
         "logs",
         "images"
     )
@@ -1222,6 +1229,16 @@ def validate_appjail(document):
 
     validate_appjail_logs(appjail)
     validate_appjail_images(appjail)
+    validate_appjail_jails(appjail)
+
+def validate_appjail_jails(document):
+    jails = document.get("jails")
+
+    if jails is None:
+        return
+
+    if not isinstance(jails, str):
+        raise overlord.exceptions.InvalidSpec(f"{jails}: invalid value type for 'appjail.jails'")
 
 def validate_appjail_images(document):
     images = document.get("images")
@@ -1467,7 +1484,7 @@ def validate_polling_keywords_jail(document):
         if not isinstance(entry, str):
             raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.jail.{index}'")
 
-    keys = overlord.default.POLLING["keywords"]["jail"]
+    keys = overlord.default.VALID_KEYWORDS["jail"]
 
     for key in jail:
         if key not in keys:
@@ -1486,7 +1503,7 @@ def validate_polling_keywords_stats(document):
         if not isinstance(entry, str):
             raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.stats.{index}'")
 
-    keys = overlord.default.POLLING["keywords"]["stats"]
+    keys = overlord.default.VALID_KEYWORDS["stats"]
 
     for key in stats:
         if key not in keys:
@@ -1505,7 +1522,7 @@ def validate_polling_keywords_devfs(document):
         if not isinstance(entry, str):
             raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.devfs.{index}'")
 
-    keys = overlord.default.POLLING["keywords"]["devfs"]
+    keys = overlord.default.VALID_KEYWORDS["devfs"]
 
     for key in devfs:
         if key not in keys:
@@ -1524,7 +1541,7 @@ def validate_polling_keywords_expose(document):
         if not isinstance(entry, str):
             raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.expose.{index}'")
 
-    keys = overlord.default.POLLING["keywords"]["expose"]
+    keys = overlord.default.VALID_KEYWORDS["expose"]
 
     for key in expose:
         if key not in keys:
@@ -1543,7 +1560,7 @@ def validate_polling_keywords_healthcheck(document):
         if not isinstance(entry, str):
             raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.healthcheck.{index}'")
 
-    keys = overlord.default.POLLING["keywords"]["healthcheck"]
+    keys = overlord.default.VALID_KEYWORDS["healthcheck"]
 
     for key in healthcheck:
         if key not in keys:
@@ -1562,7 +1579,7 @@ def validate_polling_keywords_label(document):
         if not isinstance(entry, str):
             raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.label.{index}'")
 
-    keys = overlord.default.POLLING["keywords"]["label"]
+    keys = overlord.default.VALID_KEYWORDS["label"]
 
     for key in label:
         if key not in keys:
@@ -1581,7 +1598,7 @@ def validate_polling_keywords_limits(document):
         if not isinstance(entry, str):
             raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.limits.{index}'")
 
-    keys = overlord.default.POLLING["keywords"]["limits"]
+    keys = overlord.default.VALID_KEYWORDS["limits"]
 
     for key in limits:
         if key not in keys:
@@ -1600,7 +1617,7 @@ def validate_polling_keywords_nat(document):
         if not isinstance(entry, str):
             raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.nat.{index}'")
 
-    keys = overlord.default.POLLING["keywords"]["nat"]
+    keys = overlord.default.VALID_KEYWORDS["nat"]
 
     for key in nat:
         if key not in keys:
@@ -1619,7 +1636,7 @@ def validate_polling_keywords_volume(document):
         if not isinstance(entry, str):
             raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.volume.{index}'")
 
-    keys = overlord.default.POLLING["keywords"]["volume"]
+    keys = overlord.default.VALID_KEYWORDS["volume"]
 
     for key in volume:
         if key not in keys:
@@ -1638,7 +1655,7 @@ def validate_polling_keywords_fstab(document):
         if not isinstance(entry, str):
             raise overlord.exceptions.InvalidSpec(f"'polling.keywords.fstab.{index}'")
 
-    keys = overlord.default.POLLING["keywords"]["fstab"]
+    keys = overlord.default.VALID_KEYWORDS["fstab"]
 
     for key in fstab:
         if key not in keys:

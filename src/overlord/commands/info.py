@@ -549,7 +549,7 @@ async def print_info_jails(client, chain, api_info, items, patterns):
             info_name = func.replace("get_", "")
 
             if isinstance(result, str):
-                print(f"        {info_name}: {result}")
+                print(f"      {info_name}: {result}")
 
             elif isinstance(result, list):
                 if len(result) == 0:
