@@ -46,7 +46,7 @@ import overlord.process
 import overlord.spec
 import overlord.util
 
-from overlord.sysexits import EX_OK, EX_NOINPUT, EX_SOFTWARE
+from overlord.sysexits import EX_OK, EX_NOINPUT, EX_SOFTWARE, EX_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,12 @@ async def _apply(file):
         deployments = 0
 
         overlord.spec.load(file)
+
+        kind = overlord.spec.get_kind()
+
+        if kind == overlord.spec.OverlordKindTypes.READONLY.value:
+            logger.error("(kind:readOnly) can't deploy a read-only deployment!")
+            sys.exit(EX_CONFIG)
 
         maximumDeployments = overlord.spec.get_maximumDeployments()
 
@@ -112,8 +118,6 @@ async def _apply(file):
                 "connect" : settings.get("connect_timeout"),
                 "pool" : settings.get("pool_timeout")
             }
-
-            kind = overlord.spec.get_kind()
 
             if chain:
                 chain = overlord.chains.join_chain(chain)

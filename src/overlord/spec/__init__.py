@@ -44,6 +44,7 @@ class OverlordKindTypes(enum.Enum):
     PROJECT = "directorProject"
     METADATA = "metadata"
     VMJAIL = "vmJail"
+    READONLY = "readOnly"
 
 def load(file):
     global CONFIG
@@ -275,6 +276,9 @@ def validate_kind(document):
 
     elif kind == OverlordKindTypes.VMJAIL.value:
         overlord.spec.vm_jail.validate(document)
+
+    elif kind == OverlordKindTypes.READONLY.value:
+        pass
 
     else:
         raise overlord.exceptions.InvalidKind(f"{kind}: Unknown value for 'kind'.")
