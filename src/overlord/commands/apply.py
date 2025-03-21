@@ -117,6 +117,7 @@ async def _apply(file):
 
             if chain:
                 chain = overlord.chains.join_chain(chain)
+
             else:
                 chain = None
 

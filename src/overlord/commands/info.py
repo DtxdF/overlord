@@ -102,6 +102,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
             if chain:
                 chain = overlord.chains.join_chain(chain)
+
             else:
                 chain = None
 

@@ -111,6 +111,7 @@ async def _destroy(file, force, filter_chain):
 
             if chain:
                 chain = overlord.chains.join_chain(chain)
+
             else:
                 chain = None
 
