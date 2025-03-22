@@ -323,6 +323,9 @@ def remove_jail(jail):
 
     delete(f"overlord_vm_status_{jail}")
 
+def remove_jail_stats(jail):
+    delete(f"overlord_jail_stats_{jail}")
+
 def remove_project(project):
     for keyword in ("info", "status_up", "status_down", "status_autoscale"):
         delete(f"overlord_project_{keyword}_{project}")

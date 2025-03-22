@@ -1001,6 +1001,7 @@ def poll_jail_stats():
 
             for jail in jails:
                 if overlord.jail.status(jail) != 0:
+                    overlord.cache.remove_jail_stats(jail)
                     continue
 
                 (rc, stats) = overlord.jail.stats(jail)
