@@ -54,6 +54,11 @@ def get_config():
     config = {
         "serverid" : get_serverid(),
         "port" : get_port(),
+        "tls" : {
+            "keyfile" : get_tls_keyfile(),
+            "certfile" : get_tls_certfile(),
+            "port" : get_tls_port()
+        },
         "debug" : get_debug(),
         "compress_response" : get_compress_response(),
         "polling" : {
@@ -116,7 +121,8 @@ def get_config():
             "pool_timeout" : get_dataplaneapi_pool_timeout(),
             "max_keepalive_connections" : get_dataplaneapi_max_keepalive_connections(),
             "max_connections" : get_dataplaneapi_max_connections(),
-            "keepalive_expiry" : get_dataplaneapi_keepalive_expiry()
+            "keepalive_expiry" : get_dataplaneapi_keepalive_expiry(),
+            "cacert" : get_dataplaneapi_cacert()
         },
         "skydns" : {
             "path" : get_skydns_path(),
@@ -154,7 +160,8 @@ def get_config():
             "max_keepalive_connections" : get_chain_max_keepalive_connections(chain),
             "max_connections" : get_chain_max_connections(chain),
             "keepalive_expiry" : get_chain_keepalive_expiry(chain),
-            "disable" : get_chain_disable(chain)
+            "disable" : get_chain_disable(chain),
+            "cacert" : get_chain_cacert(chain)
         }
 
     return config
@@ -208,6 +215,30 @@ def get_labels():
 
 def get_port():
     return get_default(CONFIG.get("port"), overlord.default.PORT)
+
+def get_tls():
+    return get_default(CONFIG.get("tls"), overlord.default.TLS)
+
+def get_tls_keyfile():
+    tls = get_tls()
+
+    keyfile = tls.get("keyfile")
+
+    return keyfile
+
+def get_tls_certfile():
+    tls = get_tls()
+
+    certfile = tls.get("certfile")
+
+    return certfile
+
+def get_tls_port():
+    tls = get_tls()
+
+    port = get_default(tls.get("port"), overlord.default.TLS["port"])
+
+    return port
 
 def get_debug():
     return get_default(CONFIG.get("debug"), overlord.default.DEBUG)
@@ -516,6 +547,16 @@ def get_chain_disable(chain):
 
     return disable
 
+def get_chain_cacert(chain):
+    chain_conf = get_chain(chain)
+
+    if chain_conf is None:
+        return
+
+    cacert = chain_conf.get("cacert")
+
+    return cacert
+
 def get_dataplaneapi():
     return get_default(CONFIG.get("dataplaneapi"), {})
 
@@ -625,6 +666,13 @@ def get_dataplaneapi_keepalive_expiry():
 
     return keepalive_expiry
 
+def get_dataplaneapi_cacert():
+    dataplaneapi = get_dataplaneapi()
+
+    cacert = dataplaneapi.get("cacert")
+
+    return cacert
+
 def get_skydns():
     return get_default(CONFIG.get("skydns"), overlord.default.SKYDNS)
 
@@ -725,6 +773,7 @@ def validate(document):
     keys = (
         "serverid",
         "port",
+        "tls",
         "debug",
         "compress_response",
         "polling",
@@ -752,6 +801,8 @@ def validate(document):
 
     validate_serverid(document)
     validate_port(document)
+    validate_tls_port(document)
+    validate_tls(document)
     validate_debug(document)
     validate_compress_response(document)
     validate_polling(document)
@@ -1269,6 +1320,64 @@ def validate_port(document):
 
     if port < 0 or port > 65535:
         raise ValueError(f"{port}: invalid port.")
+
+def validate_tls_port(document):
+    tls_port = document.get("tls_port")
+
+    if tls_port is None:
+        return
+
+    if not isinstance(tls_port, int):
+        raise overlord.exceptions.InvalidSpec(f"{tls_port}: invalid value type for 'tls_port'")
+
+    if tls_port < 0 or tls_port > 65535:
+        raise ValueError(f"{tls_port}: invalid tls_port.")
+
+def validate_tls(document):
+    tls = document.get("tls")
+
+    if tls is None:
+        return
+
+    if not isinstance(tls, dict):
+        raise overlord.exceptions.InvalidSpec("'tls' is invalid.")
+
+    keys = (
+        "keyfile",
+        "certfile",
+        "port"
+    )
+
+    for key in tls.keys():
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"tls.{key}: this key is invalid.")
+
+    port = tls.get("port")
+
+    if port is None:
+        return
+
+    if not isinstance(port, int):
+        raise overlord.exceptions.InvalidSpec(f"{port}: invalid value type for 'tls.port'")
+
+    if port < 0 or port > 65535:
+        raise ValueError(f"{port}: invalid port.")
+
+    keyfile = tls.get("keyfile")
+    certfile = tls.get("certfile")
+
+    if keyfile is None and certfile is None:
+        return
+
+    if keyfile is None and certfile is not None \
+            or keyfile is not None and certfile is None:
+        raise overlord.exceptions.InvalidSpec("tls.keyfile and tls.certfile must be specified at the same time.")
+
+    if not isinstance(keyfile, str):
+        raise overlord.exceptions.InvalidSpec(f"{keyfile}: invalid value type for 'tls.keyfile'")
+
+    if not isinstance(certfile, str):
+        raise overlord.exceptions.InvalidSpec(f"{certfile}: invalid value type for 'tls.certfile'")
 
 def validate_debug(document):
     debug = document.get("debug")

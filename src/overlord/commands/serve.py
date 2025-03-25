@@ -32,6 +32,7 @@ import json
 import logging
 import os
 import time
+import ssl
 
 import aiofiles
 import click
@@ -1054,7 +1055,37 @@ def make_app():
 async def listen():
     app = make_app()
 
-    app.listen(overlord.config.get_port())
+    certfile = overlord.config.get_tls_certfile()
+    keyfile = overlord.config.get_tls_keyfile()
+
+    if certfile is None and keyfile is None:
+        port = overlord.config.get_port()
+
+        app.listen(port)
+
+        logger.info("Listening on *:%d", port)
+
+    else:
+        # For unencrypted connections, but more specifically for poll-autoscale that need
+        # to make HTTP requests without involving TLS. Yes, I can change it to use TLS,
+        # but it is less overhead in resource usage and configuration.
+        port = overlord.config.get_port()
+
+        app.listen(port)
+
+        logger.info("Listening on *:%d (HTTP)", port)
+
+        tls_port = overlord.config.get_tls_port()
+
+        tls_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        tls_ctx.load_cert_chain(
+            certfile=certfile,
+            keyfile=keyfile
+        )
+
+        app.listen(tls_port, ssl_options=tls_ctx)
+
+        logger.info("Listening on *:%d (HTTPS)", tls_port)
 
     await asyncio.Event().wait()
 
@@ -1084,11 +1115,21 @@ def serve():
         entrypoint = overlord.config.get_chain_entrypoint(chain)
         access_token = overlord.config.get_chain_access_token(chain)
 
+        kwargs = {}
+
+        cacert = overlord.config.get_chain_cacert(chain)
+
+        if cacert is not None:
+            ctx = ssl.create_default_context(cafile=cacert)
+
+            kwargs["verify"] = ctx
+
         CHAINS[chain] = overlord.client.OverlordClient(
             entrypoint,
             access_token,
             limits=httpx.Limits(**limits_settings),
-            timeout=httpx.Timeout(**timeout_settings)
+            timeout=httpx.Timeout(**timeout_settings),
+            **kwargs
         )
 
     asyncio.run(listen())

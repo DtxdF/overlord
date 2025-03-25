@@ -336,3 +336,6 @@ VM = {
         "downloadURL" : "https://download.freebsd.org/releases/{ARCH}/{VERSION}"
     }
 }
+TLS = {
+    "port" : PORT + 443
+}

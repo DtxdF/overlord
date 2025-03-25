@@ -32,6 +32,7 @@ import json
 import logging
 import os
 import re
+import ssl
 import sys
 import tempfile
 import time
@@ -883,12 +884,22 @@ async def run_special_label_load_balancer(project, type, service, labels):
 
         return (error, message)
 
+    kwargs = {}
+
+    cacert = overlord.config.get_dataplaneapi_cacert()
+
+    if cacert is not None:
+        ctx = ssl.create_default_context(cafile=cacert)
+
+        kwargs["verify"] = ctx
+
     client = overlord.dataplaneapi.DataPlaneAPIClientv3(
         entrypoint,
         username,
         password,
         limits=httpx.Limits(**limits_settings),
-        timeout=httpx.Timeout(**timeout_settings)
+        timeout=httpx.Timeout(**timeout_settings),
+        **kwargs
     )
 
     configuration_version = await client.get_configuration_version()

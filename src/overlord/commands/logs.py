@@ -29,6 +29,7 @@
 
 import asyncio
 import logging
+import ssl
 import sys
 
 import click
@@ -87,11 +88,21 @@ async def _get_project_log(file, date, service, log, entrypoint):
             "pool" : overlord.spec.get_datacenter_pool_timeout(entrypoint)
         }
 
+        kwargs = {}
+
+        cacert = overlord.spec.get_datacenter_cacert(entrypoint)
+
+        if cacert is not None:
+            ctx = ssl.create_default_context(cafile=cacert)
+
+            kwargs["verify"] = ctx
+
         client = overlord.client.OverlordClient(
             entrypoint_url,
             access_token,
             limits=httpx.Limits(**limits_settings),
-            timeout=httpx.Timeout(**timeout_settings)
+            timeout=httpx.Timeout(**timeout_settings),
+            **kwargs
         )
 
         log_content = await client.get_project_log(date, service, log, chain=chain)

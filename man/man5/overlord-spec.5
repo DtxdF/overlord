@@ -41,6 +41,18 @@ contents of the file.
 .It Sy port
 Specify the source port Overlord's API server should use.
 .Pp
+.It Sy tls
+Configure the API server to listen on an alternate port for encrypted connections.
+.Pp
+.It Sy tls.keyfile
+Private key filename.
+.Pp
+.It Sy tls.certfile
+Certificate filename.
+.Pp
+.It Sy tls.port
+Alternate port for listening to encrypted connections.
+.Pp
 .It Sy debug
 Shorthand for several debug mode settings. 
 .Pp
@@ -296,6 +308,9 @@ Time limit on idle keep-alive connections in seconds.
 .Pp
 .Lk https://www.python-httpx.org/advanced/resource-limits "Resource Limits"
 .Pp
+.It Sy chains. Ns Ar cacert Ns Sy .cacert
+Certificate to verify the server when connecting to it.
+.Pp
 .It Sy labels
 List of labels for the API server.
 .Pp
@@ -353,6 +368,7 @@ Data Plane API password.
 .It Sy dataplaneapi.max_keepalive_connections
 .It Sy dataplaneapi.max_connections
 .It Sy dataplaneapi.keepalive_expiry
+.It Sy dataplaneapi.cacert
 See
 .Sy chains. Ns Ar chain Ns Sy .*
 for details.

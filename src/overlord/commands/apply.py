@@ -31,6 +31,7 @@ import asyncio
 import io
 import json
 import logging
+import ssl
 import sys
 
 import click
@@ -98,6 +99,7 @@ async def _apply(file):
                 "max_keepalive_connections" : overlord.spec.get_datacenter_max_keepalive_connections(main_entrypoint),
                 "max_connections" : overlord.spec.get_datacenter_max_connections(main_entrypoint),
                 "keepalive_expiry" : overlord.spec.get_datacenter_keepalive_expiry(main_entrypoint),
+                "cacert" : overlord.spec.get_datacenter_cacert(main_entrypoint),
                 "datacenter" : main_entrypoint
             }
 
@@ -125,11 +127,21 @@ async def _apply(file):
             else:
                 chain = None
 
+            kwargs = {}
+
+            cacert = settings.get("cacert")
+
+            if cacert is not None:
+                ctx = ssl.create_default_context(cafile=cacert)
+
+                kwargs["verify"] = ctx
+
             client = overlord.client.OverlordClient(
                 entrypoint,
                 access_token,
                 limits=httpx.Limits(**limits_settings),
-                timeout=httpx.Timeout(**timeout_settings)
+                timeout=httpx.Timeout(**timeout_settings),
+                **kwargs
             )
 
             chains = [chain]

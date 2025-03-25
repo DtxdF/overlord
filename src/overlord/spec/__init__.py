@@ -238,6 +238,14 @@ def get_datacenter_keepalive_expiry(datacenter):
 
     return get_default(datacenter.get("keepalive_expiry"), overlord.default.CHAIN_KEEPALIVE_EXPIRY)
 
+def get_datacenter_cacert(datacenter):
+    datacenter = get_datacenter(datacenter)
+
+    if datacenter is None:
+        return
+
+    return datacenter.get("cacert")
+
 def get_deployIn():
     return get_default(CONFIG.get("deployIn"), {})
 
@@ -314,7 +322,8 @@ def validate_datacenter(datacenters, name):
         "pool_timeout",
         "max_keepalive_connections",
         "max_connections",
-        "keepalive_expiry"
+        "keepalive_expiry",
+        "cacert"
     )
 
     for key in datacenter:
@@ -331,6 +340,16 @@ def validate_datacenter(datacenters, name):
     validate_datacenter_max_keepalive_connections(datacenters, name)
     validate_datacenter_max_connections(datacenters, name)
     validate_datacenter_keepalive_expiry(datacenters, name)
+    validate_datacenter_cacert(datacenters, name)
+
+def validate_datacenter_cacert(datacenters, name):
+    cacert = datacenters[name].get("cacert")
+
+    if cacert is None:
+        return
+
+    if not isinstance(cacert, str):
+        raise overlord.exceptions.InvalidSpec(f"{cacert}: invalid value type for 'datacenters.{name}.cacert'")
 
 def validate_datacenter_entrypoint(datacenters, name):
     entrypoint = datacenters[name].get("entrypoint")
