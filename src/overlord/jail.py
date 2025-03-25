@@ -359,7 +359,7 @@ def _get_value(args):
 
         return (rc, None)
 
-    if stdout[-1] == "\n":
+    if len(stdout) > 0 and stdout[-1] == "\n":
         value = stdout[:-1]
 
     return (rc, value)
