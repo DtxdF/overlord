@@ -1061,7 +1061,8 @@ def validate_dataplaneapi(document):
         "pool_timeout",
         "max_keepalive_connections",
         "max_connections",
-        "keepalive_expiry"
+        "keepalive_expiry",
+        "cacert"
     )
 
     for key in dataplaneapi:
@@ -1078,6 +1079,7 @@ def validate_dataplaneapi(document):
     validate_dataplaneapi_max_keepalive_connections(dataplaneapi)
     validate_dataplaneapi_max_connections(dataplaneapi)
     validate_dataplaneapi_keepalive_expiry(dataplaneapi)
+    validate_dataplaneapi_cacert(dataplaneapi)
 
 def validate_dataplaneapi_entrypoint(document):
     entrypoint = document.get("entrypoint")
@@ -1198,6 +1200,15 @@ def validate_dataplaneapi_keepalive_expiry(document):
 
     if not isinstance(keepalive_expiry, int):
         raise overlord.exceptions.InvalidSpec(f"{keepalive_expiry}: invalid value type for 'dataplaneapi.keepalive_expiry'")
+
+def validate_dataplaneapi_cacert(document):
+    cacert = document.get("cacert")
+
+    if cacert is None:
+        return
+
+    if not isinstance(cacert, str):
+        raise overlord.exceptions.InvalidSpec(f"{cacert}: invalid value type for 'dataplaneapi.cacert'")
 
 def validate_execution_time(document):
     execution_time = document.get("execution_time")
@@ -1950,7 +1961,8 @@ def validate_chain(chains, chain):
         "max_keepalive_connections",
         "max_connections",
         "keepalive_expiry",
-        "disable"
+        "disable",
+        "cacert"
     )
 
     for key in chains[chain]:
@@ -1968,6 +1980,16 @@ def validate_chain(chains, chain):
     validate_chain_max_connections(chains, chain)
     validate_chain_keepalive_expiry(chains, chain)
     validate_chain_disable(chains, chain)
+    validate_chain_cacert(chains, chain)
+
+def validate_chain_cacert(chains, chain):
+    cacert = chains[chain].get("cacert")
+
+    if cacert is None:
+        return
+
+    if not isinstance(cacert, str):
+        raise overlord.exceptions.InvalidSpec(f"{cacert}: invalid value type for 'chain.{chain}.cacert'")
 
 def validate_chain_disable(chains, chain):
     disable = chains[chain].get("disable")
