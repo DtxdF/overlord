@@ -67,3 +67,19 @@ log_config:
       handlers: ['default']
       level: 'INFO'
       propagate: false
+    'overlord.commands.spec':
+      handlers: ['default']
+      level: 'INFO'
+      propagate: false
+    'overlord.vm':
+      handlers: ['default']
+      level: 'INFO'
+      propagate: false
+    'overlord.util':
+      handlers: ['default']
+      level: 'INFO'
+      propagate: false
+    'overlord.dataplaneapi':
+      handlers: ['default']
+      level: 'INFO'
+      propagate: false
