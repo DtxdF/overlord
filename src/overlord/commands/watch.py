@@ -978,6 +978,16 @@ async def run_special_label_load_balancer(project, type, service, labels):
 
     code = server_info.status_code
 
+    transaction_id_info = await client.get_transaction_id(configuration_version)
+
+    if transaction_id_info.status_code != 201:
+        error = True
+        message = f"(project:{project}, service:{service_name}) can't get transaction ID"
+
+        return (error, message)
+
+    transaction_id = transaction_id_info.json()["id"]
+
     if type == "create":
         body = {}
 
@@ -998,7 +1008,7 @@ async def run_special_label_load_balancer(project, type, service, labels):
                 error_message = error.get("message")
 
                 error = True
-                message = f"(project:{project}, service:{service_name}, exception:{error_type}, label:{label_name}) {error_message}"
+                message = f"(project:{project}, service:{service_name}, exception:{error_type}, label:{label_name}, transaction_id:{transaction_id}) {error_message}"
 
                 return (error, message)
 
@@ -1013,55 +1023,77 @@ async def run_special_label_load_balancer(project, type, service, labels):
             replace_server_info = await client.replace_server(
                 serverid,
                 backend,
-                version=configuration_version,
+                transaction_id=transaction_id,
                 body=body,
                 _raise_for_status=False
             )
 
             code = replace_server_info.status_code
 
-            if code == 200 \
-                    or code == 202:
-                error = False
-                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) server has been successfully updated."
-
-                return (error, message)
-
-            else:
+            if code != 200 \
+                    and code != 202:
                 error = True
                 response = replace_server_info.content
-                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) error updating the server - {response}"
+                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}, transaction_id:{transaction_id}, commit:0) error updating the server - {response}"
 
                 return (error, message)
+
+            commit_info = await client.commit_transaction(transaction_id, _raise_for_status=False)
+
+            code = commit_info.status_code
+
+            if code != 200 \
+                    and code != 202:
+                error = True
+                response = commit_info.content
+                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}, transaction_id:{transaction_id}, commit:1) error updating the server - {response}"
+
+                return (error, message)
+
+            error = False
+            message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}, transaction_id:{transaction_id}, commit:1) server has been successfully updated."
+
+            return (error, message)
 
         elif code == 404:
             add_server_info = await client.add_server(
                 backend,
-                version=configuration_version,
+                transaction_id=transaction_id,
                 body=body,
                 _raise_for_status=False
             )
 
             code = add_server_info.status_code
 
-            if code == 201 \
-                    or code == 202:
-                error = False
-                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) server has been successfully added."
-
-                return (error, message)
-
-            else:
+            if code != 201 \
+                    and code != 202:
                 error = True
                 response = add_server_info.content
-                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) error adding the server - {response}"
+                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}, transaction_id:{transaction_id}, commit:0) error adding the server - {response}"
 
                 return (error, message)
+
+            commit_info = await client.commit_transaction(transaction_id, _raise_for_status=False)
+
+            code = commit_info.status_code
+
+            if code != 200 \
+                    and code != 202:
+                error = True
+                response = commit_info.content
+                message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}, transaction_id:{transaction_id}, commit:1) error adding the server - {response}"
+
+                return (error, message)
+
+            error = False
+            message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}, transaction_id:{transaction_id}, commit:1) server has been successfully added."
+
+            return (error, message)
 
         else:
             error = True
             response = server_info.content
-            message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) error retrieving information about the server - {response}"
+            message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}, transaction_id:{transaction_id}) error retrieving information about the server - {response}"
 
             return (error, message)
 
@@ -1075,22 +1107,33 @@ async def run_special_label_load_balancer(project, type, service, labels):
         delete_server_info = await client.delete_server(
             serverid,
             backend,
-            version=configuration_version,
+            transaction_id=transaction_id,
             _raise_for_status=False
         )
 
         code = delete_server_info.status_code
 
-        if code == 202 \
-                or code == 204:
-            error = False
-            message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) server has been removed."
-
-            return (error, message)
-
-        else:
+        if code != 202 \
+                and code != 204:
             error = True
             response = delete_server_info.content
-            message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}) error removing the server - {response}"
+            message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}, transaction_id:{transaction_id}, commit:0) error removing the server - {response}"
 
             return (error, message)
+
+        commit_info = await client.commit_transaction(transaction_id, _raise_for_status=False)
+
+        code = commit_info.status_code
+
+        if code != 200 \
+                and code != 202:
+            error = True
+            response = commit_info.content
+            message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}, transaction_id:{transaction_id}, commit:1) error removing the server - {response}"
+
+            return (error, message)
+        
+        error = False
+        message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}, transaction_id:{transaction_id}, commit:1) server has been removed."
+
+        return (error, message)

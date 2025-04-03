@@ -47,6 +47,38 @@ class DataPlaneAPIClientv3(httpx.AsyncClient):
             auth=auth
         )
 
+    async def commit_transaction(self, id, force_reload=False, *, _raise_for_status=True):
+        params = {
+            "force_reload" : force_reload
+        }
+
+        request = await self.put(f"/v3/services/haproxy/transactions/{id}",
+                                 params=params, headers={ "Content-Type" : "application/json" })
+
+        if _raise_for_status:
+            request.raise_for_status()
+
+        logger.debug("(code:%d, reason:%s) response: %s",
+                     request.status_code, request.reason_phrase, json.dumps(request.json(), indent=4))
+
+        return request
+
+    async def get_transaction_id(self, version, *, _raise_for_status=True):
+        params = {
+            "version" : version
+        }
+
+        request = await self.post(f"/v3/services/haproxy/transactions",
+                                  params=params, headers={ "Content-Type" : "application/json" })
+
+        if _raise_for_status:
+            request.raise_for_status()
+
+        logger.debug("(code:%d, reason:%s) response: %s",
+                     request.status_code, request.reason_phrase, json.dumps(request.json(), indent=4))
+
+        return request
+
     async def get_configuration_version(self, transaction_id=None, *, _raise_for_status=True):
         params = {}
 
