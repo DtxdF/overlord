@@ -47,11 +47,19 @@ def is_done(jail_path):
 
     return os.path.isfile(done_file)
 
-def write_done(jail_path):
+def write_done(jail_path, content=""):
     done_file = os.path.join(jail_path, ".done")
 
-    with open(done_file, "w"):
-        pass
+    with open(done_file, "w") as fd:
+        fd.write(content)
+        fd.flush()
+        os.fsync(fd.fileno())
+
+def get_done(jail_path):
+    done_file = os.path.join(jail_path, ".done")
+
+    with open(done_file) as fd:
+        return fd.read()
 
 def install_from_components(jail, download_url, components_path, components):
     args = []

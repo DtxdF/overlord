@@ -188,6 +188,8 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
 
     logger.debug("(VM:%s) creating VM ...", vm)
 
+    director_file = None
+
     restarted = False
 
     jail_path = None
@@ -212,40 +214,43 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
 
                 restarted = True
 
+                director_file = overlord.vm.get_done(jail_path)
+
     overlord.cache.save_project_status_up(vm, {
         "operation" : "RUNNING",
         "last_update" : time.time(),
         "job_id" : job_id
     })
 
-    director_file = {
-        "services" : {
-            "vm" : {
-                "name" : vm,
-                "makejail" : makejail,
-                "options" : [
-                    { "label" : "overlord.vm:1" }
-                ]
+    if director_file is None:
+        director_file = {
+            "services" : {
+                "vm" : {
+                    "name" : vm,
+                    "makejail" : makejail,
+                    "options" : [
+                        { "label" : "overlord.vm:1" }
+                    ]
+                }
             }
         }
-    }
 
-    if options:
-        director_file["options"] = options
+        if options:
+            director_file["options"] = options
 
-    if environment["start"]:
-        director_file["services"]["vm"]["start-environment"] = environment["start"]
+        if environment["start"]:
+            director_file["services"]["vm"]["start-environment"] = environment["start"]
 
-    if environment["build"]:
-        director_file["services"]["vm"]["environment"] = environment["build"]
+        if environment["build"]:
+            director_file["services"]["vm"]["environment"] = environment["build"]
 
-    if arguments["start"]:
-        director_file["services"]["vm"]["start"] = arguments["start"]
+        if arguments["start"]:
+            director_file["services"]["vm"]["start"] = arguments["start"]
 
-    if arguments["build"]:
-        director_file["services"]["vm"]["arguments"] = arguments["build"]
+        if arguments["build"]:
+            director_file["services"]["vm"]["arguments"] = arguments["build"]
 
-    director_file = yaml.dump(director_file)
+        director_file = yaml.dump(director_file)
 
     with tempfile.NamedTemporaryFile(prefix="overlord", mode="wb", buffering=0) as fd:
         fd.write(director_file.encode())
@@ -405,7 +410,7 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
             operation_status = "COMPLETED"
 
             if not ignore_done:
-                overlord.vm.write_done(jail_path)
+                overlord.vm.write_done(jail_path, director_file)
 
         else:
             operation_status = "FAILED"
