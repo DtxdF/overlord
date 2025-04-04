@@ -230,7 +230,8 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
                     "makejail" : makejail,
                     "options" : [
                         { "label" : "overlord.vm:1" }
-                    ]
+                    ],
+                    "ignore_mtime" : True
                 }
             }
         }
