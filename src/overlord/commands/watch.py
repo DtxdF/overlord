@@ -151,7 +151,8 @@ async def _async_watch_vm():
                         "build" : message.get("build-arguments"),
                         "start" : message.get("start-environment")
                     },
-                    "options" : message.get("options")
+                    "options" : message.get("options"),
+                    "restart" : message.get("restart")
                 }
 
                 await create_vm(job_id, **profile)
@@ -182,10 +183,12 @@ async def _async_watch_vm():
 
         sys.exit(EX_SOFTWARE)
 
-async def create_vm(job_id, *, name, makejail, template, diskLayout, script, metadata, environment, arguments, options):
+async def create_vm(job_id, *, name, makejail, template, diskLayout, script, metadata, environment, arguments, options, restart):
     vm = name
 
     logger.debug("(VM:%s) creating VM ...", vm)
+
+    restarted = False
 
     jail_path = None
 
@@ -197,7 +200,17 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
             return
 
         if overlord.vm.is_done(jail_path):
-            return
+            if not restart:
+                return
+
+            if overlord.director.check(vm):
+                logger.debug("(vm:%s) stopping ...", vm)
+
+                poweroff_if_vm(vm)
+
+                overlord.director.down(vm, env=environment["process"])
+
+                restarted = True
 
     overlord.cache.save_project_status_up(vm, {
         "operation" : "RUNNING",
@@ -259,10 +272,15 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
             "operation" : operation_status,
             "output" : result,
             "last_update" : time.time(),
-            "job_id" : job_id
+            "job_id" : job_id,
+            "restarted" : restarted
         })
 
         if error:
+            return
+
+        # We must limit our execution to just restarting the project and nothing else.
+        if restarted:
             return
 
         overlord.cache.save_vm_status(vm, {
@@ -428,7 +446,21 @@ async def _async_watch_projects():
                 continue
 
             if type == "create":
-                logger.debug("(project:%s) creating project ...", project)
+                restart = message.get("restart", False)
+
+                restarted = False
+
+                if restart and \
+                        overlord.director.check(project):
+                    logger.debug("(project:%s) stopping ...", project)
+
+                    poweroff_if_vm(project)
+
+                    overlord.director.down(project, env=environment)
+
+                    restarted = True
+
+                logger.debug("(project:%s) processing ...", project)
 
                 overlord.cache.save_project_status_up(project, {
                     "operation" : "RUNNING",
@@ -471,6 +503,7 @@ async def _async_watch_projects():
                         "output" : result,
                         "last_update" : time.time(),
                         "job_id" : job_id,
+                        "restarted" : restarted,
                         "labels" : special_labels_response
                     })
 

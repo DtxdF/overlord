@@ -79,7 +79,7 @@ class OverlordClient(httpx.AsyncClient):
             auth=auth,
             **kwargs)
 
-    async def up(self, name, director_file, environment={}, chain=None):
+    async def up(self, name, director_file, environment={}, restart=False, chain=None):
         """
         Create a new project.
 
@@ -90,6 +90,8 @@ class OverlordClient(httpx.AsyncClient):
                 file name or path.
             environment (dict(str, str), optional):
                 A dictionary with additional environments to include when creating the project.
+            restart (bool, optional):
+                Restart the project if it exists.
             chain (str, optional):
                 The chain that the server(s) should use to redirect the request.
 
@@ -109,7 +111,8 @@ class OverlordClient(httpx.AsyncClient):
 
         parsed = await self.__post_parsed(f"project/up/{name}", chain=chain, json={
             "director_file" : director_file,
-            "environment" : environment
+            "environment" : environment,
+            "restart" : restart
         })
 
         return parsed

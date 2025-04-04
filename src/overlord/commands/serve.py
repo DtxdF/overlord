@@ -355,6 +355,7 @@ class ProjectUpHandler(InternalHandler):
     async def post(self, project):
         director_file = self.get_json_argument("director_file", value_type=str, strip=False)
         environment = self.get_json_argument("environment", {}, value_type=dict)
+        restart = self.get_json_argument("restart", False, value_type=bool)
 
         for env_name, env_value in environment.items():
             if not isinstance(env_name, str) \
@@ -367,7 +368,8 @@ class ProjectUpHandler(InternalHandler):
         job_id = await overlord.queue.put_create_project({
             "director_file" : director_file,
             "name" : project,
-            "environment" : environment
+            "environment" : environment,
+            "restart" : restart
         })
 
         self.write_template({
@@ -605,6 +607,8 @@ class VMHandler(InternalHandler):
 
             overlord.spec.vm_jail.validate_options({ "options" : options })
 
+            restart = self.get_json_argument("restart", False, value_type=bool)
+
         except overlord.exceptions.InvalidSpec as err:
             error = overlord.util.get_error(err)
             error_type = error.get("type")
@@ -630,7 +634,8 @@ class VMHandler(InternalHandler):
             "start-arguments" : start_arguments,
             "build-environment" : build_environment,
             "build-arguments" : build_arguments,
-            "options" : options
+            "options" : options,
+            "restart" : restart
         })
 
         self.write_template({
@@ -738,6 +743,8 @@ class ChainVMHandler(ChainInternalHandler):
 
             overlord.spec.vm_jail.validate_options({ "options" : options })
 
+            restart = self.get_json_argument("restart", False, value_type=bool)
+
         except overlord.exceptions.InvalidSpec as err:
             error = overlord.util.get_error(err)
             error_type = error.get("type")
@@ -761,7 +768,8 @@ class ChainVMHandler(ChainInternalHandler):
             "start-arguments" : start_arguments,
             "build-environment" : build_environment,
             "build-arguments" : build_arguments,
-            "options" : options
+            "options" : options,
+            "restart" : restart
         }
 
         result = await self.remote_call(chain, "create_vm", name, profile)
@@ -941,8 +949,9 @@ class ChainProjectUpHandler(ChainInternalHandler):
     async def post(self, chain, project):
         director_file = self.get_json_argument("director_file", value_type=str, strip=False)
         environment = self.get_json_argument("environment", {}, value_type=dict)
+        restart = self.get_json_argument("restart", False, value_type=bool)
 
-        result = await self.remote_call(chain, "up", project, director_file, environment)
+        result = await self.remote_call(chain, "up", project, director_file, environment, restart)
 
         self.write_template(result)
 

@@ -37,6 +37,7 @@
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm apply
+.Op Fl Fl restart
 .Fl Fl file Ar file
 .Nm
 .Op Fl Fl env-file Ar file
@@ -115,9 +116,26 @@ takes seconds to minutes.
 .Pp
 .Bl -tag -width xxx
 .It Cm apply Fl Fl file Ar file
-Applies a file containing a deployment, or in other words, this command is to deploy something depending on the deployment type specified in
+Applies a file containing a deployment, or in other words, this command is to deploy
+something depending on the deployment type specified in
 .Xr overlord-spec 5 Ns "."
 .Bl -tag -width xx
+.It Fl Fl restart
+If this option is set and is a
+.Sy directorProject
+deployment, all jails in the project will be restarted. Overlord does not control the execution
+flow, it uses
+.Sy down
+and
+.Sy up
+of Director for this. If you have configured autoscaling, this option is ignored.
+.Pp
+In the case of a
+.Sy vmJail
+deployment, the above process takes place, however in a
+.Sy vmJail
+deployment the VM is forcibly shutdown, which may lead to data loss or something
+else. Be careful.
 .It Fl f Ar file Ns , No Fl Fl file Ar file
 Deployment file.
 .El

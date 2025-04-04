@@ -53,10 +53,11 @@ logger = logging.getLogger(__name__)
 
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
+@click.option("--restart", is_flag=True, default=False)
 def apply(*args, **kwargs):
     asyncio.run(_apply(*args, **kwargs))
 
-async def _apply(file):
+async def _apply(file, restart):
     try:
         deployments = 0
 
@@ -259,7 +260,7 @@ async def _apply(file):
 
                     if len(scale_options) == 0:
                         try:
-                            response = await client.up(project_name, project_file, environment, chain=chain)
+                            response = await client.up(project_name, project_file, environment, restart, chain=chain)
 
                             deployments += 1
 
@@ -298,7 +299,8 @@ async def _apply(file):
                         "start-environment" : overlord.spec.vm_jail.get_start_environment(),
                         "start-arguments" : overlord.spec.vm_jail.get_start_arguments(),
                         "build-environment" : overlord.spec.vm_jail.get_build_environment(),
-                        "build-arguments" : overlord.spec.vm_jail.get_build_arguments()
+                        "build-arguments" : overlord.spec.vm_jail.get_build_arguments(),
+                        "restart" : restart
                     }
 
                     makejail = overlord.spec.vm_jail.get_makejail()
