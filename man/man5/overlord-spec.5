@@ -427,6 +427,40 @@ it will be created when writing any metadata.
 Size of each metadata. If a user tries to create a metadata with a size greater
 than or equal to this parameter, an error occurs. By default this parameter is
 set to 1 MiB.
+.Pp
+.It Sy autodisable
+Smart Timeouts is an Overlord feature that disables a chain that fails until it
+comes back online.
+.Pp
+Technically, this does not disable the chain, but the chain does not appear in
+the API server's list of chains, so a client will only see
+.Pq with a probability
+chains that are known to work
+.Po until they don't Pc Ns ,
+ensuring more stability than showing the client an unnecessary failure
+.Po and also reducing performance due to constant timeouts Pc Ns "."
+.Pp
+.It Sy autodisable.enabled
+Enable or disable Smart Timeouts.
+.Pp
+.It Sy autodisable.failures
+Maximum total number of failures to tolerate.
+.Pp
+If the maximum total number of failures is greater than this number, the interval
+is checked.
+.Pp
+.It Sy autodisable.interval
+The length of time a chain remains disabled.
+.Pp
+.It Sy autodisable.increase
+This number affects the interval. When a comparison is made with the interval and
+the last failure time, this number is added to the interval, thus increasing the
+time a chain is disabled. The number adds to itself for each failure.
+.Pp
+.It Sy autodisable.max-increase
+Maximum number for
+.Sy autodisable.increase Ns "."
+.Pp
 .El
 .Sh DEPLOYMENT
 .Ss GLOBAL

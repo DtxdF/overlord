@@ -54,6 +54,7 @@ logger = logging.getLogger(__name__)
 
 CHAINS = {}
 METADATA = {}
+DISABLE_COUNTERS = {}
 
 class InternalHandler(overlord.tornado.JSONAuthHandler):
     def check_jail(self, jail):
@@ -102,12 +103,16 @@ class ChainInternalHandler(InternalHandler):
             raise tornado.web.HTTPError(404, reason=f"Next entrypoint '{next_entrypoint}' cannot be found.")
 
         if len(next_chain) == 0:
+            tail = True
+
             logger.debug("(function:%s, entrypoint:%s) connecting ...",
                          func, next_entrypoint)
 
             result = getattr(chain_cli, func)(*args, **kwargs)
 
         else:
+            tail = False
+
             new_chain = overlord.chains.join_chain(next_chain)
 
             logger.debug("(function:%s, entrypoint:%s, chain:%s) connecting ...",
@@ -119,6 +124,31 @@ class ChainInternalHandler(InternalHandler):
             return await result
 
         except Exception as err:
+            # This makes sense because if a chain fails but the entry point does not, the entry point
+            # will be put on the "smart timeout" list, and perhaps other chains will not represent a
+            # failure. The last entry point (the tail) will be disabled causing something similar to a
+            # propagation.
+
+            if tail:
+                if next_entrypoint not in DISABLE_COUNTERS:
+                    DISABLE_COUNTERS[next_entrypoint] = {
+                        "failures" : 0,
+                        "increase" : 0
+                    }
+
+                else:
+                    if DISABLE_COUNTERS[next_entrypoint]["increase"] < overlord.config.get_autodisable_max_increase():
+                        DISABLE_COUNTERS[next_entrypoint]["increase"] += overlord.config.get_autodisable_increase()
+
+                DISABLE_COUNTERS[next_entrypoint]["failures"] += 1
+                DISABLE_COUNTERS[next_entrypoint]["last-failure"] = time.time()
+
+                logger.debug("(entrypoint:%s, failures:%d, increase:%d, last-failure:%f) smart timeouts",
+                             next_entrypoint,
+                             DISABLE_COUNTERS[next_entrypoint]["failures"],
+                             DISABLE_COUNTERS[next_entrypoint]["increase"],
+                             DISABLE_COUNTERS[next_entrypoint]["last-failure"])
+
             error = overlord.util.get_error(err)
             error_type = error.get("type")
             error_message = error.get("message")
@@ -136,6 +166,10 @@ class ChainInternalHandler(InternalHandler):
                 "message" : error_message
             }, status_code=503)
             self.finish()
+
+        else:
+            if next_entrypoint in DISABLE_COUNTERS:
+                del DISABLE_COUNTERS[next_entrypoint]
 
 class JailsHandler(InternalHandler):
     async def get(self):
@@ -650,8 +684,45 @@ class LabelsHandler(InternalHandler):
 
 class ChainsHandler(ChainInternalHandler):
     async def get(self):
+        autodisable_enabled = overlord.config.get_autodisable_enabled()
+
+        if not autodisable_enabled:
+            self.write_template({
+                "chains" : list(CHAINS)
+            })
+            return
+
+        chains = []
+
+        max_failures = overlord.config.get_autodisable_failures()
+        disable_interval = overlord.config.get_autodisable_interval()
+
+        for chain in CHAINS:
+            if chain not in DISABLE_COUNTERS:
+                chains.append(chain)
+                continue
+
+            chain_info = DISABLE_COUNTERS[chain]
+
+            failures = chain_info["failures"]
+
+            if failures < max_failures:
+                chains.append(chain)
+                continue
+
+            last_failure = chain_info["last-failure"]
+            last_failure = time.time() - last_failure
+
+            increase = chain_info["increase"]
+
+            if last_failure >= (disable_interval + increase):
+                chains.append(chain)
+                continue
+
+            logger.debug("(chain:%s) excluding chain due to smart timeouts", chain)
+
         self.write_template({
-            "chains" : list(CHAINS)
+            "chains" : chains
         })
 
 class ChainMetadataHandler(ChainInternalHandler):

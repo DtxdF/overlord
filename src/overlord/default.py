@@ -339,3 +339,10 @@ VM = {
 TLS = {
     "port" : PORT + 443
 }
+AUTODISABLE = {
+    "enabled" : True,
+    "failures" : 2,
+    "interval" : 60, # 1m
+    "increase" : 60, # 1m
+    "max-increase" : 1800 # 30m
+}

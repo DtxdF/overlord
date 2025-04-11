@@ -135,7 +135,14 @@ def get_config():
             "location" : get_metadata_location(),
             "size" : get_metadata_size()
         },
-        "components" : get_components()
+        "components" : get_components(),
+        "autodisable" : {
+            "enabled" : get_autodisable_enabled(),
+            "failures" : get_autodisable_failures(),
+            "interval" : get_autodisable_interval(),
+            "increase" : get_autodisable_increase(),
+            "max-increase" : get_autodisable_max_increase()
+        }
     }
 
     for host in list_etcd_hosts():
@@ -171,6 +178,34 @@ def get_default(value, default=None):
         return default
 
     return value
+
+def get_autodisable():
+    return get_default(CONFIG.get("autodisable"), overlord.default.AUTODISABLE)
+
+def get_autodisable_enabled():
+    autodisable = get_autodisable()
+
+    return get_default(autodisable.get("enabled"), overlord.default.AUTODISABLE["enabled"])
+
+def get_autodisable_failures():
+    autodisable = get_autodisable()
+
+    return get_default(autodisable.get("failures"), overlord.default.AUTODISABLE["failures"])
+
+def get_autodisable_interval():
+    autodisable = get_autodisable()
+
+    return get_default(autodisable.get("interval"), overlord.default.AUTODISABLE["interval"])
+
+def get_autodisable_increase():
+    autodisable = get_autodisable()
+
+    return get_default(autodisable.get("increase"), overlord.default.AUTODISABLE["increase"])
+
+def get_autodisable_max_increase():
+    autodisable = get_autodisable()
+
+    return get_default(autodisable.get("max-increase"), overlord.default.AUTODISABLE["max-increase"])
 
 def get_components():
     return CONFIG.get("components", overlord.default.COMPONENTS)
@@ -792,7 +827,8 @@ def validate(document):
         "max_watch_projects",
         "max_watch_vm",
         "metadata",
-        "components"
+        "components",
+        "autodisable"
     )
 
     for key in document:
@@ -822,6 +858,91 @@ def validate(document):
     validate_max_watch_vm(document)
     validate_metadata(document)
     validate_components(document)
+    validate_autodisable(document)
+
+def validate_autodisable(document):
+    autodisable = document.get("autodisable")
+
+    if autodisable is None:
+        return
+
+    if not isinstance(autodisable, dict):
+        raise overlord.exceptions.InvalidSpec("'autodisable' is invalid.")
+
+    keys = (
+        "enabled",
+        "failures",
+        "interval",
+        "increase",
+        "max-increase"
+    )
+
+    for key in autodisable:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"autodisable.{key}: this key is invalid.")
+
+    validate_autodisable_enabled(autodisable)
+    validate_autodisable_failures(autodisable)
+    validate_autodisable_interval(autodisable)
+    validate_autodisable_increase(autodisable)
+    validate_autodisable_max_increase(autodisable)
+
+def validate_autodisable_max_increase(document):
+    max_increase = document.get("max_increase")
+
+    if max_increase is None:
+        return
+
+    if not isinstance(max_increase, int):
+        raise overlord.exceptions.InvalidSpec(f"{max_increase}: invalid value type for 'autodisable.max_increase'")
+
+    if max_increase < 1:
+        raise ValueError(f"{max_increase}: invalid value for 'autodisable.max_increase'")
+
+def validate_autodisable_increase(document):
+    increase = document.get("increase")
+
+    if increase is None:
+        return
+
+    if not isinstance(increase, int):
+        raise overlord.exceptions.InvalidSpec(f"{increase}: invalid value type for 'autodisable.increase'")
+
+    if increase < 1:
+        raise ValueError(f"{increase}: invalid value for 'autodisable.increase'")
+
+def validate_autodisable_interval(document):
+    interval = document.get("interval")
+
+    if interval is None:
+        return
+
+    if not isinstance(interval, int):
+        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'autodisable.interval'")
+
+    if interval < 1:
+        raise ValueError(f"{interval}: invalid value for 'autodisable.interval'")
+
+def validate_autodisable_failures(document):
+    failures = document.get("failures")
+
+    if failures is None:
+        return
+
+    if not isinstance(failures, int):
+        raise overlord.exceptions.InvalidSpec(f"{failures}: invalid value type for 'autodisable.failures'")
+
+    if failures < 1:
+        raise ValueError(f"{failures}: invalid value for 'autodisable.failures'")
+
+def validate_autodisable_enabled(document):
+    enabled = document.get("enabled")
+
+    if enabled is None:
+        return
+
+    if not isinstance(enabled, bool):
+        raise overlord.exceptions.InvalidSpec(f"{enabled}: invalid value type for 'autodisable.enabled'")
 
 def validate_components(document):
     components = document.get("components")
