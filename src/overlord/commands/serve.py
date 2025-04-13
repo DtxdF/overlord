@@ -446,6 +446,16 @@ class ProjectDownHandler(InternalHandler):
             "job_id" : job_id
         })
 
+class ProjectCancelHandler(InternalHandler):
+    async def post(self, project):
+        job_id = await overlord.queue.put_cancel_project({
+            "name" : project
+        })
+
+        self.write_template({
+            "job_id" : job_id
+        })
+
 class ProjectAutoScaleHandler(InternalHandler):
     async def get(self, project):
         result = overlord.cache.get_project_status_autoscale(project)
@@ -1042,6 +1052,12 @@ class ChainProjectDownHandler(ChainInternalHandler):
 
         self.write_template(result)
 
+class ChainProjectCancelHandler(ChainInternalHandler):
+    async def post(self, chain, project):
+        result = await self.remote_call(chain, "cancel", project)
+
+        self.write_template(result)
+
 class ChainProjectAutoScaleHandler(ChainInternalHandler):
     async def get(self, chain, project):
         result = await self.remote_call(chain, "get_status_autoscale", project)
@@ -1100,6 +1116,7 @@ def make_app():
         (r"/v1/project/info/([a-zA-Z0-9._-]+)", ProjectInfoHandler),
         (r"/v1/project/up/([a-zA-Z0-9._-]+)", ProjectUpHandler),
         (r"/v1/project/down/([a-zA-Z0-9._-]+)", ProjectDownHandler),
+        (r"/v1/project/cancel/([a-zA-Z0-9._-]+)", ProjectCancelHandler),
         (r"/v1/project/autoscale/([a-zA-Z0-9._-]+)", ProjectAutoScaleHandler),
         (r"/v1/vm/([a-zA-Z0-9][.a-zA-Z0-9_-]{0,229}[a-zA-Z0-9])", VMHandler),
         (r"/v1/metadata/" + overlord.metadata.REGEX_KEY, MetadataHandler),
@@ -1129,6 +1146,7 @@ def make_app():
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/info/([a-zA-Z0-9._-]+)", ChainProjectInfoHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/up/([a-zA-Z0-9._-]+)", ChainProjectUpHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/down/([a-zA-Z0-9._-]+)", ChainProjectDownHandler),
+        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/cancel/([a-zA-Z0-9._-]+)", ChainProjectCancelHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/autoscale/([a-zA-Z0-9._-]+)", ChainProjectDownHandler)
     ], **settings)
 

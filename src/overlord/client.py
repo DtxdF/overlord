@@ -154,6 +154,33 @@ class OverlordClient(httpx.AsyncClient):
 
         return parsed
 
+    async def cancel(self, name, chain=None):
+        """
+        Terminate a project in progress.
+
+        Args:
+            name (str): Project name.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            dict:
+                dict: Dictionary containing the key ``job_id`` representing the job identifier
+                in beanstalkd, which is mostly useful for debugging.
+
+        Raises:
+            - overlord.exceptions.InvalidProjectName
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.APIError
+        """
+
+        if not overlord.director.check_project_name(name):
+            raise overlord.exceptions.InvalidProjectName(f"{name}: Invalid project name.")
+
+        parsed = await self.__post_parsed(f"project/cancel/{name}", chain=chain)
+
+        return parsed
+
     async def get_status_up(self, name, chain=None):
         """
         Gets the status of the operation created by the ``up`` method.

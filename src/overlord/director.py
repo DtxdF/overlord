@@ -120,6 +120,13 @@ def down(name, destroy=False, ignore_failed=False, ignore_services=False, env=No
 
     return output
 
+def cancel(name, env=None, cwd=None):
+    args = ["appjail-director", "cancel", "-p", name]
+
+    (rc, _, _) = overlord.process.run_proc(args)
+
+    return rc
+
 def check(project):
     args = ["appjail-director", "check", "-p", project]
 

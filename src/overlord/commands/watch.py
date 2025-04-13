@@ -442,16 +442,16 @@ async def _async_watch_projects():
             message = job_body.get("message")
             project = message.get("name")
             environment = dict(os.environ)
-            environment.update(message.get("environment"))
+            environment.update(message.get("environment", {}))
 
             environment["OVERLORD_METADATA"] = overlord.config.get_metadata_location()
 
             type = job_body.get("type")
 
-            if ignore_project(project):
-                continue
-
             if type == "create":
+                if ignore_project(project):
+                    continue
+
                 restart = message.get("restart", False)
 
                 restarted = False
@@ -514,6 +514,9 @@ async def _async_watch_projects():
                     })
 
             elif type == "destroy":
+                if ignore_project(project):
+                    continue
+
                 force = message.get("force", False)
 
                 logger.debug("(project:%s, force:%s) destroying project ...", project, force)
@@ -560,6 +563,9 @@ async def _async_watch_projects():
                     "job_id" : job_id,
                     "labels" : special_labels_response
                 })
+
+            elif type == "cancel":
+                overlord.director.cancel(project)
 
     except Exception as err:
         error = overlord.util.get_error(err)

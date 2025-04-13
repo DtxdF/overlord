@@ -97,6 +97,9 @@ async def put_create_project(message):
 async def put_destroy_project(message):
     return await put({ "type" : "destroy", "message" : message }, "overlord_project")
 
+async def put_cancel_project(message):
+    return await put({ "type" : "cancel", "message" : message }, "overlord_project")
+
 async def put_create_vm(message):
     return await put({ "type" : "create", "message" : message }, "overlord_vm")
 
