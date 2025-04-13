@@ -41,6 +41,11 @@
 .Fl Fl file Ar file
 .Nm
 .Op Fl Fl env-file Ar file
+.Cm cancel
+.Op Fl Fl filter-chain Ar filter
+.Fl Fl file Ar file
+.Nm
+.Op Fl Fl env-file Ar file
 .Cm print-config
 .Nm
 .Op Fl Fl env-file Ar file
@@ -48,9 +53,9 @@
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm destroy
-.Fl Fl file Ar file
 .Op Fl Fl force
 .Op Fl Fl filter-chain Ar filter
+.Fl Fl file Ar file
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm gen-token
@@ -60,12 +65,12 @@
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm get-info
-.Fl Fl file Ar file
-.Fl Fl type Ar type
 .Op Fl Fl jail-item Ar item
 .Op Fl Fl all-labels
 .Op Op Fl Fl filter Ar filter Ns | Ns Fl Fl filter-per-project
 .Op Fl Fl use-autoscale-labels
+.Fl Fl file Ar file
+.Fl Fl type Ar type
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm get-project-log
@@ -115,7 +120,7 @@ You define a file with the service intended to run on your cluster and deploymen
 takes seconds to minutes.
 .Pp
 .Bl -tag -width xxx
-.It Cm apply Fl Fl file Ar file
+.It Cm apply Oo Fl Fl restart Oc Fl Fl file Ar file
 Applies a file containing a deployment, or in other words, this command is to deploy
 something depending on the deployment type specified in
 .Xr overlord-spec 5 Ns "."
@@ -139,16 +144,24 @@ else. Be careful.
 .It Fl f Ar file Ns , No Fl Fl file Ar file
 Deployment file.
 .El
+.It Cm cancel Oo Fl Fl filter-chain Ar filter Oc Fl Fl file Ar file
+Cancels a project or VM in execution.
+.Bl -tag -width xx
+.It Fl Fl filter-chain Ar filter
+Destroy the project that matches with this chain.
+.Pp
+This parameter can be specified multiple times.
+.It Fl f Ar file Ns , No Fl Fl file Ar file
+Deployment file.
+.El
 .It Cm print-config
 Prints the configuration in JSON format. This includes the default values.
 .It Cm print-spec
 Prints the specification of a deployment file in JSON format. This includes the
 default values.
-.It Cm destroy Fl Fl file Ar file Oo Fl Fl force Oc Oo Fl Fl filter-chain Ar filter Oc
+.It Cm destroy Oo Fl Fl force Oc Oo Fl Fl filter-chain Ar filter Oc Fl Fl file Ar file
 Destroy a project or metadata.
 .Bl -tag -width xx
-.It Fl f Ar file Ns , No Fl Fl file Ar file
-Deployment file.
 .It Fl Fl force
 Force the destruction of a project without running the special labels. If a special
 label has been previously executed, be careful when using this option, as it
@@ -158,6 +171,8 @@ may cause undefined behavior in the integration
 Destroy the project that matches with this chain.
 .Pp
 This parameter can be specified multiple times.
+.It Fl f Ar file Ns , No Fl Fl file Ar file
+Deployment file.
 .El
 .It Cm gen-token Oo Fl Fl metadata Ar key Ns Oo Ns = Ns Ar value Oc Oc Oo Fl Fl expire Ar expire Oc Oo Fl Fl expire-type Ar type Oc
 Generate a new token.
@@ -169,33 +184,10 @@ If this parameter is set, an expiration date is set on the token, which by defau
 .It Fl Fl expire-type Ar type
 Set the expiration date in seconds, minutes, hours, days or weeks.
 .El
-.It Cm get-info Fl Fl file Ar file Fl Fl type Ar type Oo Fl Fl jail-item Ar item Oc Oo Fl Fl all-labels Oc Oo Oo Fl Fl filter Ar filter Ns | Ns Fl Fl filter-per-project Oc Oc Oo Fl Fl use-autoscale-labels Oc
+.It Cm get-info Oo Fl Fl jail-item Ar item Oc Oo Fl Fl all-labels Oc Oo Oo Fl Fl filter Ar filter Ns | Ns Fl Fl filter-per-project Oc Oc Oo Fl Fl use-autoscale-labels Oc Fl Fl file Ar file Fl Fl type Ar type
 Gets information about an entity specified with
 .Fl Fl type Ns "."
 .Bl -tag -width xx
-.It Fl f Ar file Ns , No Fl Fl file Ar file
-Deployment file.
-.It Fl t Ar type Ns , No Fl Fl type Ar type
-What kind of information to get. The elements are
-.Sy jails Ns ,
-to get information about jails,
-.Sy projects
-to get information about projects,
-.Sy vm
-to get information about VM deployments,
-.Sy chains
-to simply display chains recursively,
-.Sy autoscale
-to get the scaling status,
-.Sy chains:tree
-to display an ASCII-tree of chains,
-.Sy metadata
-to get the metadata specified in the deployment file or in the parameter
-.Fl Fl filter Ns ","
-.Sy projects:logs
-for logs created by Director and
-.Sy jails:logs
-for logs created by AppJail.
 .It Fl Fl jail-item Ar item
 When the
 .Fl Fl type
@@ -237,6 +229,29 @@ but matching only the project or VM specified in the deployment file.
 Use the labels defined in the
 .Sy autoScale
 section.
+.It Fl t Ar type Ns , No Fl Fl type Ar type
+What kind of information to get. The elements are
+.Sy jails Ns ,
+to get information about jails,
+.Sy projects
+to get information about projects,
+.Sy vm
+to get information about VM deployments,
+.Sy chains
+to simply display chains recursively,
+.Sy autoscale
+to get the scaling status,
+.Sy chains:tree
+to display an ASCII-tree of chains,
+.Sy metadata
+to get the metadata specified in the deployment file or in the parameter
+.Fl Fl filter Ns ","
+.Sy projects:logs
+for logs created by Director and
+.Sy jails:logs
+for logs created by AppJail.
+.It Fl f Ar file Ns , No Fl Fl file Ar file
+Deployment file.
 .El
 .It Cm get-project-log Fl Fl file Ar file Fl Fl date Ar date Fl Fl service Ar service Fl Fl log Ar log Ar entrypoint
 Gets the content of a log created by Director.
