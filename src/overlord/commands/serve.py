@@ -586,6 +586,9 @@ class MetadataHandler(InternalHandler):
         if not self.check_metadata(key):
             return
 
+        if key in METADATA:
+            del METADATA[key]
+
         self.set_status(204)
 
         overlord.metadata.delete(key)
