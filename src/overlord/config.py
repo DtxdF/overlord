@@ -95,6 +95,7 @@ def get_config():
             "no_delay" : get_memcache_no_delay()
         },
         "secret_key" : get_secret_key(),
+        "secret_keyfile" : get_secret_keyfile(),
         "log_config" : get_log_config(),
         "chains" : {},
         "labels" : get_labels(),
@@ -429,6 +430,9 @@ def get_memcache_no_delay():
 
 def get_secret_key():
     return get_default(CONFIG.get("secret_key"), overlord.default.SECRET_KEY)
+
+def get_secret_keyfile():
+    return get_default(CONFIG.get("secret_keyfile"), overlord.default.SECRET_KEYFILE)
 
 def get_log_config():
     return get_default(CONFIG.get("log_config"), overlord.default.LOG_CONFIG)
@@ -814,6 +818,7 @@ def validate(document):
         "polling",
         "memcache",
         "secret_key",
+        "secret_keyfile",
         "log_config",
         "chains",
         "labels",
@@ -844,6 +849,7 @@ def validate(document):
     validate_polling(document)
     validate_memcache(document)
     validate_secret_key(document)
+    validate_secret_keyfile(document)
     validate_log_config(document)
     validate_chains(document)
     validate_labels(document)
@@ -2037,6 +2043,15 @@ def validate_secret_key(document):
 
     if not isinstance(secret_key, str):
         raise overlord.exceptions.InvalidSpec(f"{secret_key}: invalid value type for 'secret_key'")
+
+def validate_secret_keyfile(document):
+    secret_keyfile = document.get("secret_keyfile")
+
+    if secret_keyfile is None:
+        return
+
+    if not isinstance(secret_keyfile, str):
+        raise overlord.exceptions.InvalidSpec(f"{secret_keyfile}: invalid value type for 'secret_keyfile'")
 
 def validate_log_config(document):
     log_config = document.get("log_config")

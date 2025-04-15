@@ -274,7 +274,7 @@ MEMCACHE = {
     "id" : None
 }
 LABELS = ["all"]
-SECRET_KEY = "sup4r_s4cr3t@"
+SECRET_KEY = None
 LOG_CONFIG = None
 CHAINS = {}
 CHAIN_TIMEOUT = 0
@@ -323,6 +323,7 @@ METADATA = {
 }
 COMPONENTS = os.path.join(PREFIX, "components")
 SERVERID = os.path.join(PREFIX, "serverid")
+SECRET_KEYFILE = os.path.join(PREFIX, "keyfile")
 METADATA_MAX_SIZE = 2**10 # 1 KiB
 CPU_COUNT = os.cpu_count()
 SCALE = {
