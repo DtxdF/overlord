@@ -234,6 +234,22 @@ See also
 .It Sy secret_key
 Secret key for signing the JWT.
 .Pp
+If this parameter is set,
+.Sy secret_keyfile
+will have no effect.
+.Pp
+.It Sy secret_keyfile
+Like
+.Sy secret_key Ns ,
+but with some differences. First, this parameter points to a path where the
+secret key is stored, and second, the secret key is randomly generated.
+By default, since the
+.Sy secret_key
+parameter is not set, a random secret key is generated which is more secure than
+using a default
+.Pq and insecure
+secret key.
+.Pp
 .It Sy log_config
 Logging configuration.
 .Pp
