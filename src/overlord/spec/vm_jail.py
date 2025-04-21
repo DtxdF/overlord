@@ -61,6 +61,9 @@ def get_metadata():
 def get_options():
     return get_default(CONFIG.get("options"), [])
 
+def get_script_environment():
+    return get_default(CONFIG.get("script-environment"), [])
+
 def get_start_environment():
     return get_default(CONFIG.get("start-environment"), [])
 
@@ -92,6 +95,7 @@ def validate(document):
         "script",
         "metadata",
         "options",
+        "script-environment",
         "start-environment",
         "start-arguments",
         "build-environment",
@@ -109,6 +113,7 @@ def validate(document):
     validate_script(document)
     validate_metadata(document)
     validate_options(document)
+    validate_script_environment(document)
     validate_start_environment(document)
     validate_start_arguments(document)
     validate_build_environment(document)
@@ -133,6 +138,21 @@ def validate_options(document):
             if opt_value is not None \
                     and not isinstance(opt_value, str):
                 raise overlord.exceptions.InvalidSpec(f"Invalid option value (options.{index}.{opt_value}).")
+
+def validate_script_environment(document):
+    environment = document.get("script-environment")
+
+    if environment is None:
+        return
+
+    if not isinstance(environment, list):
+        raise overlord.exceptions.InvalidSpec("'script-environment' is invalid.")
+
+    for index, entry in enumerate(environment):
+        for env_name, env_value in entry.items():
+            if not isinstance(env_name, str) \
+                    or not isinstance(env_value, str):
+                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (script-environment.{index}.{env_name}) or value (script-environment.{index}.{env_value}).")
 
 def validate_start_environment(document):
     environment = document.get("start-environment")

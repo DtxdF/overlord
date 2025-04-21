@@ -88,6 +88,7 @@ def get_config():
         config["script"] = overlord.spec.vm_jail.get_script()
         config["metadata"] = overlord.spec.vm_jail.get_metadata()
         config["options"] = overlord.spec.vm_jail.get_options()
+        config["script-environment"] = overlord.spec.vm_jail.get_script_environment()
         config["start-environment"] = overlord.spec.vm_jail.get_start_environment()
         config["start-arguments"] = overlord.spec.vm_jail.get_start_arguments()
         config["build-environment"] = overlord.spec.vm_jail.get_build_environment()

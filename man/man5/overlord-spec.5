@@ -982,6 +982,15 @@ represents the option used by
 .Pp
 Keys are mandatory, but values are optional.
 .Pp
+.It Sy script-environment
+Array of dictionaries where each dictionary
+.Pq key and value
+represents the environment used by the script.
+.Pp
+Environment variables are not loaded automatically, they must be loaded from the
+.Pa /metadata/environment
+file which is always created even if this parameter is not specified.
+.Pp
 .It Sy start-environment
 Array of dictionaries where each dictionary
 .Pq key and value

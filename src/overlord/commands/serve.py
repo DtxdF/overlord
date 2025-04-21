@@ -634,6 +634,10 @@ class VMHandler(InternalHandler):
 
             overlord.spec.vm_jail.validate_metadata({ "metadata" : metadata })
 
+            script_environment = self.get_json_argument("script-environment", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_script_environment({ "script-environment" : script_environment })
+
             start_environment = self.get_json_argument("start-environment", [], value_type=list)
 
             overlord.spec.vm_jail.validate_start_environment({ "start-environment" : start_environment })
@@ -677,6 +681,7 @@ class VMHandler(InternalHandler):
             "diskLayout" : diskLayout,
             "script" : script,
             "metadata" : metadata,
+            "script-environment" : script_environment,
             "start-environment" : start_environment,
             "start-arguments" : start_arguments,
             "build-environment" : build_environment,
@@ -807,6 +812,10 @@ class ChainVMHandler(ChainInternalHandler):
 
             overlord.spec.vm_jail.validate_metadata({ "metadata" : metadata })
 
+            script_environment = self.get_json_argument("script-environment", [], value_type=list)
+
+            overlord.spec.vm_jail.validate_script_environment({ "script-environment" : script_environment })
+
             start_environment = self.get_json_argument("start-environment", [], value_type=list)
 
             overlord.spec.vm_jail.validate_start_environment({ "start-environment" : start_environment })
@@ -848,6 +857,7 @@ class ChainVMHandler(ChainInternalHandler):
             "diskLayout" : diskLayout,
             "script" : script,
             "metadata" : metadata,
+            "script-environment" : script_environment,
             "start-environment" : start_environment,
             "start-arguments" : start_arguments,
             "build-environment" : build_environment,

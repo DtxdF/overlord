@@ -157,6 +157,17 @@ async def write_metadata(jail_path, metadata):
 
     await _write_metadata(jail_path, metadata, content)
 
+async def write_environment(jail_path, environment):
+    _environment = []
+
+    for kv in environment:
+        for key, value in kv.items():
+            _environment.append("export %s" % shlex.quote(f"{key}={value}"))
+
+    _environment.append("\n")
+
+    await _write_metadata(jail_path, "environment", "\n".join(_environment))
+
 async def _write_metadata(jail_path, name, value):
     metadata_dir = os.path.join(jail_path, "metadata")
 

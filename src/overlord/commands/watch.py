@@ -144,6 +144,7 @@ async def _async_watch_vm():
                     "metadata" : message.get("metadata"),
                     "environment" : {
                         "process" : dict(os.environ),
+                        "script" : message.get("script-environment"),
                         "build" : message.get("build-environment"),
                         "start" : message.get("start-environment")
                     },
@@ -347,6 +348,9 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
                 or from_type == "appjailImage":
             for metadata_name in metadata:
                 await overlord.vm.write_metadata(jail_path, metadata_name)
+
+            await overlord.vm.write_environment(jail_path, environment["script"])
+
             disk = diskLayout.get("disk")
 
             if disk is None:
@@ -384,7 +388,9 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
                     overlord.config.get_components(), osArch, osVersion
                 )
 
-                (rc, result) = overlord.vm.install_from_components(vm, downloadURL, components_path, components)
+                (rc, result) = overlord.vm.install_from_components(
+                    vm, downloadURL, components_path, components
+                )
 
             elif from_type == "appjailImage":
                 entrypoint = from_["entrypoint"]
@@ -392,7 +398,9 @@ async def create_vm(job_id, *, name, makejail, template, diskLayout, script, met
                 imageArch = from_["imageArch"]
                 imageTag = from_["imageTag"]
 
-                (rc, result) = overlord.vm.install_from_appjail_image(vm, entrypoint, imageName, imageArch, imageTag)
+                (rc, result) = overlord.vm.install_from_appjail_image(
+                    vm, entrypoint, imageName, imageArch, imageTag
+                )
 
         elif from_type == "iso":
             if installed:
