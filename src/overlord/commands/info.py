@@ -257,6 +257,8 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
                 elif type == "autoscale":
                     if filter_per_project:
+                        kind = overlord.spec.get_kind()
+
                         if kind == overlord.spec.OverlordKindTypes.PROJECT.value:
                             projectName = overlord.spec.director_project.get_projectName()
 
@@ -279,6 +281,8 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
                 elif type == "vm":
                     if filter_per_project:
+                        kind = overlord.spec.get_kind()
+
                         if kind == overlord.spec.OverlordKindTypes.VMJAIL.value:
                             vmName = overlord.spec.vm_jail.get_vmName()
 
