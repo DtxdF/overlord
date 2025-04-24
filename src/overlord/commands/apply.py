@@ -33,6 +33,7 @@ import json
 import logging
 import ssl
 import sys
+import tempfile
 
 import click
 import httpx
@@ -47,9 +48,13 @@ import overlord.process
 import overlord.spec
 import overlord.util
 
+from mako.template import Template
+
 from overlord.sysexits import EX_OK, EX_NOINPUT, EX_SOFTWARE, EX_CONFIG
 
 logger = logging.getLogger(__name__)
+
+FROM_APPCONFIG = False
 
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
@@ -58,6 +63,8 @@ def apply(*args, **kwargs):
     asyncio.run(_apply(*args, **kwargs))
 
 async def _apply(file, restart):
+    global FROM_APPCONFIG
+
     try:
         deployments = 0
 
@@ -67,6 +74,11 @@ async def _apply(file, restart):
 
         if kind == overlord.spec.OverlordKindTypes.READONLY.value:
             logger.error("(kind:readOnly) can't deploy a read-only deployment!")
+            sys.exit(EX_CONFIG)
+
+        if FROM_APPCONFIG \
+                and kind == overlord.spec.OverlordKindTypes.APPCONFIG.value:
+            logger.error("(kind:appConfig) loop detected in an appConfig deployment!")
             sys.exit(EX_CONFIG)
 
         maximumDeployments = overlord.spec.get_maximumDeployments()
@@ -288,6 +300,64 @@ async def _apply(file, restart):
                                 "autoScale" : scale_options
                             }, indent=4)
                         }
+
+                elif kind == overlord.spec.OverlordKindTypes.APPCONFIG.value:
+                    appName = overlord.spec.app_config.get_appName()
+                    appFrom = overlord.spec.app_config.get_appFrom()
+                    appConfig = overlord.spec.app_config.get_appConfig()
+                    appConfig["appName"] = appName
+
+                    try:
+                        appTemplate = await client.metadata_get(appFrom, chain=chain)
+
+                    except Exception as err:
+                        error = overlord.util.get_error(err)
+                        error_type = error.get("type")
+                        error_message = error.get("message")
+
+                        logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) error obtaining the template from the metadata: %s",
+                                       datacenter, chain, appFrom, error_type, error_message)
+
+                        continue
+
+                    try:
+                        appRendered = Template(appTemplate)
+
+                        with io.StringIO(initial_value=appRendered.render(**appConfig)) as fd:
+                            appSpec = yaml.load(fd, Loader=yaml.SafeLoader)
+
+                        appSpec["datacenters"] = overlord.spec.get_datacenters()
+                        appSpec["deployIn"] = overlord.spec.get_deployIn()
+                        appSpec["maximumDeployments"] = overlord.spec.get_maximumDeployments()
+
+                        appYAML = yaml.dump(appSpec)
+
+                    except Exception as err:
+                        error = overlord.util.get_error(err)
+                        error_type = error.get("type")
+                        error_message = error.get("message")
+
+                        logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) error parsing the template: %s",
+                                       datacenter, chain, appFrom, error_type, error_message)
+                        continue
+
+                    appKind = appSpec.get("kind")
+
+                    if appKind is None:
+                        raise overlord.exceptions.InvalidSpec("(datacenter:%s, chain:%s, appFrom:%s) 'kind' is required but hasn't been specified." % (datacenter, chain, appFrom))
+
+                    if appKind != overlord.spec.OverlordKindTypes.VMJAIL.value \
+                            and appKind != overlord.spec.OverlordKindTypes.PROJECT.value:
+                        raise overlord.exceptions.InvalidKind(f"(datacenter:%s, chain:%s, appFrom:%s, kind:%s): appConfig deployment only accepts the following deployments: directorProject and vmJail" % (datacenter, chain, appFrom, appKind))
+
+                    with tempfile.NamedTemporaryFile(prefix="overlord", mode="wb", buffering=0) as fd:
+                        fd.write(appYAML.encode())
+
+                        FROM_APPCONFIG = True
+
+                        await _apply(fd.name, restart)
+
+                    return
 
                 elif kind == overlord.spec.OverlordKindTypes.VMJAIL.value:
                     vm_name = overlord.spec.vm_jail.get_vmName()

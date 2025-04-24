@@ -37,6 +37,7 @@ import overlord.exceptions
 import overlord.spec.director_project
 import overlord.spec.metadata
 import overlord.spec.vm_jail
+import overlord.spec.app_config
 
 CONFIG = {}
 
@@ -45,6 +46,7 @@ class OverlordKindTypes(enum.Enum):
     METADATA = "metadata"
     VMJAIL = "vmJail"
     READONLY = "readOnly"
+    APPCONFIG = "appConfig"
 
 def load(file):
     global CONFIG
@@ -93,6 +95,11 @@ def get_config():
         config["start-arguments"] = overlord.spec.vm_jail.get_start_arguments()
         config["build-environment"] = overlord.spec.vm_jail.get_build_environment()
         config["build-arguments"] = overlord.spec.vm_jail.get_build_arguments()
+
+    elif kind == OverlordKindTypes.APPCONFIG.value:
+        config["appName"] = overlord.spec.app_config.get_appName()
+        config["appFrom"] = overlord.spec.app_config.get_appFrom()
+        config["appConfig"] = overlord.spec.app_config.get_appConfig()
 
     return config
 
@@ -288,6 +295,9 @@ def validate_kind(document):
 
     elif kind == OverlordKindTypes.READONLY.value:
         pass
+
+    elif kind == OverlordKindTypes.APPCONFIG.value:
+        overlord.spec.app_config.validate(document)
 
     else:
         raise overlord.exceptions.InvalidKind(f"{kind}: Unknown value for 'kind'.")

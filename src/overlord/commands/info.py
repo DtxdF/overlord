@@ -205,6 +205,15 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
                             filter = [vmName]
 
+                        elif kind == overlord.spec.OverlordKindTypes.APPCONFIG.value:
+                            appName = overlord.spec.app_config.get_appName()
+
+                            if appName is None:
+                                logger.warning("Application name is not specified in the deployment file!")
+                                sys.exit(EX_OK)
+
+                            filter = [appName]
+
                     await print_info_projects(client, chain, info, filter)
 
                 elif type == "chains":
@@ -248,25 +257,45 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
                 elif type == "autoscale":
                     if filter_per_project:
-                        projectName = overlord.spec.director_project.get_projectName()
+                        if kind == overlord.spec.OverlordKindTypes.PROJECT.value:
+                            projectName = overlord.spec.director_project.get_projectName()
 
-                        if projectName is None:
-                            logger.warning("Project is not specified in the deployment file!")
-                            sys.exit(EX_OK)
+                            if projectName is None:
+                                logger.warning("Project is not specified in the deployment file!")
+                                sys.exit(EX_OK)
 
-                        filter = [projectName]
+                            filter = [projectName]
+
+                        elif kind == overlord.spec.OverlordKindTypes.APPCONFIG.value:
+                            appName = overlord.spec.app_config.get_appName()
+
+                            if appName is None:
+                                logger.warning("Application name is not specified in the deployment file!")
+                                sys.exit(EX_OK)
+
+                            filter = [appName]
 
                     await print_info_autoscale(client, chain, info, filter)
 
                 elif type == "vm":
                     if filter_per_project:
-                        vmName = overlord.spec.vm_jail.get_vmName()
+                        if kind == overlord.spec.OverlordKindTypes.VMJAIL.value:
+                            vmName = overlord.spec.vm_jail.get_vmName()
 
-                        if vmName is None:
-                            logger.warning("VM name is not specified in the deployment file!")
-                            sys.exit(EX_OK)
+                            if vmName is None:
+                                logger.warning("VM name is not specified in the deployment file!")
+                                sys.exit(EX_OK)
 
-                        filter = [vmName]
+                            filter = [vmName]
+
+                        elif kind == overlord.spec.OverlordKindTypes.APPCONFIG.value:
+                            appName = overlord.spec.app_config.get_appName()
+
+                            if appName is None:
+                                logger.warning("Application name is not specified in the deployment file!")
+                                sys.exit(EX_OK)
+
+                            filter = [appName]
 
                     await print_info_vm(client, chain, info, filter)
 

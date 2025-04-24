@@ -686,6 +686,53 @@ command and can't be used with
 .Sy apply
 or
 .Sy destroy Ns "."
+.Ss appConfig
+Gets a Mako template from a metadata and substitutes variables, generating a new
+deployment file that can only be a
+.Sy directorProject
+or
+.Sy vmJail
+deployment. The resulting deployment file is temporary and is created each time
+the
+.Sy appConfig
+deployment is applied. Once the deployment file is created from the Mako template,
+it is applied.
+.Pp
+Even if you have deployed the metadata in many chains, only the first match in an
+.Sy appConfig
+deployment is used.
+.Pp
+See also
+.Lk https://docs.makotemplates.org/en/latest/syntax.html "Mako syntax"
+.Pp
+.Bl -tag -width xxxxx
+.It Sy appName
+Application name.
+.Pp
+The variable
+.Sy ${appName}
+is automatically set and must be used in the Mako template, however this is not
+enforced in any way.
+.Pp
+.It Sy appFrom
+Metadata to obtain the Mako template.
+.Pp
+In addition to the parameters required for the specified deployment type, you must
+include at least the
+.Sy kind
+parameter.
+.Sy datacenters Ns ,
+.Sy deployIn
+and
+.Sy maximumDeployments
+parameters are set by Overlord when processing the
+.Sy appConfig
+deployment.
+.Pp
+.It Sy appConfig
+A dictionary where each key represents the variable to be substituted when processing
+the Mako template.
+.El
 .Ss vmJail
 Deploy a new project that will create a new jail to then create a virtual machine.
 This kind of deployment integrates well with
