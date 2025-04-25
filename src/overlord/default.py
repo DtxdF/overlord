@@ -348,7 +348,7 @@ AUTODISABLE = {
     "max-increase" : 1800 # 30m
 }
 RETRY_POLICY = {
-    "total" : 5,
+    "total" : 10,
     "max_backoff_wait" : 120.0,
     "backoff_factor" : 0.8,
     "respect_retry_after_header" : True,
