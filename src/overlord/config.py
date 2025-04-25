@@ -169,7 +169,14 @@ def get_config():
             "max_connections" : get_chain_max_connections(chain),
             "keepalive_expiry" : get_chain_keepalive_expiry(chain),
             "disable" : get_chain_disable(chain),
-            "cacert" : get_chain_cacert(chain)
+            "cacert" : get_chain_cacert(chain),
+            "retry" : {
+                "total" : get_chain_retry_total(chain),
+                "max_backoff_wait" : get_chain_retry_max_backoff_wait(chain),
+                "backoff_factor" : get_chain_retry_backoff_factor(chain),
+                "respect_retry_after_header" : get_chain_retry_respect_retry_after_header(chain),
+                "backoff_jitter" : get_chain_retry_backoff_jitter(chain)
+            }
         }
 
     return config
@@ -595,6 +602,66 @@ def get_chain_cacert(chain):
     cacert = chain_conf.get("cacert")
 
     return cacert
+
+def get_chain_retry(chain):
+    chain_conf = get_chain(chain)
+
+    if chain_conf is None:
+        return
+
+    retry_conf = get_default(chain_conf.get("retry"), overlord.default.RETRY_POLICY)
+
+    return retry_conf
+
+def get_chain_retry_total(chain):
+    retry_conf = get_chain_retry(chain)
+
+    if retry_conf is None:
+        return
+
+    total = get_default(retry_conf.get("total"), overlord.default.RETRY_POLICY["total"])
+
+    return total
+
+def get_chain_retry_max_backoff_wait(chain):
+    retry_conf = get_chain_retry(chain)
+
+    if retry_conf is None:
+        return
+
+    max_backoff_wait = get_default(retry_conf.get("max_backoff_wait"), overlord.default.RETRY_POLICY["max_backoff_wait"])
+
+    return max_backoff_wait
+
+def get_chain_retry_backoff_factor(chain):
+    retry_conf = get_chain_retry(chain)
+
+    if retry_conf is None:
+        return
+
+    backoff_factor = get_default(retry_conf.get("backoff_factor"), overlord.default.RETRY_POLICY["backoff_factor"])
+
+    return backoff_factor
+
+def get_chain_retry_respect_retry_after_header(chain):
+    retry_conf = get_chain_retry(chain)
+
+    if retry_conf is None:
+        return
+
+    respect_retry_after_header = get_default(retry_conf.get("respect_retry_after_header"), overlord.default.RETRY_POLICY["respect_retry_after_header"])
+
+    return respect_retry_after_header
+
+def get_chain_retry_backoff_jitter(chain):
+    retry_conf = get_chain_retry(chain)
+
+    if retry_conf is None:
+        return
+
+    backoff_jitter = get_default(retry_conf.get("backoff_jitter"), overlord.default.RETRY_POLICY["backoff_jitter"])
+
+    return backoff_jitter
 
 def get_dataplaneapi():
     return get_default(CONFIG.get("dataplaneapi"), {})
@@ -2098,7 +2165,8 @@ def validate_chain(chains, chain):
         "max_connections",
         "keepalive_expiry",
         "disable",
-        "cacert"
+        "cacert",
+        "retry"
     )
 
     for key in chains[chain]:
@@ -2117,6 +2185,91 @@ def validate_chain(chains, chain):
     validate_chain_keepalive_expiry(chains, chain)
     validate_chain_disable(chains, chain)
     validate_chain_cacert(chains, chain)
+    validate_chain_retry(chains, chain)
+
+def validate_chain_retry(chains, chain):
+    retry = chains[chain].get("retry")
+
+    if retry is None:
+        return
+
+    if not isinstance(retry, dict):
+        raise overlord.exceptions.InvalidSpec("'retry' is invalid.")
+
+    keys = (
+        "total",
+        "max_backoff_wait",
+        "backoff_factor",
+        "respect_retry_after_header",
+        "backoff_jitter"
+    )
+
+    for key in retry:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"chain.{chain}.retry.{key}: this key is invalid.")
+
+    validate_chain_retry_total(chains, chain)
+    validate_chain_retry_max_backoff_wait(chains, chain)
+    validate_chain_retry_backoff_factor(chains, chain)
+    validate_chain_retry_respect_retry_after_header(chains, chain)
+    validate_chain_retry_backoff_jitter(chains, chain)
+
+def validate_chain_retry_total(chains, chain):
+    total = chains[chain]["retry"].get("total")
+
+    if total is None:
+        return
+
+    if isinstance(total, int):
+        total = float(total)
+
+    if not isinstance(total, float):
+        raise overlord.exceptions.InvalidSpec(f"{total}: invalid value type for 'chain.{chain}.retry.total'")
+
+def validate_chain_retry_max_backoff_wait(chains, chain):
+    max_backoff_wait = chains[chain]["retry"].get("max_backoff_wait")
+
+    if max_backoff_wait is None:
+        return
+
+    if isinstance(max_backoff_wait, int):
+        max_backoff_wait = float(max_backoff_wait)
+
+    if not isinstance(max_backoff_wait, float):
+        raise overlord.exceptions.InvalidSpec(f"{max_backoff_wait}: invalid value type for 'chain.{chain}.retry.max_backoff_wait'")
+
+def validate_chain_retry_backoff_factor(chains, chain):
+    backoff_factor = chains[chain]["retry"].get("backoff_factor")
+
+    if backoff_factor is None:
+        return
+
+    if isinstance(backoff_factor, int):
+        backoff_factor = float(backoff_factor)
+
+    if not isinstance(backoff_factor, float):
+        raise overlord.exceptions.InvalidSpec(f"{backoff_factor}: invalid value type for 'chain.{chain}.retry.backoff_factor'")
+
+def validate_chain_retry_backoff_jitter(chains, chain):
+    backoff_jitter = chains[chain]["retry"].get("backoff_jitter")
+
+    if backoff_jitter is None:
+        return
+
+    if isinstance(backoff_jitter, int):
+        backoff_jitter = float(backoff_jitter)
+
+    if not isinstance(backoff_jitter, float):
+        raise overlord.exceptions.InvalidSpec(f"{backoff_jitter}: invalid value type for 'chain.{chain}.retry.backoff_jitter'")
+
+def validate_chain_retry_respect_retry_after_header(chains, chain):
+    respect_retry_after_header = chains[chain]["retry"].get("respect_retry_after_header")
+
+    if respect_retry_after_header is None:
+        return
+
+    if not isinstance(respect_retry_after_header, bool):
+        raise overlord.exceptions.InvalidSpec(f"{respect_retry_after_header}: invalid value type for 'chains.{chain}.retry.respect_retry_after_header'")
 
 def validate_chain_cacert(chains, chain):
     cacert = chains[chain].get("cacert")

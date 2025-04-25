@@ -347,3 +347,10 @@ AUTODISABLE = {
     "increase" : 60, # 1m
     "max-increase" : 1800 # 30m
 }
+RETRY_POLICY = {
+    "total" : 5,
+    "max_backoff_wait" : 120.0,
+    "backoff_factor" : 0.8,
+    "respect_retry_after_header" : True,
+    "backoff_jitter" : 1.0
+}

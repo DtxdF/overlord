@@ -47,7 +47,8 @@ setup(
         "etcd3gw",
         "dnspython",
         "pyyaml",
-        "mako"
+        "mako",
+        "httpx-retries"
     ],
     entry_points={
         "console_scripts" : [

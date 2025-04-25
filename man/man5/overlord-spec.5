@@ -327,6 +327,24 @@ Time limit on idle keep-alive connections in seconds.
 .It Sy chains. Ns Ar cacert Ns Sy .cacert
 Certificate to verify the server when connecting to it.
 .Pp
+.It Sy chains. Ns Ar chain Ns Sy .retry
+Retry policy.
+.Pp
+.It Sy chains. Ns Ar chain Ns Sy .retry.total
+The maximum number of times to retry a request before giving up.
+.Pp
+.It Sy chains. Ns Ar chain Ns Sy .retry.max_backoff_wait
+The maximum time in seconds to wait between retries.
+.Pp
+.It Sy chains. Ns Ar chain Ns Sy .retry.backoff_factor
+The factor by which the wait time increases with each retry attempt.
+.Pp
+.It Sy chains. Ns Ar chain Ns Sy .retry.respect_retry_after_header
+Whether to respect the Retry-After header in HTTP responses when deciding how long to wait before retrying.
+.Pp
+.It Sy chains. Ns Ar chain Ns Sy .retry.backoff_jitter
+The amount of jitter to add to the backoff time, between 0 and 1.
+.Pp
 .It Sy labels
 List of labels for the API server.
 .Pp

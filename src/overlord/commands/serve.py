@@ -50,6 +50,8 @@ import overlord.spec
 import overlord.tornado
 import overlord.util
 
+from httpx_retries import RetryTransport, Retry
+
 logger = logging.getLogger(__name__)
 
 CHAINS = {}
@@ -1222,6 +1224,13 @@ def serve():
             "connect" : overlord.config.get_chain_connect_timeout(chain),
             "pool" : overlord.config.get_chain_pool_timeout(chain)
         }
+        retry_policy = {
+            "total" : overlord.config.get_chain_retry_total(chain),
+            "max_backoff_wait" : overlord.config.get_chain_retry_max_backoff_wait(chain),
+            "backoff_factor" : overlord.config.get_chain_retry_backoff_factor(chain),
+            "respect_retry_after_header" : overlord.config.get_chain_retry_respect_retry_after_header(chain),
+            "backoff_jitter" : overlord.config.get_chain_retry_backoff_jitter(chain)
+        }
 
         entrypoint = overlord.config.get_chain_entrypoint(chain)
         access_token = overlord.config.get_chain_access_token(chain)
@@ -1240,6 +1249,7 @@ def serve():
             access_token,
             limits=httpx.Limits(**limits_settings),
             timeout=httpx.Timeout(**timeout_settings),
+            transport=RetryTransport(retry=Retry(**retry_policy)),
             **kwargs
         )
 
