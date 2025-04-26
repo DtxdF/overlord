@@ -282,9 +282,9 @@ CHAIN_READ_TIMEOUT = 30
 CHAIN_WRITE_TIMEOUT = 45
 CHAIN_CONNECT_TIMEOUT = 16
 CHAIN_POOL_TIMEOUT = 60
-CHAIN_MAX_CONNECTIONS = 100
-CHAIN_MAX_KEEPALIVE_CONNECTIONS = 20
-CHAIN_KEEPALIVE_EXPIRY = 5
+CHAIN_MAX_CONNECTIONS = 1024
+CHAIN_MAX_KEEPALIVE_CONNECTIONS = 1000
+CHAIN_KEEPALIVE_EXPIRY = 60
 CHAIN_DISABLE = False
 DIRECTOR = {
     "logs" : os.path.expanduser("~/.director/logs")
@@ -348,9 +348,9 @@ AUTODISABLE = {
     "max-increase" : 1800 # 30m
 }
 RETRY_POLICY = {
-    "total" : 10,
-    "max_backoff_wait" : 120.0,
-    "backoff_factor" : 0.8,
+    "total" : 6,
+    "max_backoff_wait" : 10.0,
+    "backoff_factor" : 0.2,
     "respect_retry_after_header" : True,
     "backoff_jitter" : 1.0
 }
