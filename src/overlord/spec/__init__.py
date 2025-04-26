@@ -148,7 +148,7 @@ def get_datacenter_timeout(datacenter):
     if datacenter is None:
         return
 
-    timeout = get_default(datacenter.get("timeout"), overlord.default.CHAIN_TIMEOUT)
+    timeout = get_default(datacenter.get("timeout"), overlord.default.CLIENT_TIMEOUT)
 
     if timeout < 0:
         timeout = None
@@ -164,7 +164,7 @@ def get_datacenter_read_timeout(datacenter):
     if datacenter is None:
         return
 
-    read_timeout = get_default(datacenter.get("read_timeout"), overlord.default.CHAIN_READ_TIMEOUT)
+    read_timeout = get_default(datacenter.get("read_timeout"), overlord.default.CLIENT_READ_TIMEOUT)
 
     if read_timeout < 0:
         read_timeout = None
@@ -180,7 +180,7 @@ def get_datacenter_write_timeout(datacenter):
     if datacenter is None:
         return
 
-    write_timeout = get_default(datacenter.get("write_timeout"), overlord.default.CHAIN_WRITE_TIMEOUT)
+    write_timeout = get_default(datacenter.get("write_timeout"), overlord.default.CLIENT_WRITE_TIMEOUT)
 
     if write_timeout < 0:
         write_timeout = None
@@ -196,7 +196,7 @@ def get_datacenter_connect_timeout(datacenter):
     if datacenter is None:
         return
 
-    connect_timeout = get_default(datacenter.get("connect_timeout"), overlord.default.CHAIN_CONNECT_TIMEOUT)
+    connect_timeout = get_default(datacenter.get("connect_timeout"), overlord.default.CLIENT_CONNECT_TIMEOUT)
     
     if connect_timeout < 0:
         connect_timeout = None
@@ -212,7 +212,7 @@ def get_datacenter_pool_timeout(datacenter):
     if datacenter is None:
         return
 
-    pool_timeout = get_default(datacenter.get("pool_timeout"), overlord.default.CHAIN_POOL_TIMEOUT)
+    pool_timeout = get_default(datacenter.get("pool_timeout"), overlord.default.CLIENT_POOL_TIMEOUT)
 
     if pool_timeout < 0:
         pool_timeout = None
@@ -228,7 +228,7 @@ def get_datacenter_max_keepalive_connections(datacenter):
     if datacenter is None:
         return
 
-    return get_default(datacenter.get("max_keepalive_connections"), overlord.default.CHAIN_MAX_KEEPALIVE_CONNECTIONS)
+    return get_default(datacenter.get("max_keepalive_connections"), overlord.default.CLIENT_MAX_KEEPALIVE_CONNECTIONS)
 
 def get_datacenter_max_connections(datacenter):
     datacenter = get_datacenter(datacenter)
@@ -236,7 +236,7 @@ def get_datacenter_max_connections(datacenter):
     if datacenter is None:
         return
 
-    return get_default(datacenter.get("max_connections"), overlord.default.CHAIN_MAX_CONNECTIONS)
+    return get_default(datacenter.get("max_connections"), overlord.default.CLIENT_MAX_CONNECTIONS)
 
 def get_datacenter_keepalive_expiry(datacenter):
     datacenter = get_datacenter(datacenter)
@@ -244,7 +244,7 @@ def get_datacenter_keepalive_expiry(datacenter):
     if datacenter is None:
         return
 
-    return get_default(datacenter.get("keepalive_expiry"), overlord.default.CHAIN_KEEPALIVE_EXPIRY)
+    return get_default(datacenter.get("keepalive_expiry"), overlord.default.CLIENT_KEEPALIVE_EXPIRY)
 
 def get_datacenter_cacert(datacenter):
     datacenter = get_datacenter(datacenter)

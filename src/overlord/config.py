@@ -689,7 +689,7 @@ def get_dataplaneapi_auth_password():
 def get_dataplaneapi_timeout():
     dataplaneapi = get_dataplaneapi()
 
-    timeout = get_default(dataplaneapi.get("timeout"), overlord.default.CHAIN_TIMEOUT)
+    timeout = get_default(dataplaneapi.get("timeout"), overlord.default.DATAPLANEAPI_TIMEOUT)
 
     if timeout < 0:
         timeout = None
@@ -702,7 +702,7 @@ def get_dataplaneapi_timeout():
 def get_dataplaneapi_read_timeout():
     dataplaneapi = get_dataplaneapi()
 
-    read_timeout = get_default(dataplaneapi.get("read_timeout"), overlord.default.CHAIN_READ_TIMEOUT)
+    read_timeout = get_default(dataplaneapi.get("read_timeout"), overlord.default.DATAPLANEAPI_READ_TIMEOUT)
 
     if read_timeout < 0:
         read_timeout = None
@@ -715,7 +715,7 @@ def get_dataplaneapi_read_timeout():
 def get_dataplaneapi_write_timeout():
     dataplaneapi = get_dataplaneapi()
 
-    write_timeout = get_default(dataplaneapi.get("write_timeout"), overlord.default.CHAIN_WRITE_TIMEOUT)
+    write_timeout = get_default(dataplaneapi.get("write_timeout"), overlord.default.DATAPLANEAPI_WRITE_TIMEOUT)
 
     if write_timeout < 0:
         write_timeout = None
@@ -728,7 +728,7 @@ def get_dataplaneapi_write_timeout():
 def get_dataplaneapi_connect_timeout():
     dataplaneapi = get_dataplaneapi()
 
-    connect_timeout = get_default(dataplaneapi.get("connect_timeout"), overlord.default.CHAIN_CONNECT_TIMEOUT)
+    connect_timeout = get_default(dataplaneapi.get("connect_timeout"), overlord.default.DATAPLANEAPI_CONNECT_TIMEOUT)
 
     if connect_timeout < 0:
         connect_timeout = None
@@ -741,7 +741,7 @@ def get_dataplaneapi_connect_timeout():
 def get_dataplaneapi_pool_timeout():
     dataplaneapi = get_dataplaneapi()
 
-    pool_timeout = get_default(dataplaneapi.get("pool_timeout"), overlord.default.CHAIN_POOL_TIMEOUT)
+    pool_timeout = get_default(dataplaneapi.get("pool_timeout"), overlord.default.DATAPLANEAPI_POOL_TIMEOUT)
 
     if pool_timeout < 0:
         pool_timeout = None
@@ -754,21 +754,21 @@ def get_dataplaneapi_pool_timeout():
 def get_dataplaneapi_max_keepalive_connections():
     dataplaneapi = get_dataplaneapi()
 
-    max_keepalive_connections = get_default(dataplaneapi.get("max_keepalive_connections"), overlord.default.CHAIN_MAX_KEEPALIVE_CONNECTIONS)
+    max_keepalive_connections = get_default(dataplaneapi.get("max_keepalive_connections"), overlord.default.DATAPLANEAPI_MAX_KEEPALIVE_CONNECTIONS)
 
     return max_keepalive_connections
 
 def get_dataplaneapi_max_connections():
     dataplaneapi = get_dataplaneapi()
 
-    max_connections = get_default(dataplaneapi.get("max_connections"), overlord.default.CHAIN_MAX_CONNECTIONS)
+    max_connections = get_default(dataplaneapi.get("max_connections"), overlord.default.DATAPLANEAPI_MAX_CONNECTIONS)
 
     return max_connections
 
 def get_dataplaneapi_keepalive_expiry():
     dataplaneapi = get_dataplaneapi()
 
-    keepalive_expiry = get_default(dataplaneapi.get("keepalive_expiry"), overlord.default.CHAIN_KEEPALIVE_EXPIRY)
+    keepalive_expiry = get_default(dataplaneapi.get("keepalive_expiry"), overlord.default.DATAPLANEAPI_KEEPALIVE_EXPIRY)
 
     return keepalive_expiry
 
