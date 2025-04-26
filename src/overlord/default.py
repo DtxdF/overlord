@@ -361,7 +361,8 @@ AUTODISABLE = {
     "failures" : 2,
     "interval" : 60, # 1m
     "increase" : 60, # 1m
-    "max-increase" : 1800 # 30m
+    "max-increase" : 1800, # 30m
+    "strict" : True
 }
 RETRY_POLICY = {
     "total" : 6,

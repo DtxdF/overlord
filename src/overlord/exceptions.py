@@ -77,3 +77,6 @@ class MetadataTooLong(Exception):
 
 class MetadataNotFound(Exception):
     pass
+
+class UnavailableChain(Exception):
+    pass

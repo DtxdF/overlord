@@ -110,7 +110,12 @@ class ChainInternalHandler(InternalHandler):
             logger.debug("(function:%s, entrypoint:%s) connecting ...",
                          func, next_entrypoint)
 
-            result = getattr(chain_cli, func)(*args, **kwargs)
+            if overlord.config.get_autodisable_strict() and \
+                    check_autodisable_chain(next_entrypoint):
+                result = None
+
+            else:
+                result = getattr(chain_cli, func)(*args, **kwargs)
 
         else:
             tail = False
@@ -123,6 +128,9 @@ class ChainInternalHandler(InternalHandler):
             result = getattr(chain_cli, func)(*args, chain=new_chain, **kwargs)
 
         try:
+            if result is None:
+                raise overlord.exceptions.UnavailableChain("Chain disabled by smart timeouts")
+
             return await result
 
         except Exception as err:
@@ -714,32 +722,12 @@ class ChainsHandler(ChainInternalHandler):
 
         chains = []
 
-        max_failures = overlord.config.get_autodisable_failures()
-        disable_interval = overlord.config.get_autodisable_interval()
-
         for chain in CHAINS:
-            if chain not in DISABLE_COUNTERS:
-                chains.append(chain)
+            if check_autodisable_chain(chain):
+                logger.debug("(chain:%s) excluding chain due to smart timeouts", chain)
                 continue
 
-            chain_info = DISABLE_COUNTERS[chain]
-
-            failures = chain_info["failures"]
-
-            if failures < max_failures:
-                chains.append(chain)
-                continue
-
-            last_failure = chain_info["last-failure"]
-            last_failure = time.time() - last_failure
-
-            increase = chain_info["increase"]
-
-            if last_failure >= (disable_interval + increase):
-                chains.append(chain)
-                continue
-
-            logger.debug("(chain:%s) excluding chain due to smart timeouts", chain)
+            chains.append(chain)
 
         self.write_template({
             "chains" : chains
@@ -1096,6 +1084,31 @@ class ChainProjectsLogHandler(ChainInternalHandler):
         self.write_template({
             "log_content" : result
         })
+
+def check_autodisable_chain(chain):
+    if chain not in DISABLE_COUNTERS:
+        return False
+
+    chain_info = DISABLE_COUNTERS[chain]
+
+    failures = chain_info["failures"]
+
+    max_failures = overlord.config.get_autodisable_failures()
+
+    if failures < max_failures:
+        return False
+
+    last_failure = chain_info["last-failure"]
+    last_failure = time.time() - last_failure
+
+    increase = chain_info["increase"]
+
+    disable_interval = overlord.config.get_autodisable_interval()
+
+    if last_failure >= (disable_interval + increase):
+        return False
+
+    return True
 
 def make_app():
     settings = {

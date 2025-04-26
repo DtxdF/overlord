@@ -142,7 +142,8 @@ def get_config():
             "failures" : get_autodisable_failures(),
             "interval" : get_autodisable_interval(),
             "increase" : get_autodisable_increase(),
-            "max-increase" : get_autodisable_max_increase()
+            "max-increase" : get_autodisable_max_increase(),
+            "strict" : get_autodisable_strict()
         }
     }
 
@@ -214,6 +215,11 @@ def get_autodisable_max_increase():
     autodisable = get_autodisable()
 
     return get_default(autodisable.get("max-increase"), overlord.default.AUTODISABLE["max-increase"])
+
+def get_autodisable_strict():
+    autodisable = get_autodisable()
+
+    return get_default(autodisable.get("strict"), overlord.default.AUTODISABLE["strict"])
 
 def get_components():
     return CONFIG.get("components", overlord.default.COMPONENTS)
@@ -947,7 +953,8 @@ def validate_autodisable(document):
         "failures",
         "interval",
         "increase",
-        "max-increase"
+        "max-increase",
+        "strict"
     )
 
     for key in autodisable:
@@ -959,6 +966,16 @@ def validate_autodisable(document):
     validate_autodisable_interval(autodisable)
     validate_autodisable_increase(autodisable)
     validate_autodisable_max_increase(autodisable)
+    validate_autodisable_strict(autodisable)
+
+def validate_autodisable_strict(document):
+    strict = document.get("strict")
+
+    if strict is None:
+        return
+
+    if not isinstance(strict, bool):
+        raise overlord.exceptions.InvalidSpec(f"{strict}: invalid value type for 'autodisable.strict'")
 
 def validate_autodisable_max_increase(document):
     max_increase = document.get("max_increase")
