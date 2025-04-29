@@ -38,6 +38,7 @@ COMPRESS_RESPONSE = True
 DATABASE = ".overlord.db"
 VALID_KEYWORDS = {
     "jail" : {
+        "alt_name",
         "appjail_version",
         "arch",
         "boot",
