@@ -26,13 +26,18 @@ Assume that only `charlie` and `delta` have the `db-only` label. To deploy proje
  main . alpha . charlie . delta
 ```
 
-## Goals
+## Features
 
-Overlord was created to address the shortcomings that [LittleJet](https://github.com/DtxdF/LittleJet) and [cloud-machine](https://github.com/DtxdF/cloud-machine) have. LittleJet is good for small-scale environments, but for large-scale environments like a large enterprise it is limited, especially for scaling depending on how many machines the enterprise has without resorting to a performance penalty.
-
-cloud-machine, although it scales very well, it is difficult to manage VMs, so the problem is usability.
-
-Overlord scales very well, it is easy to manage the projects created by Director, get information about the jails, and offers an API so it can be easily extended.
+* Tree chain architecture
+* Everything is code!
+* Scales very well
+* Good for small and large deployments (aka homelab / aka large-enterprise)
+* TLS support
+* SkyDNS integration (service discovery)
+* Auto scaling - let **Overlord** automatically scale your projects!
+* VM support - deploy virtual machines anywhere!
+* HAProxy / Data Plane API integration (load balancer)
+* appConfigs - Templates everywhere!
 
 ## Documentation
 
