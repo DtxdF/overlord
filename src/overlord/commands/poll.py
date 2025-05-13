@@ -759,6 +759,8 @@ def poll_jails():
     check_appjail()
 
     try:
+        overlord.process.init()
+
         while True:
             jails = overlord.jail.get_list()
 
@@ -1028,6 +1030,8 @@ def poll_projects():
     check_director()
 
     try:
+        overlord.process.init()
+
         while True:
             (rc, projects) = overlord.director.get_list()
 
