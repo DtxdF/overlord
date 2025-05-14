@@ -134,12 +134,20 @@ class ChainInternalHandler(InternalHandler):
             return await result
 
         except Exception as err:
+            ignore_smart_timeout = False
+
+            if isinstance(err, httpx.HTTPStatusError):
+                status_code = err.response.status_code
+
+                if status_code >= 400 and status_code < 500:
+                    ignore_smart_timeout = True
+
             # This makes sense because if a chain fails but the entry point does not, the entry point
             # will be put on the "smart timeout" list, and perhaps other chains will not represent a
             # failure. The last entry point (the tail) will be disabled causing something similar to a
             # propagation.
 
-            if tail:
+            if tail and not ignore_smart_timeout:
                 if next_entrypoint not in DISABLE_COUNTERS:
                     DISABLE_COUNTERS[next_entrypoint] = {
                         "failures" : 0,
@@ -1260,6 +1268,7 @@ def serve():
         CHAINS[chain] = overlord.client.OverlordClient(
             entrypoint,
             access_token,
+            pretty_exc=False,
             limits=httpx.Limits(**limits_settings),
             timeout=httpx.Timeout(**timeout_settings),
             transport=RetryTransport(retry=Retry(**retry_policy)),

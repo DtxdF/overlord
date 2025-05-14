@@ -59,7 +59,7 @@ class OverlordAuth(httpx.Auth):
         yield request
 
 class OverlordClient(httpx.AsyncClient):
-    def __init__(self, base_url, access_token, *args, **kwargs):
+    def __init__(self, base_url, access_token, pretty_exc=True, *args, **kwargs):
         """
         Create a new instance of an Overlord client. This class inherits all the methods
         and properties of ``httpx.AsyncClient`` so you can take advantage of this.
@@ -69,7 +69,10 @@ class OverlordClient(httpx.AsyncClient):
         Args:
             base_url (str): A URL to use as the base when building request URLs.
             access_token (str): Access token for the server to allow access to the client.
+            pretty_exc (bool, optional): By throwing an HTTPX exception, make it look friendlier.
         """
+
+        self.__pretty_exc = pretty_exc
 
         auth = OverlordAuth(access_token)
 
@@ -1106,10 +1109,14 @@ class OverlordClient(httpx.AsyncClient):
     async def __request(self, *args, method, **kwargs):
         request = await getattr(self, method)(*args, **kwargs)
 
-        try:
-            request.raise_for_status()
+        if self.__pretty_exc:
+            try:
+                request.raise_for_status()
 
-        except httpx.HTTPStatusError:
-            raise overlord.exceptions.APIError("(status:%d, reason:%s) %s" % (request.status_code, request.reason_phrase, request.text))
+            except httpx.HTTPStatusError:
+                raise overlord.exceptions.APIError("(status:%d, reason:%s) %s" % (request.status_code, request.reason_phrase, request.text))
+
+        else:
+            request.raise_for_status()
 
         return request
