@@ -635,9 +635,6 @@ async def run_special_labels(project, type, force=False):
         "message" : None
     }
 
-    if force:
-        return response
-
     if not overlord.director.check(project):
         return response
 
@@ -651,7 +648,7 @@ async def run_special_labels(project, type, force=False):
 
     state = info["state"]
 
-    if state != "DONE":
+    if state != "DONE" and not force:
         response["error"] = True
         response["message"] = "Project '%s' has an unexpected state '%s'" % (project, state)
 
