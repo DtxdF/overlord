@@ -588,7 +588,10 @@ class MetadataHandler(InternalHandler):
 
         try:
             async with lock:
-                await overlord.metadata.set(key, value)
+                current_value = await overlord.metadata.get(key)
+
+                if current_value != value:
+                    await overlord.metadata.set(key, value)
 
         except overlord.exceptions.MetadataTooLong as err:
             self.write_template({
