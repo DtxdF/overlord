@@ -36,7 +36,7 @@ setup(
         "python-dotenv",
         "tornado",
         "httpx[h2,brotli,zstd]",
-        "aiostalk@git+https://github.com/DtxdF/aiostalk.git",
+        "aiostalk",
         "psutil",
         "pymemcache",
         "pyjwt",
