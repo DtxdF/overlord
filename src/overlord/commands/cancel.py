@@ -59,7 +59,7 @@ async def _cancel(file, filter_chain):
 
         if kind != overlord.spec.OverlordKindTypes.PROJECT.value \
                 and kind != overlord.spec.OverlordKindTypes.VMJAIL.value:
-            logger.error(f"(kind:{kind}) can't cancel a this type of deployment!")
+            logger.error(f"(kind:{kind}) can't cancel this type of deployment!")
             sys.exit(EX_CONFIG)
 
 
