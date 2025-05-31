@@ -372,3 +372,5 @@ RETRY_POLICY = {
     "respect_retry_after_header" : True,
     "backoff_jitter" : 1.0
 }
+MAX_AUTOSCALE_LOGS = 30
+AUTOSCALE_LOGS_EXPIRE_TIME = 60 * 10 # 10m

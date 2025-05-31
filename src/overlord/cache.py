@@ -161,7 +161,7 @@ def save_vm_status(vm, status):
     return save(f"overlord_vm_status_{vm}", status)
 
 def save_project_status_autoscale(project, status):
-    expire_time = 60 * 10 # 10 minutes
+    expire_time = overlord.config.get_autoscale_logs_expire_time()
 
     return save(f"overlord_project_status_autoscale_{project}", status, expire=expire_time)
 

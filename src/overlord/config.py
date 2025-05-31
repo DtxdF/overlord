@@ -144,7 +144,9 @@ def get_config():
             "increase" : get_autodisable_increase(),
             "max-increase" : get_autodisable_max_increase(),
             "strict" : get_autodisable_strict()
-        }
+        },
+        "max_autoscale_logs" : get_max_autoscale_logs(),
+        "autoscale_logs_expire_time" : get_autoscale_logs_expire_time()
     }
 
     for host in list_etcd_hosts():
@@ -187,6 +189,12 @@ def get_default(value, default=None):
         return default
 
     return value
+
+def get_autoscale_logs_expire_time():
+    return get_default(CONFIG.get("autoscale_logs_expire_time"), overlord.default.AUTOSCALE_LOGS_EXPIRE_TIME)
+
+def get_max_autoscale_logs():
+    return get_default(CONFIG.get("max_autoscale_logs"), overlord.default.MAX_AUTOSCALE_LOGS)
 
 def get_autodisable():
     return get_default(CONFIG.get("autodisable"), overlord.default.AUTODISABLE)
@@ -906,7 +914,9 @@ def validate(document):
         "max_watch_vm",
         "metadata",
         "components",
-        "autodisable"
+        "autodisable",
+        "max_autoscale_logs",
+        "autoscale_logs_expire_time"
     )
 
     for key in document:
@@ -938,6 +948,32 @@ def validate(document):
     validate_metadata(document)
     validate_components(document)
     validate_autodisable(document)
+    validate_max_autoscale_logs(document)
+    validate_autoscale_logs_expire_time(document)
+
+def validate_autoscale_logs_expire_time(document):
+    autoscale_logs_expire_time = document.get("autoscale_logs_expire_time")
+
+    if autoscale_logs_expire_time is None:
+        return
+
+    if not isinstance(autoscale_logs_expire_time, int):
+        raise overlord.exceptions.InvalidSpec(f"{autoscale_logs_expire_time}: invalid value type for 'autoscale_logs_expire_time'")
+
+    if autoscale_logs_expire_time < 1:
+        raise ValueError(f"{autoscale_logs_expire_time}: invalid value for 'autoscale_logs_expire_time'")
+
+def validate_max_autoscale_logs(document):
+    max_autoscale_logs = document.get("max_autoscale_logs")
+
+    if max_autoscale_logs is None:
+        return
+
+    if not isinstance(max_autoscale_logs, int):
+        raise overlord.exceptions.InvalidSpec(f"{max_autoscale_logs}: invalid value type for 'max_autoscale_logs'")
+
+    if max_autoscale_logs < 1:
+        raise ValueError(f"{max_autoscale_logs}: invalid value for 'max_autoscale_logs'")
 
 def validate_autodisable(document):
     autodisable = document.get("autodisable")

@@ -55,6 +55,7 @@ from overlord.sysexits import EX_SOFTWARE, EX_UNAVAILABLE, EX_NOPERM
 logger = logging.getLogger(__name__)
 
 AUTOSCALE_CHANGES = {}
+AUTOSCALE_LOGS = {}
 
 @overlord.commands.cli.command(add_help_option=False)
 def poll_autoscale(*args, **kwargs):
@@ -95,6 +96,24 @@ async def _poll_autoscale():
             if files is None:
                 files = []
 
+            # We will delete all the information of the projects that have been deleted.
+            # Any AUTOSCALE_* list could be used, but the first one used is preferable.
+            remove_list = list(AUTOSCALE_LOGS)
+
+            for project_name in remove_list:
+                if overlord.metadata.check(f"overlord.autoscale.{project_name}"):
+                    continue
+
+                if project_name in AUTOSCALE_LOGS:
+                    del AUTOSCALE_LOGS[project_name]
+
+                    logger.debug("(project:%s) logs have been removed.", project_name)
+
+                if project_name in AUTOSCALE_CHANGES:
+                    del AUTOSCALE_CHANGES[project_name]
+
+                    logger.debug("(project:%s) changes have been removed.", project_name)
+
             for metadata_file in files:
                 metadata = metadata_file.name
 
@@ -102,9 +121,16 @@ async def _poll_autoscale():
 
                 (_, project_name) = metadata.split("overlord.autoscale.", 1)
 
+                if project_name not in AUTOSCALE_LOGS:
+                    AUTOSCALE_LOGS[project_name] = []
+
+                if len(AUTOSCALE_LOGS[project_name]) >= overlord.config.get_max_autoscale_logs():
+                    AUTOSCALE_LOGS[project_name].pop(0)
+
                 overlord.cache.save_project_status_autoscale(project_name, {
                     "last_update" : time.time(),
-                    "operation" : "RUNNING"
+                    "operation" : "RUNNING",
+                    "logs" : AUTOSCALE_LOGS[project_name]
                 })
 
                 try:
@@ -117,13 +143,17 @@ async def _poll_autoscale():
                     error_type = error.get("type")
                     error_message = error.get("message")
 
-                    overlord.cache.save_project_status_autoscale(project_name, {
-                        "last_update" : time.time(),
-                        "operation" : "FAILED",
+                    AUTOSCALE_LOGS[project_name].append({
                         "exception" : {
                             "type" : error_type,
                             "message" : error_message
                         }
+                    })
+
+                    overlord.cache.save_project_status_autoscale(project_name, {
+                        "last_update" : time.time(),
+                        "operation" : "FAILED",
+                        "logs" : AUTOSCALE_LOGS[project_name]
                     })
 
                     logger.exception("(project:%s, exception:%s) %s", project_name, error_type, error_message)
@@ -148,23 +178,29 @@ async def _poll_autoscale():
                     error_type = error.get("type")
                     error_message = error.get("message")
 
-                    overlord.cache.save_project_status_autoscale(project_name, {
-                        "last_update" : time.time(),
-                        "operation" : "FAILED",
+                    AUTOSCALE_LOGS[project_name].append({
                         "exception" : {
                             "type" : error_type,
                             "message" : error_message
                         }
                     })
 
+                    overlord.cache.save_project_status_autoscale(project_name, {
+                        "last_update" : time.time(),
+                        "operation" : "FAILED",
+                        "logs" : AUTOSCALE_LOGS[project_name]
+                    })
+
                     logger.exception("(project:%s, exception:%s) %s", project_name, error_type, error_message)
 
                     continue
 
+                AUTOSCALE_LOGS[project_name].append(result)
+
                 overlord.cache.save_project_status_autoscale(project_name, {
                     "last_update" : time.time(),
                     "operation" : "COMPLETED",
-                    "output" : result
+                    "logs" : AUTOSCALE_LOGS[project_name]
                 })
 
             await asyncio.sleep(overlord.config.get_polling_autoscale() + overlord.util.get_skew())

@@ -466,7 +466,7 @@ async def print_info_autoscale(client, chain, api_info, patterns):
                 print(f"        {key}:")
 
                 for _value in value:
-                    print(f"        - {_value}")
+                    print(f"          - {_value}")
 
             else:
                 if key == "last_update":
