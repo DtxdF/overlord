@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
-@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "chains:tree", "projects:logs", "jails:logs", "metadata", "autoscale", "vm")))
+@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "chains:tree", "chains:stats", "projects:logs", "jails:logs", "metadata", "autoscale", "vm")))
 @click.option("--jail-item", multiple=True, default=[], type=click.Choice(["stats", "info", "cpuset", "devfs", "expose", "healthcheck", "limits", "fstab", "labels", "nat", "volumes"]))
 @click.option("--all-labels", is_flag=True, default=False)
 @click.option("--filter", default=[], multiple=True)
@@ -182,6 +182,12 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
                 if type == "jails":
                     await print_info_jails(client, chain, info, jail_item, filter)
+
+                elif type == "chains:stats":
+                    if not match_pattern(chain, filter):
+                        continue
+
+                    await print_info_chains_stats(client, chain, info)
 
                 elif type == "projects":
                     if filter_per_project:
@@ -329,6 +335,30 @@ def match_pattern(value, patterns):
             return True
 
     return False
+
+async def print_info_chains_stats(client, chain, api_info):
+    info = {}
+    info.update(api_info)
+    info["stats"] = {}
+
+    stats = await _safe_client(client, "get_server_stats", chain=chain)
+
+    if stats is None:
+        return
+
+    print_headers = True
+
+    for name, value in stats.items():
+        if print_headers:
+            print_header(info)
+
+            print("  stats:")
+
+            print_headers = False
+
+        value = _get_rctl_humanvalue(name, value)
+
+        print(f"    {name}: {value}")
 
 async def print_info_vm(client, chain, api_info, patterns):
     info = {}

@@ -262,6 +262,25 @@ class JailLogHandler(InternalHandler):
             "log_content" : content
         })
 
+class StatsHandler(InternalHandler):
+    async def get(self):
+        stats = {}
+
+        jails = overlord.cache.get_jails()
+
+        for jail in jails:
+            jail_stats = overlord.cache.get_jail_stats(jail)
+
+            for key, value in jail_stats.items():
+                if key not in stats:
+                    stats[key] = 0
+
+                stats[key] += value
+
+        self.write_template({
+            "stats" : stats
+        })
+
 class JailStatsHandler(InternalHandler):
     async def get(self, jail):
         if not self.check_jail(jail):
@@ -919,6 +938,14 @@ class ChainJailsLogsHandler(ChainInternalHandler):
             "logs" : result
         })
 
+class ChainStatsHandler(ChainInternalHandler):
+    async def get(self, chain):
+        result = await self.remote_call(chain, "get_server_stats")
+
+        self.write_template({
+            "stats" : result
+        })
+
 class ChainJailLogHandler(ChainInternalHandler):
     async def get(self, chain, type, entity, subtype, log):
         result = await self.remote_call(chain, "get_jail_log", type, entity, subtype, log)
@@ -1153,6 +1180,7 @@ def make_app():
         (r"/v1/?", overlord.tornado.RequiredResourceHandler),
         (r"/v1/jails/?", JailsHandler),
         (r"/v1/jails/logs/?", JailsLogsHandler),
+        (r"/v1/stats/?", StatsHandler),
         (r"/v1/jail/log/([^/]+)/([^/]+)/([^/]+)/([^/]+)", JailLogHandler),
         (r"/v1/jail/stats/([a-zA-Z0-9_][a-zA-Z0-9_-]*)", JailStatsHandler),
         (r"/v1/jail/info/([a-zA-Z0-9_][a-zA-Z0-9_-]*)", JailInfoHandler),
@@ -1185,6 +1213,7 @@ def make_app():
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/chains/?", ChainChainsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/jails/?", ChainJailsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/jails/logs/?", ChainJailsLogsHandler),
+        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/stats/?", ChainStatsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/jail/log/([^/]+)/([^/]+)/([^/]+)/([^/]+)", ChainJailLogHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/jail/stats/([a-zA-Z0-9_][a-zA-Z0-9_-]*)", ChainJailStatsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/jail/info/([a-zA-Z0-9_][a-zA-Z0-9_-]*)", ChainJailInfoHandler),

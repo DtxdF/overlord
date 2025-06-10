@@ -583,6 +583,27 @@ class OverlordClient(httpx.AsyncClient):
             except httpx.HTTPStatusError:
                 raise overlord.exceptions.APIError(f"Error {status_code}: {reason}")
 
+    async def get_server_stats(self, chain=None):
+        """
+        List server metrics.
+
+        Args:
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            dict(str, int): Metrics.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.APIError
+        """
+
+        parsed = await self.__get_parsed("stats", chain=chain)
+        stats = parsed.get("stats", {})
+
+        return stats
+
     async def get_stats(self, name, type=OverlordEntityTypes.JAIL, chain=None):
         """
         Gets the stats provided by the rctl subsystem.
