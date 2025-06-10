@@ -569,8 +569,8 @@ class MetadataHandler(InternalHandler):
     async def post(self, key):
         if overlord.metadata.check(key):
             self.write_template({
-                "message" : f"The specified metadata '{key}' already exists."
-            }, status_code=409)
+                "message" : f"Metadata '{key}' has been successfully created."
+            }, status_code=201)
             return
 
         value = self.get_json_argument("value", value_type=str, strip=False)
