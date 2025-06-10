@@ -194,7 +194,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                                 logger.warning("Project is not specified in the deployment file!")
                                 sys.exit(EX_OK)
 
-                            filter = [projectName]
+                            filter = [escape_filter(projectName)]
 
                         elif kind == overlord.spec.OverlordKindTypes.VMJAIL.value:
                             vmName = overlord.spec.vm_jail.get_vmName()
@@ -203,7 +203,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                                 logger.warning("VM name is not specified in the deployment file!")
                                 sys.exit(EX_OK)
 
-                            filter = [vmName]
+                            filter = [escape_filter(vmName)]
 
                         elif kind == overlord.spec.OverlordKindTypes.APPCONFIG.value:
                             appName = overlord.spec.app_config.get_appName()
@@ -212,7 +212,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                                 logger.warning("Application name is not specified in the deployment file!")
                                 sys.exit(EX_OK)
 
-                            filter = [appName]
+                            filter = [escape_filter(appName)]
 
                     await print_info_projects(client, chain, info, filter)
 
@@ -266,7 +266,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                                 logger.warning("Project is not specified in the deployment file!")
                                 sys.exit(EX_OK)
 
-                            filter = [projectName]
+                            filter = [escape_filter(projectName)]
 
                         elif kind == overlord.spec.OverlordKindTypes.APPCONFIG.value:
                             appName = overlord.spec.app_config.get_appName()
@@ -275,7 +275,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                                 logger.warning("Application name is not specified in the deployment file!")
                                 sys.exit(EX_OK)
 
-                            filter = [appName]
+                            filter = [escape_filter(appName)]
 
                     await print_info_autoscale(client, chain, info, filter)
 
@@ -290,7 +290,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                                 logger.warning("VM name is not specified in the deployment file!")
                                 sys.exit(EX_OK)
 
-                            filter = [vmName]
+                            filter = [escape_filter(vmName)]
 
                         elif kind == overlord.spec.OverlordKindTypes.APPCONFIG.value:
                             appName = overlord.spec.app_config.get_appName()
@@ -299,7 +299,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                                 logger.warning("Application name is not specified in the deployment file!")
                                 sys.exit(EX_OK)
 
-                            filter = [appName]
+                            filter = [escape_filter(appName)]
 
                     await print_info_vm(client, chain, info, filter)
 
@@ -335,16 +335,15 @@ async def print_info_vm(client, chain, api_info, patterns):
     info.update(api_info)
     info["projects"] = {}
 
-    if patterns:
-        projects = patterns
-
-    else:
-        projects = await _safe_client(client, "get_projects", chain=chain)
+    projects = await _safe_client(client, "get_projects", chain=chain)
 
     if projects is None:
         return
 
     for project in projects:
+        if not match_pattern(project, patterns):
+            continue
+
         info["projects"][project] = {}
 
         result = await _safe_client(client, "get_status_vm", project, chain=chain)
@@ -417,16 +416,15 @@ async def print_info_autoscale(client, chain, api_info, patterns):
     info.update(api_info)
     info["projects"] = {}
 
-    if patterns:
-        projects = patterns
-
-    else:
-        projects = await _safe_client(client, "get_projects", chain=chain)
+    projects = await _safe_client(client, "get_projects", chain=chain)
 
     if projects is None:
         return
 
     for project in projects:
+        if not match_pattern(project, patterns):
+            continue
+
         info["projects"][project] = {}
 
         result = await _safe_client(client, "get_status_autoscale", project, chain=chain)
@@ -860,3 +858,9 @@ async def _safe_client(client, func, *args, **kwargs):
 
         logger.warning("(function:%s, exception:%s) error executing the remote call: %s",
                        func, error_type, error_message)
+
+def escape_filter(s):
+    s = re.escape(s)
+    s = f"^{s}$"
+
+    return s
