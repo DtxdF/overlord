@@ -1033,6 +1033,27 @@ class OverlordClient(httpx.AsyncClient):
             except httpx.HTTPStatusError:
                 raise overlord.exceptions.APIError(f"Error {status_code}: {reason}")
 
+    async def metadata_list(self, chain=None):
+        """
+        List all currently stored metadata.
+
+        Args:
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            list(str): Metadata.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.APIError
+        """
+
+        parsed = await self.__get_parsed("metadata", chain=chain)
+        metadata = parsed.get("metadata", [])
+
+        return metadata
+
     async def __post_parsed(self, path, *args, chain=None, **kwargs):
         return await self.__parsed("post", path, *args, chain=chain, **kwargs)
 

@@ -621,6 +621,14 @@ class MetadataHandler(InternalHandler):
         else:
             self.set_status(404)
 
+class MetadataListHandler(InternalHandler):
+    async def get(self):
+        metadata = [m.name for m in overlord.metadata.glob("*")]
+
+        self.write_template({
+            "metadata" : metadata
+        })
+
 class VMHandler(InternalHandler):
     async def get(self, name):
         if not self.check_jail(name):
@@ -784,6 +792,14 @@ class ChainMetadataHandler(ChainInternalHandler):
 
         else:
             self.set_status(404)
+
+class ChainMetadataListHandler(ChainInternalHandler):
+    async def get(self, chain):
+        result = await self.remote_call(chain, "metadata_list")
+
+        self.write_template({
+            "metadata" : result
+        })
 
 class ChainVMHandler(ChainInternalHandler):
     async def get(self, chain, name):
@@ -1159,9 +1175,11 @@ def make_app():
         (r"/v1/project/autoscale/([a-zA-Z0-9._-]+)", ProjectAutoScaleHandler),
         (r"/v1/vm/([a-zA-Z0-9][.a-zA-Z0-9_-]{0,229}[a-zA-Z0-9])", VMHandler),
         (r"/v1/metadata/" + overlord.metadata.REGEX_KEY, MetadataHandler),
+        (r"/v1/metadata/?", MetadataListHandler),
         (r"/v1/labels/?", LabelsHandler),
         (r"/v1/chains/?", ChainsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/metadata/" + overlord.metadata.REGEX_KEY, ChainMetadataHandler),
+        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/metadata/?", ChainMetadataListHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/vm/([a-zA-Z0-9][.a-zA-Z0-9_-]{0,229}[a-zA-Z0-9])", ChainVMHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/labels/?", ChainLabelsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/chains/?", ChainChainsHandler),
