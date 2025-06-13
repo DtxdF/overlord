@@ -163,10 +163,11 @@ default values.
 Destroy a project or metadata.
 .Bl -tag -width xx
 .It Fl Fl force
-Force the destruction of a project without running the special labels. If a special
-label has been previously executed, be careful when using this option, as it
-may cause undefined behavior in the integration
-.Po e.g., pointing to a nonexistent service on the load balancer Pc Ns "."
+Force the destruction of a project.
+.Pp
+Overlord will refuse to destroy a project that has an unexpected status, however
+labels are still executed and if they any of them fail, the project will not be
+destroyed.
 .It Fl Fl filter-chain Ar filter
 Destroy the project that matches with this chain.
 .Pp
