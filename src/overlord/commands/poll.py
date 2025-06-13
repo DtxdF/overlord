@@ -234,6 +234,7 @@ async def scale_project(client, project_name, options, force):
     max = replicas.get("max")
     type = scale_options.get("type")
     value = scale_options.get("value")
+    economy = scale_options.get("economy")
     rules = scale_options.get("rules")
     labels = scale_options.get("labels")
 
@@ -452,6 +453,9 @@ async def scale_project(client, project_name, options, force):
             try:
                 test = await test_rctl(client, project_name, chain, type, value, rules)
 
+                if test and economy is not None:
+                    test = await test_economy(client, project_name, chain, economy)
+
             except Exception as err:
                 error = overlord.util.get_error(err)
                 error_type = error.get("type")
@@ -563,6 +567,25 @@ async def scale_project(client, project_name, options, force):
                 return response
 
     return response
+
+async def test_economy(client, project_name, chain, rules):
+    stats = await client.get_server_stats(chain=chain)
+
+    if len(stats) == 0:
+        return False
+
+    for rule_name, rule_value in rules.items():
+        current_value = stats.get(rule_name)
+
+        result = current_value >= rule_value
+
+        logger.debug("(project:%s, chain:%s, rule:%s) %d >= %d = %s",
+                     project_name, chain, rule_name, current_value, rule_value, result)
+
+        if result:
+            return False
+
+    return True
 
 async def test_rctl(client, project_name, chain, type, value, rules):
     if not await client.check(project_name, type=overlord.client.OverlordEntityTypes.PROJECT, chain=chain):
@@ -775,6 +798,7 @@ def get_options(options):
             "type" : type,
             "value" : scale_options.get("value"),
             "rules" : scale_options.get("rules"),
+            "economy" : scale_options.get("economy"),
             "labels" : labels
         }
     }

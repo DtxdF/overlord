@@ -700,6 +700,17 @@ A dictionary specifying the
 rules. Each key-value must specify the rule and the limit, and if that limit is
 reached, more instances of the project will be created.
 .Pp
+.It Sy autoScale.economy
+Like
+.Sy autoScale.rules
+but the comparison is as simple as comparing the current server stats with the
+rules provided by this parameter.
+.Pp
+This by itself does not solve the noisy neighbor problem
+.Po limiting resource usage could solve this problem Pc Ns ,
+but it can be useful for when you want to improve the latency response, so
+Overlord will throw away the project on an available chain.
+.Pp
 .It Sy autoScale.labels
 See
 .Sy deployIn.labels

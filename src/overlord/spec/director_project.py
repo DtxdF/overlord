@@ -148,6 +148,11 @@ def get_autoScale_rules():
 
     return get_default(autoScale.get("rules"), {})
 
+def get_autoScale_economy():
+    autoScale = get_autoScale()
+
+    return get_default(autoScale.get("economy"), {})
+
 def get_autoScale_labels():
     autoScale = get_autoScale()
 
@@ -204,6 +209,7 @@ def validate_autoScale(document):
         "type",
         "value",
         "rules",
+        "economy",
         "labels"
     )
 
@@ -214,6 +220,7 @@ def validate_autoScale(document):
     validate_autoScale_replicas(autoScale)
     validate_autoScale_type(autoScale)
     validate_autoScale_rules(autoScale)
+    validate_autoScale_economy(autoScale)
     validate_autoScale_labels(autoScale)
 
 def validate_autoScale_replicas(document):
@@ -280,14 +287,20 @@ def validate_autoScale_type(document):
     else:
         raise overlord.exceptions.InvalidSpec(f"{type}: invalid scale type.")
 
+def validate_autoScale_economy(document):
+    return _validate_autoScale_rules("economy", document)
+
 def validate_autoScale_rules(document):
-    rules = document.get("rules")
+    return _validate_autoScale_rules("rules", document)
+
+def _validate_autoScale_rules(rules_type, document):
+    rules = document.get(rules_type)
 
     if rules is None:
         return
 
     if not isinstance(rules, dict):
-        raise overlord.exceptions.InvalidSpec("'autoScale.rules' is invalid.")
+        raise overlord.exceptions.InvalidSpec(f"'autoScale.{rules_type}' is invalid.")
 
     for rule, value in rules.items():
         if rule == "datasize" \
@@ -304,14 +317,14 @@ def validate_autoScale_rules(document):
                 try:
                     value = humanfriendly.parse_size(value, binary=True)
 
-                    document["rules"][rule] = value
+                    document[rules_type][rule] = value
 
                 except Exception as err:
-                    raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.rules.{rule}': {err}")
+                    raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.{rules_type}.{rule}': {err}")
 
             if not isinstance(value, int) \
                     or value < 0:
-                raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.rules.{rule}'")
+                raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.{rules_type}.{rule}'")
 
         elif rule == "cputime" \
                 or rule == "maxproc" \
@@ -329,10 +342,10 @@ def validate_autoScale_rules(document):
                 or rule == "writeiops":
             if not isinstance(value, int) \
                     or value < 0:
-                raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.rules.{rule}'")
+                raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.{rules_type}.{rule}'")
 
         else:
-            raise overlord.exceptions.InvalidSpec(f"autoScale.rules.{rule}: invalid resource.")
+            raise overlord.exceptions.InvalidSpec(f"autoScale.{rules_type}.{rule}: invalid resource.")
 
 def validate_autoScale_labels(document):
     labels = document.get("labels")
