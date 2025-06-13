@@ -271,7 +271,16 @@ async def _destroy(file, force, filter_chain):
                             logger.info("(datacenter:%s, chain:%s, metadata:%s) Writing metadata ...",
                                         datacenter, chain, metadata_cleanup)
 
-                            await client.metadata_set(metadata_cleanup, "{}", chain=chain)
+                            metadata_cleanup_value = {
+                                "force" : force
+                            }
+                            metadata_cleanup_value = json.dumps(metadata_cleanup_value)
+
+                            await client.metadata_set(
+                                metadata_cleanup,
+                                metadata_cleanup_value,
+                                chain=chain
+                            )
 
                         except Exception as err:
                             error = overlord.util.get_error(err)

@@ -339,6 +339,29 @@ async def scale_project(client, project_name, options, force):
         return response
 
     if cleanup:
+        cleanup_options = await overlord.metadata.get(f"overlord.autoscale-cleanup.{project_name}")
+
+        try:
+            cleanup_options = json.loads(cleanup_options)
+
+        except Exception as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
+            logger.exception("(project:%s, exception:%s) %s", project_name, error_type, error_message)
+
+            # fallback
+            cleanup_options = {}
+
+        cleanup_force = cleanup_options.get("force", False)
+
+        if not isinstance(cleanup_force, bool):
+            cleanup_force = False
+
+            logger.warning("(project:%s, type:%s, fallback:%s) Unknown data type for 'force' parameter in cleanup options.",
+                           project_name, type(cleanup_force).__name__, cleanup_force)
+
         nodes = {
             "count" : good["count"] + bad["count"],
             "nodes" : good["nodes"] + bad["nodes"]
@@ -352,9 +375,10 @@ async def scale_project(client, project_name, options, force):
             for chain in nodes["nodes"]:
                 try:
                     if await client.check(project_name, type=overlord.client.OverlordEntityTypes.PROJECT, chain=chain):
-                        logger.debug("(chain:%s, project:%s, nodes:%d) destroying ...", chain, project_name, nodes["count"])
+                        logger.debug("(chain:%s, project:%s, nodes:%d, force:%s) destroying ...",
+                                     chain, project_name, nodes["count"], cleanup_force)
 
-                        response["nodes"][chain] = await client.down(project_name, environment, chain=chain)
+                        response["nodes"][chain] = await client.down(project_name, environment, force=cleanup_force, chain=chain)
 
                         remove_metadata = False
 
