@@ -45,7 +45,7 @@ import overlord.process
 import overlord.spec
 import overlord.util
 
-from overlord.sysexits import EX_OK, EX_NOINPUT, EX_SOFTWARE
+from overlord.sysexits import EX_OK, EX_NOINPUT, EX_SOFTWARE, EX_USAGE
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +272,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                                 logger.warning("Project is not specified in the deployment file!")
                                 sys.exit(EX_OK)
 
-                            filter = [escape_filter(projectName)]
+                            filter = [projectName]
 
                         elif kind == overlord.spec.OverlordKindTypes.APPCONFIG.value:
                             appName = overlord.spec.app_config.get_appName()
@@ -281,7 +281,11 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                                 logger.warning("Application name is not specified in the deployment file!")
                                 sys.exit(EX_OK)
 
-                            filter = [escape_filter(appName)]
+                            filter = [appName]
+
+                    if len(filter) == 0:
+                        logger.error("Autoscale requires you define at least one filter!")
+                        sys.exit(EX_USAGE)
 
                     await print_info_autoscale(client, chain, info, filter)
 
@@ -441,26 +445,18 @@ async def print_info_vm(client, chain, api_info, patterns):
                 else:
                     print(f"          {key}: {value}")
 
-async def print_info_autoscale(client, chain, api_info, patterns):
+async def print_info_autoscale(client, chain, api_info, projects):
     info = {}
     info.update(api_info)
     info["projects"] = {}
 
-    projects = await _safe_client(client, "get_projects", chain=chain)
-
-    if projects is None:
-        return
-
     for project in projects:
-        if not match_pattern(project, patterns):
-            continue
-
-        info["projects"][project] = {}
-
         result = await _safe_client(client, "get_status_autoscale", project, chain=chain)
 
         if result is not None:
-            info["projects"][project]["autoscale"] = result
+            info["projects"][project] = {
+                "autoscale" : result
+            }
 
     project_info = info["projects"]
 

@@ -216,8 +216,12 @@ deployment file. This parameter displays all information ignoring the labels.
 Depending on the value specified with
 .Fl Fl type Ns ,
 it can be used to filter the information to be displayed. The value of this parameter
-is a valid regular expression. The value to compare can be the jail name, the project
-name, the VM name, a chain or a log file name.
+is a literal string when the
+.Fl Fl type
+parameter is set to
+.Sy autoscale
+or a valid regular expression for other types. The value to compare can be the jail name,
+the project name, the VM name, a chain or a log file name.
 .Pp
 This parameter can be specified multiple times.
 .It Fl Fl filter-per-project
