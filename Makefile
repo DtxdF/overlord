@@ -3,11 +3,16 @@ RM?=rm
 INSTALL?=install
 PREFIX?=/opt/pipx/venvs/overlord
 MANDIR?=${PREFIX}/share/man
+pipx_install_flags=
+
+.if defined(SYSTEM_SITE_PACKAGES)
+pipx_install_flags+=--system-site-packages
+.endif
 
 all: install-overlord install-libexec install-manpages
 
 install-overlord:
-	pipx install --force --global -e .
+	pipx install ${pipx_install_flags} --force --global -e .
 
 install-libexec:
 	${MKDIR} -m 755 -p "${DESTDIR}${PREFIX}/libexec/overlord"
