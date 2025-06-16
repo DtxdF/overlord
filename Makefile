@@ -9,10 +9,14 @@ pipx_install_flags=
 pipx_install_flags+=--system-site-packages
 .endif
 
+.if !defined(NOEDITABLE)
+pipx_install_flags+=-e
+.endif
+
 all: install-overlord install-libexec install-manpages
 
 install-overlord:
-	pipx install ${pipx_install_flags} --force --global -e .
+	pipx install ${pipx_install_flags} --force --global .
 
 install-libexec:
 	${MKDIR} -m 755 -p "${DESTDIR}${PREFIX}/libexec/overlord"
