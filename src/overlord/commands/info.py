@@ -601,32 +601,50 @@ async def print_info_jails(client, chain, api_info, items, patterns):
                      api_info.get("datacenter"), api_info.get("chain"))
         return
 
-    print_header(info)
 
-    print("  jails:")
+    def _print_name(name):
+        nonlocal print_name
 
-    for name, info in jails.items():
+        if print_name:
+            print(f"    {name}:")
+
+            print_name = False
+
+    def _print_status():
+        nonlocal print_status_name
+
+        if print_status_name:
+            print_header(info)
+
+            print("  jails:")
+
+            print_status_name = False
+
+    print_status_name = True
+
+    for name, jail_info in jails.items():
         print_name = True
 
         for func in ("get_stats", "get_info", "get_cpuset", "get_devfs", "get_expose", "get_healthcheck", "get_limits", "get_fstab", "get_labels", "get_nat", "get_volumes"):
-            result = info.get(func)
+            result = jail_info.get(func)
 
             if result is None:
                 continue
 
-            if print_name:
-                print(f"    {name}:")
-
-                print_name = False
-
             info_name = func.replace("get_", "")
 
             if isinstance(result, str):
+                _print_status()
+                _print_name(name)
+
                 print(f"      {info_name}: {result}")
 
             elif isinstance(result, list):
                 if len(result) == 0:
                     continue
+
+                _print_status()
+                _print_name(name)
 
                 print(f"      {info_name}:")
 
@@ -636,6 +654,9 @@ async def print_info_jails(client, chain, api_info, items, patterns):
             elif isinstance(result, dict):
                 if len(result) == 0:
                     continue
+
+                _print_status()
+                _print_name(name)
 
                 print(f"      {info_name}:")
 
