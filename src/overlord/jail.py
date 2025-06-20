@@ -362,6 +362,9 @@ def _get_value(args):
     if len(stdout) > 0 and stdout[-1] == "\n":
         value = stdout[:-1]
 
+    else:
+        value = stdout
+
     return (rc, value)
 
 def _list(jail, key, index, callback, keywords):
