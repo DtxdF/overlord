@@ -624,6 +624,13 @@ def ignore_project(project):
 
     if state == "UNFINISHED" \
             or state == "DESTROYING":
+        locked = info["locked"]
+
+        if not locked:
+            # If the project is not locked and has the above state, we can assume
+            # that Director has not terminated correctly.
+            return False
+
         return True
 
     else:
