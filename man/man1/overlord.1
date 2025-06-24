@@ -112,6 +112,9 @@
 .Cm poll-autoscale
 .Nm
 .Op Fl Fl env-file Ar file
+.Cm poll-heartbeat
+.Nm
+.Op Fl Fl env-file Ar file
 .Cm watch-projects
 .Sh DESCRIPTION
 .Sy Overlord
@@ -335,6 +338,14 @@ Using the list of projects stored in the cache server, this command will collect
 information of each project to be stored in the cache server.
 .It Cm poll-autoscale
 Scale projects based on metrics and replicas.
+.It Cm poll-heartbeat
+Checks the status of each chain.
+.Pp
+This adds more intelligence to the server because Smart Timeouts can completely
+disable a chain if it is slow to respond after a few attempts but does not
+necessarily mean it is faulty. So instead of simply disabling a chain for a
+while, this command influences this operation because it allows a user to
+make requests based on the health of the chain.
 .It Cm watch-projects
 Wait for jobs to create or destroy a project.
 .Pp

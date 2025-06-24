@@ -50,12 +50,70 @@ import overlord.metadata
 import overlord.process
 import overlord.util
 
-from overlord.sysexits import EX_SOFTWARE, EX_UNAVAILABLE, EX_NOPERM
+from overlord.sysexits import EX_OK, EX_SOFTWARE, EX_UNAVAILABLE, EX_NOPERM
 
 logger = logging.getLogger(__name__)
 
 AUTOSCALE_CHANGES = {}
 AUTOSCALE_LOGS = {}
+
+@overlord.commands.cli.command(add_help_option=False)
+def poll_heartbeat(*args, **kwargs):
+    asyncio.run(_poll_heartbeat(*args, **kwargs))
+
+async def _poll_heartbeat():
+    overlord.process.init()
+
+    heartbeat = overlord.config.get_polling_heartbeat()
+
+    if heartbeat is None:
+        sys.exit(EX_OK)
+
+    chains = overlord.config.list_chains()
+
+    # overlord-serve needs every healthy chain to be on this list, or it will
+    # treat every chain as unhealthy. Although this is not the reality, it
+    # will eventually become so.
+    overlord.cache.save_healthy_chains(chains)
+
+    while True:
+        healthy_chains = []
+
+        for chain in chains:
+            is_disable = overlord.config.get_chain_disable(chain)
+
+            if is_disable:
+                continue
+
+            healthy = await _check_health(chain)
+
+            if not healthy:
+                continue
+
+            healthy_chains.append(chain)
+
+        overlord.cache.save_healthy_chains(healthy_chains)
+
+        await asyncio.sleep(heartbeat + overlord.util.get_skew())
+
+async def _check_health(chain):
+    client = overlord.client.get_chain(chain)
+
+    try:
+        await client.ping(chain=chain)
+
+        healthy = True
+
+    except Exception as err:
+        error = overlord.util.get_error(err)
+        error_type = error.get("type")
+        error_message = error.get("message")
+
+        logger.exception("(chain:%s, exception:%s) %s:", chain, error_type, error_message)
+
+        healthy = False
+
+    return healthy
 
 @overlord.commands.cli.command(add_help_option=False)
 def poll_autoscale(*args, **kwargs):

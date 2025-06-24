@@ -69,6 +69,7 @@ def get_config():
             "jail_extras" : get_polling_jail_extras(),
             "project_info" : get_polling_project_info(),
             "autoscale" : get_polling_autoscale(),
+            "heartbeat" : get_polling_heartbeat(),
             "skew" : get_polling_skew(),
             "keywords" : {
                 "stats" : get_polling_keywords_stats(),
@@ -340,6 +341,11 @@ def get_polling_autoscale():
     polling = get_polling()
 
     return get_default(polling.get("autoscale"), overlord.default.POLLING["autoscale"])
+
+def get_polling_heartbeat():
+    polling = get_polling()
+
+    return get_default(polling.get("heartbeat"), overlord.default.POLLING["heartbeat"])
 
 def get_polling_skew():
     polling = get_polling()
@@ -1671,7 +1677,8 @@ def validate_polling(document):
         "jails",
         "jail_extras",
         "project_info",
-        "metadata",
+        "autoscale",
+        "heartbeat",
         "skew",
         "keywords"
     )
@@ -1686,7 +1693,8 @@ def validate_polling(document):
     validate_polling_jails(polling)
     validate_polling_jail_extras(polling)
     validate_polling_project_info(polling)
-    validate_polling_metadata(polling)
+    validate_polling_autoscale(polling)
+    validate_polling_heartbeat(polling)
     validate_polling_skew(polling)
     validate_polling_keywords(polling)
 
@@ -1762,17 +1770,29 @@ def validate_polling_project_info(document):
     if interval < 0:
         raise ValueError(f"{interval}: invalid value for 'polling.project_info'")
 
-def validate_polling_metadata(document):
-    interval = document.get("metadata")
+def validate_polling_autoscale(document):
+    interval = document.get("autoscale")
 
     if interval is None:
         return
 
     if not isinstance(interval, int):
-        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.metadata'")
+        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.autoscale'")
 
     if interval < 0:
-        raise ValueError(f"{interval}: invalid value for 'polling.metadata'")
+        raise ValueError(f"{interval}: invalid value for 'polling.autoscale'")
+
+def validate_polling_heartbeat(document):
+    interval = document.get("heartbeat")
+
+    if interval is None:
+        return
+
+    if not isinstance(interval, int):
+        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.heartbeat'")
+
+    if interval < 0:
+        raise ValueError(f"{interval}: invalid value for 'polling.heartbeat'")
 
 def validate_polling_skew(document):
     skew = document.get("skew")

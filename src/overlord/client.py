@@ -30,16 +30,20 @@
 import enum
 import logging
 import re
+import ssl
 
 import httpx
 
 import overlord.chains
+import overlord.config
 import overlord.director
 import overlord.jail
 import overlord.metadata
 import overlord.util
 import overlord.exceptions
 import overlord.vm
+
+from httpx_retries import RetryTransport, Retry
 
 logger = logging.getLogger(__name__)
 
@@ -604,6 +608,27 @@ class OverlordClient(httpx.AsyncClient):
 
         return stats
 
+    async def ping(self, chain=None):
+        """
+        Ping a chain.
+
+        Args:
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            str: An "OK" string.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.APIError
+        """
+
+        parsed = await self.__get_parsed("ping", chain=chain)
+        status = parsed.get("status", "OK")
+
+        return status
+
     async def get_stats(self, name, type=OverlordEntityTypes.JAIL, chain=None):
         """
         Gets the stats provided by the rctl subsystem.
@@ -1162,3 +1187,50 @@ class OverlordClient(httpx.AsyncClient):
             request.raise_for_status()
 
         return request
+
+def get_chain(chain):
+    limits_settings = {
+        "max_keepalive_connections" : overlord.config.get_chain_max_keepalive_connections(chain),
+        "max_connections" : overlord.config.get_chain_max_connections(chain),
+        "keepalive_expiry" : overlord.config.get_chain_keepalive_expiry(chain)
+    }
+
+    timeout_settings = {
+        "timeout" : overlord.config.get_chain_timeout(chain),
+        "read" : overlord.config.get_chain_read_timeout(chain),
+        "write" : overlord.config.get_chain_write_timeout(chain),
+        "connect" : overlord.config.get_chain_connect_timeout(chain),
+        "pool" : overlord.config.get_chain_pool_timeout(chain)
+    }
+
+    retry_policy = {
+        "total" : overlord.config.get_chain_retry_total(chain),
+        "max_backoff_wait" : overlord.config.get_chain_retry_max_backoff_wait(chain),
+        "backoff_factor" : overlord.config.get_chain_retry_backoff_factor(chain),
+        "respect_retry_after_header" : overlord.config.get_chain_retry_respect_retry_after_header(chain),
+        "backoff_jitter" : overlord.config.get_chain_retry_backoff_jitter(chain)
+    }
+
+    entrypoint = overlord.config.get_chain_entrypoint(chain)
+    access_token = overlord.config.get_chain_access_token(chain)
+
+    kwargs = {}
+
+    cacert = overlord.config.get_chain_cacert(chain)
+
+    if cacert is not None:
+        ctx = ssl.create_default_context(cafile=cacert)
+
+        kwargs["verify"] = ctx
+
+    client = overlord.client.OverlordClient(
+        entrypoint,
+        access_token,
+        pretty_exc=False,
+        limits=httpx.Limits(**limits_settings),
+        timeout=httpx.Timeout(**timeout_settings),
+        transport=RetryTransport(retry=Retry(**retry_policy)),
+        **kwargs
+    )
+
+    return client

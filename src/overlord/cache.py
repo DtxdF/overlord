@@ -106,6 +106,9 @@ def delete(key):
 
     return result
 
+def save_healthy_chains(chains):
+    return save("overlord_healthy_chains", chains)
+
 def save_jails(jails):
     return save("overlord_jails", jails)
 
@@ -314,6 +317,14 @@ def get_project_status_autoscale(project):
 
     if data is None:
         return {}
+
+    return data
+
+def get_healthy_chains():
+    data = get("overlord_healthy_chains")
+
+    if data is None:
+        return []
 
     return data
 

@@ -50,8 +50,6 @@ import overlord.spec
 import overlord.tornado
 import overlord.util
 
-from httpx_retries import RetryTransport, Retry
-
 logger = logging.getLogger(__name__)
 
 CHAINS = {}
@@ -188,6 +186,12 @@ class ChainInternalHandler(InternalHandler):
         else:
             if next_entrypoint in DISABLE_COUNTERS:
                 del DISABLE_COUNTERS[next_entrypoint]
+
+class PingHandler(InternalHandler):
+    async def get(self):
+        self.write_template({
+            "status" : "OK"
+        })
 
 class JailsHandler(InternalHandler):
     async def get(self):
@@ -922,6 +926,14 @@ class ChainLabelsHandler(ChainInternalHandler):
             "labels" : result
         })
 
+class ChainPingHandler(ChainInternalHandler):
+    async def get(self, chain):
+        result = await self.remote_call(chain, "ping")
+
+        self.write_template({
+            "status" : result
+        })
+
 class ChainJailsHandler(ChainInternalHandler):
     async def get(self, chain):
         result = await self.remote_call(chain, "get_jails")
@@ -1143,6 +1155,9 @@ def check_autodisable_chain(chain):
     if chain not in DISABLE_COUNTERS:
         return False
 
+    if check_heartbeat_chain(chain):
+        return False
+
     chain_info = DISABLE_COUNTERS[chain]
 
     failures = chain_info["failures"]
@@ -1164,6 +1179,19 @@ def check_autodisable_chain(chain):
 
     return True
 
+def check_heartbeat_chain(chain):
+    heartbeat_enabled = overlord.config.get_polling_heartbeat() is not None
+
+    if not heartbeat_enabled:
+        return True
+
+    healthy_chains = overlord.cache.get_healthy_chains()
+
+    if chain not in healthy_chains:
+        return False
+
+    return True
+
 def make_app():
     settings = {
         "debug" : overlord.config.get_debug(),
@@ -1178,6 +1206,7 @@ def make_app():
     return tornado.web.Application([
         (r"/", overlord.tornado.RequiredResourceHandler),
         (r"/v1/?", overlord.tornado.RequiredResourceHandler),
+        (r"/v1/ping/?", PingHandler),
         (r"/v1/jails/?", JailsHandler),
         (r"/v1/jails/logs/?", JailsLogsHandler),
         (r"/v1/stats/?", StatsHandler),
@@ -1206,6 +1235,7 @@ def make_app():
         (r"/v1/metadata/?", MetadataListHandler),
         (r"/v1/labels/?", LabelsHandler),
         (r"/v1/chains/?", ChainsHandler),
+        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/ping/?", ChainPingHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/metadata/" + overlord.metadata.REGEX_KEY, ChainMetadataHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/metadata/?", ChainMetadataListHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/vm/([a-zA-Z0-9][.a-zA-Z0-9_-]{0,229}[a-zA-Z0-9])", ChainVMHandler),
@@ -1283,46 +1313,6 @@ def serve():
         if is_disable:
             continue
 
-        limits_settings = {
-            "max_keepalive_connections" : overlord.config.get_chain_max_keepalive_connections(chain),
-            "max_connections" : overlord.config.get_chain_max_connections(chain),
-            "keepalive_expiry" : overlord.config.get_chain_keepalive_expiry(chain)
-        }
-        timeout_settings = {
-            "timeout" : overlord.config.get_chain_timeout(chain),
-            "read" : overlord.config.get_chain_read_timeout(chain),
-            "write" : overlord.config.get_chain_write_timeout(chain),
-            "connect" : overlord.config.get_chain_connect_timeout(chain),
-            "pool" : overlord.config.get_chain_pool_timeout(chain)
-        }
-        retry_policy = {
-            "total" : overlord.config.get_chain_retry_total(chain),
-            "max_backoff_wait" : overlord.config.get_chain_retry_max_backoff_wait(chain),
-            "backoff_factor" : overlord.config.get_chain_retry_backoff_factor(chain),
-            "respect_retry_after_header" : overlord.config.get_chain_retry_respect_retry_after_header(chain),
-            "backoff_jitter" : overlord.config.get_chain_retry_backoff_jitter(chain)
-        }
-
-        entrypoint = overlord.config.get_chain_entrypoint(chain)
-        access_token = overlord.config.get_chain_access_token(chain)
-
-        kwargs = {}
-
-        cacert = overlord.config.get_chain_cacert(chain)
-
-        if cacert is not None:
-            ctx = ssl.create_default_context(cafile=cacert)
-
-            kwargs["verify"] = ctx
-
-        CHAINS[chain] = overlord.client.OverlordClient(
-            entrypoint,
-            access_token,
-            pretty_exc=False,
-            limits=httpx.Limits(**limits_settings),
-            timeout=httpx.Timeout(**timeout_settings),
-            transport=RetryTransport(retry=Retry(**retry_policy)),
-            **kwargs
-        )
+        CHAINS[chain] = overlord.client.get_chain(chain)
 
     asyncio.run(listen())

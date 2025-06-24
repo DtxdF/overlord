@@ -37,7 +37,7 @@ ENV_FILE = ".env"
 COMPRESS_RESPONSE = True
 DATABASE = ".overlord.db"
 VALID_KEYWORDS = {
-    "jail" : {
+    "jail" : (
         "alt_name",
         "appjail_version",
         "arch",
@@ -67,8 +67,8 @@ VALID_KEYWORDS = {
         "type",
         "version",
         "version_extra"
-    },
-    "stats" : {
+    ),
+    "stats" : (
         "cputime",
         "datasize",
         "stacksize",
@@ -94,13 +94,13 @@ VALID_KEYWORDS = {
         "writebps",
         "readiops",
         "writeiops"
-    },
-    "devfs" : {
+    ),
+    "devfs" : (
         "enabled",
         "name",
         "rule"
-    },
-    "expose" : {
+    ),
+    "expose" : (
         "enabled",
         "name",
         "network_name",
@@ -108,8 +108,8 @@ VALID_KEYWORDS = {
         "jport",
         "protocol",
         "rule"
-    },
-    "healthcheck" : {
+    ),
+    "healthcheck" : (
         "enabled",
         "health_cmd",
         "health_type",
@@ -127,30 +127,30 @@ VALID_KEYWORDS = {
         "status",
         "timeout",
         "timeout_signal"
-    },
-    "label" : {
+    ),
+    "label" : (
         "value"
-    },
-    "limits" : {
+    ),
+    "limits" : (
         "action",
         "enabled",
         "name",
         "per",
         "resource",
         "rule"
-    },
-    "nat" : {
+    ),
+    "nat" : (
         "rule"
-    },
-    "volume" : {
+    ),
+    "volume" : (
         "name",
         "mountpoint",
         "type",
         "uid",
         "gid",
         "perm"
-    },
-    "fstab" : {
+    ),
+    "fstab" : (
         "enabled",
         "name",
         "device",
@@ -159,7 +159,7 @@ VALID_KEYWORDS = {
         "options",
         "dump",
         "pass"
-    }
+    )
 }
 POLLING = {
     "jail_stats" : 12,
@@ -169,6 +169,7 @@ POLLING = {
     "jail_extras" : 6,
     "project_info" : 9,
     "autoscale" : 15,
+    "heartbeat" : None,
     "skew" : [6, 10],
     "keywords" : {
         "jail" : [

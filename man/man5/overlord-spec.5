@@ -88,6 +88,16 @@ How much time to sleep after collecting additional information from the jails ag
 .It Sy polling.project_info
 How much time to sleep after collecting information from the projects again.
 .Pp
+.It Sy polling.autoscale
+How much time to sleep after scaling the projects.
+.Pp
+.It Sy polling.heartbeat
+How much time to sleep after checking the status of each chain.
+.Pp
+If this parameter is not set,
+.Sy poll-heartbeat
+will not be executed.
+.Pp
 .It Sy polling.skew
 After repeating the polling operation, a random number will be added to the previous
 numbers. The random number will be generated using the range specified in this parameter.
