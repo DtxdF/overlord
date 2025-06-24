@@ -129,7 +129,7 @@ VALID_KEYWORDS = {
         "timeout_signal"
     ),
     "label" : (
-        "value"
+        "value",
     ),
     "limits" : (
         "action",
@@ -140,7 +140,7 @@ VALID_KEYWORDS = {
         "rule"
     ),
     "nat" : (
-        "rule"
+        "rule",
     ),
     "volume" : (
         "name",
