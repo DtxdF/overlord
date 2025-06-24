@@ -100,7 +100,7 @@ async def _check_health(chain):
     client = overlord.client.get_chain(chain)
 
     try:
-        await client.ping(chain=chain)
+        await client.ping()
 
         healthy = True
 
