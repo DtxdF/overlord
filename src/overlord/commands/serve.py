@@ -134,6 +134,8 @@ class ChainInternalHandler(InternalHandler):
         except Exception as err:
             ignore_smart_timeout = False
 
+            status_code = 503
+
             if isinstance(err, httpx.HTTPStatusError):
                 status_code = err.response.status_code
 
@@ -180,7 +182,7 @@ class ChainInternalHandler(InternalHandler):
                 "chain" : new_chain,
                 "error" : error_type,
                 "message" : error_message
-            }, status_code=503)
+            }, status_code=status_code)
             self.finish()
 
         else:
