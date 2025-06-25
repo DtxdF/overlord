@@ -1154,10 +1154,10 @@ class ChainProjectsLogHandler(ChainInternalHandler):
         })
 
 def check_autodisable_chain(chain):
-    if chain not in DISABLE_COUNTERS:
+    if check_heartbeat_chain(chain):
         return False
 
-    if check_heartbeat_chain(chain):
+    if chain not in DISABLE_COUNTERS:
         return False
 
     chain_info = DISABLE_COUNTERS[chain]
