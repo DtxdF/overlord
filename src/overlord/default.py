@@ -107,6 +107,8 @@ VALID_KEYWORDS = {
         "hport",
         "jport",
         "protocol",
+        "ext_if",
+        "on_if",
         "rule"
     ),
     "healthcheck" : (
