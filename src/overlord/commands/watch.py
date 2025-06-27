@@ -776,6 +776,12 @@ async def run_special_label_skydns(project, type, service, labels):
 
         return (error, message) 
 
+    if address is None:
+        error = True
+        message = f"(project:{project}, service:{service_name}, interface:{interface}, address:{network}, label:overlord.skydns.interface.address) no IP address has been found."
+
+        return (error, message)
+
     ttl = labels.get("overlord.skydns.ttl", overlord.default.DNS["ttl"])
 
     try:
