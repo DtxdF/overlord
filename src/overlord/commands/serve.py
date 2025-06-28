@@ -433,6 +433,7 @@ class ProjectUpHandler(InternalHandler):
         director_file = self.get_json_argument("director_file", value_type=str, strip=False)
         environment = self.get_json_argument("environment", {}, value_type=dict)
         restart = self.get_json_argument("restart", False, value_type=bool)
+        reserve_port = self.get_json_argument("reserve_port", {}, value_type=dict)
 
         for env_name, env_value in environment.items():
             if not isinstance(env_name, str) \
@@ -442,11 +443,23 @@ class ProjectUpHandler(InternalHandler):
                 }, status_code=404)
                 return
 
+        for interface, network in reserve_port.items():
+            if not isinstance(interface, str):
+                self.write_template({
+                    "message" : f"Invalid interface ({interface})."
+                }, status_code=400)
+                return
+
+            if network is not None \
+                    and not isinstance(network, str):
+                raise overlord.exceptions.InvalidSpec(f"Invalid network address ({network}).")
+
         job_id = await overlord.queue.put_create_project({
             "director_file" : director_file,
             "name" : project,
             "environment" : environment,
-            "restart" : restart
+            "restart" : restart,
+            "reserve_port" : reserve_port
         })
 
         self.write_template({
@@ -1102,8 +1115,9 @@ class ChainProjectUpHandler(ChainInternalHandler):
         director_file = self.get_json_argument("director_file", value_type=str, strip=False)
         environment = self.get_json_argument("environment", {}, value_type=dict)
         restart = self.get_json_argument("restart", False, value_type=bool)
+        reserve_port = self.get_json_argument("reserve_port", {}, value_type=dict)
 
-        result = await self.remote_call(chain, "up", project, director_file, environment, restart)
+        result = await self.remote_call(chain, "up", project, director_file, environment, restart, reserve_port)
 
         self.write_template(result)
 

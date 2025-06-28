@@ -48,7 +48,8 @@ setup(
         "dnspython",
         "pyyaml",
         "mako",
-        "httpx-retries"
+        "httpx-retries",
+        "sysctl"
     ],
     entry_points={
         "console_scripts" : [

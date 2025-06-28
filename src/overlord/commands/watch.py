@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import asyncio
+import errno
 import json
 import logging
 import os
@@ -449,6 +450,7 @@ async def _async_watch_projects():
 
             message = job_body.get("message")
             project = message.get("name")
+            reserve_port = message.get("reserve_port")
             environment = dict(os.environ)
             environment.update(message.get("environment", {}))
 
@@ -459,6 +461,57 @@ async def _async_watch_projects():
             if type == "create":
                 if ignore_project(project):
                     continue
+
+                logger.debug("(project:%s) processing ...", project)
+
+                overlord.cache.save_project_status_up(project, {
+                    "operation" : "RUNNING",
+                    "last_update" : time.time(),
+                    "job_id" : job_id
+                })
+
+                if reserve_port is not None:
+                    error_continue = False
+
+                    for interface, network in reserve_port.items():
+                        try:
+                            freeport = get_freeport(interface, network)
+
+                        except Exception as err:
+                            error = overlord.util.get_error(err)
+                            error_type = error.get("type")
+                            error_message = error.get("message")
+
+                            overlord.cache.save_project_status_up(project, {
+                                "operation" : "FAILED",
+                                "last_update" : time.time(),
+                                "job_id" : job_id,
+                                "exception" : {
+                                    "type" : error_type,
+                                    "message" : error_message
+                                }
+                            })
+
+                            error_continue = True
+                            break
+
+                        if freeport is None:
+                            overlord.cache.save_project_status_up(project, {
+                                "operation" : "FAILED",
+                                "last_update" : time.time(),
+                                "job_id" : job_id,
+                                "message" : f"no free port has been found for {interface} ({network})"
+                            })
+
+                            error_continue = True
+                            break
+
+                        interface = interface.upper()
+
+                        environment[f"OVERLORD_FREEPORT_{interface}"] = f"{freeport}"
+
+                    if error_continue:
+                        continue
 
                 restart = message.get("restart", False)
 
@@ -473,14 +526,6 @@ async def _async_watch_projects():
                     overlord.director.down(project, env=environment)
 
                     restarted = True
-
-                logger.debug("(project:%s) processing ...", project)
-
-                overlord.cache.save_project_status_up(project, {
-                    "operation" : "RUNNING",
-                    "last_update" : time.time(),
-                    "job_id" : job_id
-                })
 
                 director_file = message.get("director_file")
 
@@ -1200,3 +1245,24 @@ async def run_special_label_load_balancer(project, type, service, labels):
         message = f"(project:{project}, service:{service_name}, backend:{backend}, serverid:{serverid}, code:{code}, transaction_id:{transaction_id}, commit:1) server has been removed."
 
         return (error, message)
+
+def get_freeport(interface, netaddr=None):
+    port = overlord.jail.get_freeport(interface)
+
+    max_attempts = 3
+    attempts = 0
+
+    while attempts < max_attempts:
+        attempts += 1
+
+        try:
+            port = overlord.util.get_freeport(interface, port, netaddr)
+
+        except socket.error as err:
+            if err.errno == errno.EADDRINUSE:
+                continue
+
+            else:
+                raise
+
+        return port

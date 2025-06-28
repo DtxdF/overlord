@@ -726,6 +726,26 @@ See
 .Sy deployIn.labels
 for details.
 .Pp
+.It Sy reserve_port
+Attempt to obtain an unused port.
+.Pp
+Each key is an interface on which the IP address will be used when binding to it.
+An optional value representing the network address can be set to obtain a better
+match. After processing this dictionary, the ports are available through
+environment variables such as
+.Ev OVERLORD_FREEPORT_ Ns Em interface
+where
+.Em interface
+is the uppercase interface name.
+.Pp
+Overlord makes its best attempt to get an unused port through a range affected by
+.Sy net.inet.ip.portrange.first
+and
+.Sy net.inet.ip.portrange.last Ns "."
+Ports used by other jails through
+.Xr appjail-expose 1
+are excluded and after doing all this, Overlord will bind to the chosen port
+quickly. Even with this approach it is not bulletproof, so keep that in mind.
 .El
 .Ss readOnly
 This deployment is only useful for use with the

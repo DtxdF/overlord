@@ -268,11 +268,17 @@ async def _apply(file, restart):
 
                             continue
 
+                    reserve_port = overlord.spec.director_project.get_reserve_port()
+
                     scale_options = overlord.spec.director_project.get_autoScale()
 
                     if len(scale_options) == 0:
                         try:
-                            response = await client.up(project_name, project_file, environment, restart, chain=chain)
+                            response = await client.up(
+                                project_name, project_file,
+                                environment, restart,
+                                reserve_port, chain=chain
+                            )
 
                             deployments += 1
 

@@ -27,11 +27,13 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import contextlib
 import ipaddress
 import logging
 import os
 import random
 import re
+import socket
 import uuid
 
 import ifaddr
@@ -122,3 +124,35 @@ def get_serverid():
     SERVERID = serverid
 
     return serverid
+
+def get_freeport(interface, port=0, netaddr=None):
+    ip = iface2ip(interface, netaddr)
+
+    if ip is None:
+        return
+
+    ip_info = ipaddress.ip_address(ip)
+    ip_version = ip_info.version
+
+    if ip_version == 4:
+        family = socket.AF_INET
+
+    elif ip_version == 6:
+        family = socket.AF_INET6
+
+    else:
+        raise ValueError("Can't obtain IP address version.")
+
+    with socket.socket(family) as sock_srv:
+        sock_srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock_srv.bind((ip, port))
+        sock_srv.listen(1)
+
+        sockname = sock_srv.getsockname()
+
+        with socket.socket(family) as sock_cli:
+            sock_cli.connect(sockname)
+            ephe_sock, _ = sock_srv.accept()
+
+            with contextlib.closing(ephe_sock):
+                return sockname[1]

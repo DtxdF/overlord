@@ -295,6 +295,7 @@ async def scale_project(client, project_name, options, force):
     economy = scale_options.get("economy")
     rules = scale_options.get("rules")
     labels = scale_options.get("labels")
+    reserve_port = scale_options.get("reserve_port")
 
     good = {
         "count" : 0,
@@ -376,7 +377,10 @@ async def scale_project(client, project_name, options, force):
             logger.debug("(chain:%s, project:%s, nodes:%d) deploying ...", chain, project_name, good["count"])
 
             try:
-                response["nodes"][chain] = await client.up(project_name, project_file, environment, chain=chain)
+                response["nodes"][chain] = await client.up(
+                    project_name, project_file, environment,
+                    reserve_port=reserve_port, chain=chain
+                )
 
             except Exception as err:
                 error = overlord.util.get_error(err)
@@ -494,7 +498,10 @@ async def scale_project(client, project_name, options, force):
             logger.debug("(chain:%s, project:%s, nodes:%d, min:%d) deploying ...", chain, project_name, good["count"], min)
 
             try:
-                response["nodes"][chain] = await client.up(project_name, project_file, environment, chain=chain)
+                response["nodes"][chain] = await client.up(
+                    project_name, project_file, environment,
+                    reserve_port=reserve_port, chain=chain
+                )
 
             except Exception as err:
                 error = overlord.util.get_error(err)
@@ -598,7 +605,10 @@ async def scale_project(client, project_name, options, force):
             logger.debug("(chain:%s, project:%s, nodes:%d, max:%d) deploying ...", chain, project_name, bad["count"], max)
 
             try:
-                response["nodes"][node] = await client.up(project_name, project_file, environment, chain=node)
+                response["nodes"][node] = await client.up(
+                    project_name, project_file, environment,
+                    reserve_port=reserve_port, chain=node
+                )
 
             except Exception as err:
                 error = overlord.util.get_error(err)
@@ -881,7 +891,8 @@ def get_options(options):
             "value" : scale_options.get("value"),
             "rules" : scale_options.get("rules"),
             "economy" : scale_options.get("economy"),
-            "labels" : labels
+            "labels" : labels,
+            "reserve_port" : scale_options.get("reserve_port")
         }
     }
 

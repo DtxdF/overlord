@@ -29,8 +29,11 @@
 
 import logging
 import os
+import random
 import re
 import shutil
+
+import sysctl
 
 import overlord.config
 import overlord.process
@@ -125,6 +128,45 @@ def list_expose(jail, nro):
     data = _list(jail, "nro", f"{nro}", get_expose, keywords)
     
     return data
+
+def get_freeport(interface):
+    exclude = []
+
+    jails = get_list()
+
+    for jail in jails:
+        nros = overlord.jail.get_expose_nros(jail)
+
+        if nros is None:
+            continue
+
+        keywords = ("on_if", "hport")
+
+        for nro in nros:
+            data = _list(jail, "nro", f"{nro}", get_expose, keywords)
+
+            on_if = data.get("on_if")
+            hport = data.get("hport")
+
+            if on_if is None or hport is None:
+                continue
+
+            if on_if != interface:
+                continue
+
+            exclude.append(hport)
+
+    first = sysctl.filter("net.inet.ip.portrange.first")[0].value
+    last = sysctl.filter("net.inet.ip.portrange.last")[0].value
+
+    ports = [port for port in range(first, last) if port not in exclude]
+
+    if len(ports) == 0:
+        raise OSError("Impossible to find a free port.")
+
+    freeport = random.choice(ports)
+
+    return freeport
 
 def get_healthcheck_nros(jail):
     ids = _list_ids(jail, "boot/health")

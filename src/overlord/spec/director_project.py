@@ -158,6 +158,9 @@ def get_autoScale_labels():
 
     return get_default(autoScale.get("labels"), overlord.default.LABELS)
 
+def get_reserve_port():
+    return get_default(CONFIG.get("reserve_port"), {})
+
 def validate(document):
     global CONFIG
 
@@ -177,7 +180,8 @@ def validate(document):
         "chainsEnvironment",
         "labelsEnvironment",
         "environFromMetadata",
-        "autoScale"
+        "autoScale",
+        "reserve_port"
     )
 
     for key in document:
@@ -192,8 +196,26 @@ def validate(document):
     validate_labelsEnvironment(document)
     validate_environFromMetadata(document)
     validate_autoScale(document)
+    validate_reserve_port(document)
 
     CONFIG = document
+
+def validate_reserve_port(document):
+    reserve_port = document.get("reserve_port")
+
+    if reserve_port is None:
+        return
+
+    if not isinstance(reserve_port, dict):
+        raise overlord.exceptions.InvalidSpec("'reserve_port' is invalid.")
+
+    for interface, network in reserve_port.items():
+        if not isinstance(interface, str):
+            raise overlord.exceptions.InvalidSpec(f"Invalid interface name (reserve_port.{interface}).")
+
+        if network is not None \
+                and not isinstance(network, str):
+            raise overlord.exceptions.InvalidSpec(f"Invalid network address (reserve_port.{network}).")
 
 def validate_autoScale(document):
     autoScale = document.get("autoScale")

@@ -86,7 +86,7 @@ class OverlordClient(httpx.AsyncClient):
             auth=auth,
             **kwargs)
 
-    async def up(self, name, director_file, environment={}, restart=False, chain=None):
+    async def up(self, name, director_file, environment={}, restart=False, reserve_port={}, chain=None):
         """
         Create a new project.
 
@@ -99,6 +99,10 @@ class OverlordClient(httpx.AsyncClient):
                 A dictionary with additional environments to include when creating the project.
             restart (bool, optional):
                 Restart the project if it exists.
+            reserve_port (dict(str, str), optional):
+                A dictionary where each key is an interface name and optionally its value with
+                a network address. It is used to obtain an IP address to be used when reserving
+                the port.
             chain (str, optional):
                 The chain that the server(s) should use to redirect the request.
 
@@ -119,7 +123,8 @@ class OverlordClient(httpx.AsyncClient):
         parsed = await self.__post_parsed(f"project/up/{name}", chain=chain, json={
             "director_file" : director_file,
             "environment" : environment,
-            "restart" : restart
+            "restart" : restart,
+            "reserve_port" : reserve_port
         })
 
         return parsed

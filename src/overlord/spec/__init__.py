@@ -78,6 +78,7 @@ def get_config():
         config["chainsEnvironment"] = overlord.spec.director_project.get_chainsEnvironment()
         config["datacentersEnvironment"] = overlord.spec.director_project.get_datacentersEnvironment()
         config["autoScale"] = overlord.spec.director_project.get_autoScale()
+        config["reserve_port"] = overlord.spec.director_project.get_reserve_port()
 
     elif kind == OverlordKindTypes.METADATA.value:
         config["metadata"] = overlord.spec.metadata.get_metadata()
