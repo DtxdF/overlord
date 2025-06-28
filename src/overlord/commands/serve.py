@@ -440,7 +440,7 @@ class ProjectUpHandler(InternalHandler):
                     or not isinstance(env_value, str):
                 self.write_template({
                     "message" : f"Invalid environment name ({env_name}) or value ({env_value})."
-                }, status_code=404)
+                }, status_code=400)
                 return
 
         for interface, network in reserve_port.items():
@@ -489,7 +489,7 @@ class ProjectDownHandler(InternalHandler):
                     or not isinstance(env_value, str):
                 self.write_template({
                     "message" : f"Invalid environment name ({env_name}) or value ({env_value})."
-                }, status_code=404)
+                }, status_code=400)
                 return
 
         job_id = await overlord.queue.put_destroy_project({
