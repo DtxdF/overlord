@@ -118,7 +118,12 @@ def get_expose_nros(jail):
     return ids
 
 def get_expose(jail, nro, keyword):
-    value = _read(jail, f"boot/expose/{nro}", keyword)
+    if keyword == "rule":
+        # pf
+        value = _read(jail, f"boot/expose/{nro}", "pf-rule")
+
+    else:
+        value = _read(jail, f"boot/expose/{nro}", keyword)
 
     return value
 
