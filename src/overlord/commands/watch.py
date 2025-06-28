@@ -821,7 +821,7 @@ async def run_special_label_skydns(project, type, service, labels):
 
         return (error, message) 
 
-    if address is None:
+    if address is None and type == "create":
         error = True
         message = f"(project:{project}, service:{service_name}, interface:{interface}, address:{network}, label:overlord.skydns.interface.address) no IP address has been found."
 
@@ -1076,7 +1076,7 @@ async def run_special_label_load_balancer(project, type, service, labels):
 
         return (error, message) 
 
-    if address is None:
+    if address is None and type == "create":
         error = True
         message = f"(project:{project}, service:{service_name}, interface:{interface}, address:{network}, label:overlord.load-balancer.interface.address) no IP address has been found."
 
