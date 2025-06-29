@@ -63,7 +63,7 @@ class InternalHandler(overlord.tornado.JSONAuthHandler):
 
         else:
             self.write_template({
-                "message" : "Jail cannot be found."
+                "message" : f"Jail '{jail}' cannot be found."
             }, status_code=404)
 
             return False
@@ -74,7 +74,7 @@ class InternalHandler(overlord.tornado.JSONAuthHandler):
 
         else:
             self.write_template({
-                "message" : "Project cannot be found."
+                "message" : f"Project '{project}' cannot be found."
             }, status_code=404)
 
             return False
@@ -401,11 +401,37 @@ class ProjectsHandler(InternalHandler):
 
 class ProjectInfoHandler(InternalHandler):
     async def get(self, project):
-        if not self.check_project(project):
+        result = {}
+
+        info = overlord.cache.get_project_info(project)
+
+        if len(info) > 0:
+            result.update(info)
+
+        up_info = overlord.cache.get_project_status_up(project)
+
+        if len(up_info) > 0:
+            result["up"] = up_info
+
+            if "last_update" in result["up"]:
+                result["up"]["last_update"] = time.time() - result["up"]["last_update"]
+
+        down_info = overlord.cache.get_project_status_down(project)
+
+        if len(down_info) > 0:
+            result["down"] = down_info
+
+            if "last_update" in result["down"]:
+                result["down"]["last_update"] = time.time() - result["down"]["last_update"]
+        
+        if len(result) == 0:
+            self.write_template({
+                "message" : f"Project '{project}' cannot be found."
+            }, status_code=404)
             return
 
         self.write_template({
-            "info" : overlord.cache.get_project_info(project)
+            "info" : result
         })
 
     async def head(self, project):
@@ -416,19 +442,6 @@ class ProjectInfoHandler(InternalHandler):
             self.set_status(404)
 
 class ProjectUpHandler(InternalHandler):
-    async def get(self, project):
-        if not self.check_project(project):
-            return
-
-        result = overlord.cache.get_project_status_up(project)
-
-        if "last_update" in result:
-            result["last_update"] = time.time() - result["last_update"]
-
-        self.write_template({
-            "status" : result
-        })
-
     async def post(self, project):
         director_file = self.get_json_argument("director_file", value_type=str, strip=False)
         environment = self.get_json_argument("environment", {}, value_type=dict)
@@ -467,19 +480,6 @@ class ProjectUpHandler(InternalHandler):
         })
 
 class ProjectDownHandler(InternalHandler):
-    async def get(self, project):
-        if not self.check_project(project):
-            return
-
-        result = overlord.cache.get_project_status_down(project)
-
-        if "last_update" in result:
-            result["last_update"] = time.time() - result["last_update"]
-
-        self.write_template({
-            "status" : result
-        })
-
     async def post(self, project):
         force = self.get_json_argument("force", False, value_type=bool)
         environment = self.get_json_argument("environment", {}, value_type=dict)
@@ -669,10 +669,13 @@ class MetadataListHandler(InternalHandler):
 
 class VMHandler(InternalHandler):
     async def get(self, name):
-        if not self.check_jail(name):
-            return
-
         result = overlord.cache.get_vm_status(name)
+
+        if len(result) == 0:
+            self.write_template({
+                "message" : f"VM '{name}' cannot be found."
+            }, status_code=404)
+            return
 
         if "last_update" in result:
             result["last_update"] = time.time() - result["last_update"]
@@ -1104,13 +1107,6 @@ class ChainProjectInfoHandler(ChainInternalHandler):
             self.set_status(404)
 
 class ChainProjectUpHandler(ChainInternalHandler):
-    async def get(self, chain, project):
-        result = await self.remote_call(chain, "get_status_up", project)
-
-        self.write_template({
-            "status" : result
-        })
-
     async def post(self, chain, project):
         director_file = self.get_json_argument("director_file", value_type=str, strip=False)
         environment = self.get_json_argument("environment", {}, value_type=dict)
@@ -1122,13 +1118,6 @@ class ChainProjectUpHandler(ChainInternalHandler):
         self.write_template(result)
 
 class ChainProjectDownHandler(ChainInternalHandler):
-    async def get(self, chain, project):
-        result = await self.remote_call(chain, "get_status_down", project)
-
-        self.write_template({
-            "status" : result
-        })
-
     async def post(self, chain, project):
         force = self.get_json_argument("force", False, value_type=bool)
         environment = self.get_json_argument("environment", {}, value_type=dict)

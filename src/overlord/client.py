@@ -193,58 +193,6 @@ class OverlordClient(httpx.AsyncClient):
 
         return parsed
 
-    async def get_status_up(self, name, chain=None):
-        """
-        Gets the status of the operation created by the ``up`` method.
-
-        Args:
-            name (str): Project name.
-            chain (str, optional):
-                The chain that the server(s) should use to redirect the request.
-
-        Returns:
-            dict: Dictionary representing the information created by ``up``.
-
-        Raises:
-            - overlord.exceptions.InvalidProjectName
-            - overlord.exceptions.InvalidEntityType
-            - overlord.exceptions.InvalidArguments
-            - overlord.exceptions.APIError
-        """
-
-        if not overlord.director.check_project_name(name):
-            raise overlord.exceptions.InvalidProjectName(f"{name}: Invalid project name.")
-
-        parsed = await self.__get_entity(name, "up", OverlordEntityTypes.PROJECT, chain)
-
-        return parsed.get("status", {})
-
-    async def get_status_down(self, name, chain=None):
-        """
-        Gets the status of the operation created by the ``down`` method.
-
-        Args:
-            name (str): Project name.
-            chain (str, optional):
-                The chain that the server(s) should use to redirect the request.
-
-        Returns:
-            dict: Dictionary representing the information created by ``down``.
-
-        Raises:
-            - overlord.exceptions.InvalidProjectName
-            - overlord.exceptions.InvalidEntityType
-            - overlord.exceptions.InvalidArguments
-            - overlord.exceptions.APIError
-        """
-
-        if not overlord.director.check_project_name(name):
-            raise overlord.exceptions.InvalidProjectName(f"{name}: Invalid project name.")
-
-        parsed = await self.__get_entity(name, "down", OverlordEntityTypes.PROJECT, chain)
-
-        return parsed.get("status", {})
-
     async def get_status_autoscale(self, name, chain=None):
         """
         If the project was created by autoscaling, it reveals the information created by
