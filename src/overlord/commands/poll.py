@@ -337,7 +337,7 @@ async def scale_project(client, project_name, options, force):
             continue
 
         try:
-            health = await check_project(client, project_name, chain)
+            (context, health) = await check_project(client, project_name, chain)
 
         except Exception as err:
             count_fails()
@@ -354,13 +354,17 @@ async def scale_project(client, project_name, options, force):
             good["count"] += 1
             good["nodes"].append(chain)
 
-            logger.debug("(chain:%s, project:%s, good:%d) will be placed on the good list", chain, project_name, good["count"])
+            logger.debug("(chain:%s, project:%s, context:%s, good:%d) will be placed on the good list", chain, project_name, context, good["count"])
+
+        elif context == "healthcheckers" \
+                and not health:
+            logger.debug("(chain:%s, project:%s, context:%s) ignoring ...", chain, project_name, context)
 
         else:
             bad["count"] += 1
             bad["nodes"].append(chain)
 
-            logger.debug("(chain:%s, project:%s, bad:%d) will be placed on the bad list", chain, project_name, bad["count"])
+            logger.debug("(chain:%s, project:%s, context:%s, bad:%d) will be placed on the bad list", chain, project_name, context, bad["count"])
 
     cleanup = overlord.metadata.check(f"overlord.autoscale-cleanup.{project_name}")
 
@@ -782,18 +786,18 @@ async def test_rctl(client, project_name, chain, type, value, rules):
 
 async def check_project(client, project_name, chain):
     if not await client.check(project_name, type=overlord.client.OverlordEntityTypes.PROJECT, chain=chain):
-        return False
+        return ("existence", False)
 
     info = await client.get_info(project_name, type=overlord.client.OverlordEntityTypes.PROJECT, chain=chain)
 
     state = info.get("state")
 
     if state == "UNFINISHED":
-        # I assume that the project is currently be created.
-        return True
+        # I assume that the project is currently being created.
+        return ("state", True)
 
     elif state != "DONE":
-        return False
+        return ("state", False)
 
     services = info.get("services", {})
 
@@ -801,19 +805,19 @@ async def check_project(client, project_name, chain):
         service_status = service_info["status"]
 
         if service_status != 0:
-            return False
+            return ("service-status", False)
 
         service_jail = service_info["jail"]
 
         if not await client.check(service_jail, chain=chain):
-            return False
+            return ("service-existence", False)
 
         jail_info = await client.get_info(service_jail, chain=chain)
 
         is_dirty = jail_info.get("dirty", "0") == "1"
 
         if is_dirty:
-            return False
+            return ("service-dirty", False)
 
         healthcheckers = await client.get_healthcheck(service_jail, chain=chain)
 
@@ -824,9 +828,9 @@ async def check_project(client, project_name, chain):
                 continue
 
             if healthcheck_status == "unhealthy":
-                return False
+                return ("healthcheckers", False)
 
-    return True
+    return ("health", True)
 
 def get_options(options):
     project_file = options.get("projectFile")
