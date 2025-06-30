@@ -739,6 +739,9 @@ async def run_special_labels(project, type, force=False):
                     break
 
                 else:
+                    if "value" not in label:
+                        continue
+
                     label_name = label["name"]
                     label_value = label["value"]
 
