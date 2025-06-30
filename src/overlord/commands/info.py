@@ -119,6 +119,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
             client = overlord.client.OverlordClient(
                 entrypoint,
                 access_token,
+                pretty_exc=False,
                 limits=httpx.Limits(**limits_settings),
                 timeout=httpx.Timeout(**timeout_settings),
                 **kwargs
@@ -372,7 +373,10 @@ async def print_info_vm(client, chain, api_info, projects):
     for project in projects:
         info["projects"][project] = {}
 
-        result = await _safe_client(client, "get_status_vm", project, chain=chain)
+        result = await _safe_client(
+            client, "get_status_vm", project,
+            ignore_http_codes=[404], chain=chain
+        )
 
         if result is not None:
             info["projects"][project]["virtual-machines"] = result
@@ -443,7 +447,10 @@ async def print_info_autoscale(client, chain, api_info, projects):
     info["projects"] = {}
 
     for project in projects:
-        result = await _safe_client(client, "get_status_autoscale", project, chain=chain)
+        result = await _safe_client(
+            client, "get_status_autoscale", project,
+            ignore_http_codes=[404], chain=chain
+        )
 
         if result is not None:
             info["projects"][project] = {
@@ -685,7 +692,9 @@ async def print_info_projects(client, chain, api_info, projects):
             return
 
     for project in projects:
-        result = await _safe_client(client, "get_info", project, type=overlord.client.OverlordEntityTypes.PROJECT, chain=chain)
+        result = await _safe_client(
+            client, "get_info", project, type=overlord.client.OverlordEntityTypes.PROJECT,
+            ignore_http_codes=[404], chain=chain)
 
         if result is not None:
             info["projects"][project] = result
@@ -878,11 +887,18 @@ def print_header(info):
 
         print(f"    - {label}")
 
-async def _safe_client(client, func, *args, **kwargs):
+async def _safe_client(client, func, *args, ignore_http_codes=[], **kwargs):
     try:
         return await getattr(client, func)(*args, **kwargs)
 
     except Exception as err:
+        if isinstance(err, httpx.HTTPStatusError):
+            status_code = err.response.status_code
+
+            for code in ignore_http_codes:
+                if status_code == code:
+                    return
+
         error = overlord.util.get_error(err)
         error_type = error.get("type")
         error_message = error.get("message")
