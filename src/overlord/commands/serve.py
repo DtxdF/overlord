@@ -1268,7 +1268,7 @@ def make_app():
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/up/([a-zA-Z0-9._-]+)", ChainProjectUpHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/down/([a-zA-Z0-9._-]+)", ChainProjectDownHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/cancel/([a-zA-Z0-9._-]+)", ChainProjectCancelHandler),
-        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/autoscale/([a-zA-Z0-9._-]+)", ChainProjectDownHandler)
+        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/project/autoscale/([a-zA-Z0-9._-]+)", ChainProjectAutoScaleHandler)
     ], **settings)
 
 async def listen():
