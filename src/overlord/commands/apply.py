@@ -303,7 +303,8 @@ async def _apply(file, restart):
                             f"overlord.autoscale.{project_name}" : json.dumps({
                                 "projectFile" : project_file,
                                 "environment" : environment,
-                                "autoScale" : scale_options
+                                "autoScale" : scale_options,
+                                "reserve_port" : reserve_port
                             }, indent=4)
                         }
 

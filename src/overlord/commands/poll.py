@@ -879,6 +879,11 @@ def get_options(options):
     if labels is None:
         labels = overlord.default.LABELS
 
+    reserve_port = options.get("reserve_port")
+
+    if reserve_port is None:
+        reserve_port = {}
+
     options = {
         "projectFile" : project_file,
         "environment" : environment,
@@ -892,7 +897,7 @@ def get_options(options):
             "rules" : scale_options.get("rules"),
             "economy" : scale_options.get("economy"),
             "labels" : labels,
-            "reserve_port" : scale_options.get("reserve_port")
+            "reserve_port" : reserve_port
         }
     }
 
