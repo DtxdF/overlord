@@ -516,6 +516,12 @@ class ProjectAutoScaleHandler(InternalHandler):
     async def get(self, project):
         result = overlord.cache.get_project_status_autoscale(project)
 
+        if len(result) == 0:
+            self.write_template({
+                "message" : f"Project '{project}' cannot be found."
+            }, status_code=404)
+            return
+
         if "last_update" in result:
             result["last_update"] = time.time() - result["last_update"]
 
