@@ -162,7 +162,7 @@ def get_autoScale_labels():
 def get_autoScale_metadata():
     autoScale = get_autoScale()
 
-    return get_default(autoScale.get("metadata"), overlord.default.LABELS)
+    return get_default(autoScale.get("metadata"), [])
 
 def get_reserve_port():
     return get_default(CONFIG.get("reserve_port"), {})
