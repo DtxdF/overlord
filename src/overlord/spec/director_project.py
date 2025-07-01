@@ -31,6 +31,7 @@ import copy
 
 import humanfriendly
 
+import overlord.metadata
 import overlord.exceptions
 
 CONFIG = {}
@@ -158,6 +159,11 @@ def get_autoScale_labels():
 
     return get_default(autoScale.get("labels"), overlord.default.LABELS)
 
+def get_autoScale_metadata():
+    autoScale = get_autoScale()
+
+    return get_default(autoScale.get("metadata"), overlord.default.LABELS)
+
 def get_reserve_port():
     return get_default(CONFIG.get("reserve_port"), {})
 
@@ -232,7 +238,8 @@ def validate_autoScale(document):
         "value",
         "rules",
         "economy",
-        "labels"
+        "labels",
+        "metadata"
     )
 
     for key in autoScale:
@@ -244,6 +251,7 @@ def validate_autoScale(document):
     validate_autoScale_rules(autoScale)
     validate_autoScale_economy(autoScale)
     validate_autoScale_labels(autoScale)
+    validate_autoScale_metadata(autoScale)
 
 def validate_autoScale_replicas(document):
     replicas = document.get("replicas")
@@ -389,6 +397,27 @@ def validate_autoScale_labels(document):
 
     if length < 1:
         raise overlord.exceptions.InvalidSpec("'autoScale.labels': at least one label must be specified.")
+
+def validate_autoScale_metadata(document):
+    metadata = document.get("metadata")
+
+    if metadata is None:
+        return
+
+    if not isinstance(metadata, list):
+        raise overlord.exceptions.InvalidSpec("'autoScale.metadata' is invalid.")
+
+    for index, entry in enumerate(metadata):
+        if not isinstance(entry, str):
+            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'autoScale.metadata.{index}'")
+
+        if not overlord.metadata.check_keyname(entry):
+            raise overlord.exceptions.InvalidSpec(f"'autoScale.metadata.{index}.{entry}': invalid metadata.")
+
+    length = len(metadata)
+
+    if length < 1:
+        raise overlord.exceptions.InvalidSpec("'autoScale.metadata': at least one metadata must be specified.")
 
 def validate_projectName(document):
     projectName = document.get("projectName")

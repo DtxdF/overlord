@@ -726,6 +726,20 @@ See
 .Sy deployIn.labels
 for details.
 .Pp
+.It Sy autoScale.metadata
+A list of strings for replicating metadata.
+.Pp
+Defining a static deployment file to deploy metadata is good when no new chains
+are to be added, however if more and more chains are added, deployments may fail
+if those chains do not have the metadata that the
+.Sy directorProject
+deployment requires, so
+.Sy poll-autoscale
+will take care of that before deploying a project.
+.Pp
+For this to work, the metadata must be deployed in the chain responsible for
+autoscaling the project. Once the metadata is deployed, it is not removed.
+.Pp
 .It Sy reserve_port
 Attempt to obtain an unused port.
 .Pp

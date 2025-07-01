@@ -253,7 +253,7 @@ async def _poll_autoscale():
 
                     continue
 
-                AUTOSCALE_LOGS[project_name].append(result)
+                AUTOSCALE_LOGS[project_name].extend(result)
 
                 overlord.cache.save_project_status_autoscale(project_name, {
                     "last_update" : time.time(),
@@ -275,10 +275,7 @@ async def _poll_autoscale():
 async def scale_project(client, project_name, options, force):
     options = get_options(options)
 
-    response = {
-        "message" : None,
-        "nodes" : {}
-    }
+    log = []
 
     destroy = True
 
@@ -295,7 +292,8 @@ async def scale_project(client, project_name, options, force):
     economy = scale_options.get("economy")
     rules = scale_options.get("rules")
     labels = scale_options.get("labels")
-    reserve_port = scale_options.get("reserve_port")
+    metadata = scale_options.get("metadata")
+    reserve_port = options.get("reserve_port")
 
     good = {
         "count" : 0,
@@ -312,6 +310,16 @@ async def scale_project(client, project_name, options, force):
         fails += 1
 
     logger.debug("(project:%s, labels:%s) processing ...", project_name, labels)
+
+    metadata_replication = {}
+
+    for metadata_key in metadata:
+        if not overlord.metadata.check(metadata_key):
+            raise overlord.exceptions.MetadataNotFound(f"{metadata_key}: metadata not found.")
+
+        metadata_value = await overlord.metadata.get(metadata_key)
+
+        metadata_replication[metadata_key] = metadata_value
 
     chains = [None]
 
@@ -381,28 +389,56 @@ async def scale_project(client, project_name, options, force):
             logger.debug("(chain:%s, project:%s, nodes:%d) deploying ...", chain, project_name, good["count"])
 
             try:
-                response["nodes"][chain] = await client.up(
+                _response = await write_metadata(
+                    client, project_name, chain,
+                    metadata_replication
+                )
+
+                response = {
+                    "project" : project_name,
+                    "chain" : chain,
+                    "context" : "metadata",
+                    "length" : len(metadata_replication),
+                    "response" : _response
+                }
+
+                log.append(response)
+
+                _response = await client.up(
                     project_name, project_file, environment,
                     reserve_port=reserve_port, chain=chain
                 )
+
+                response = {
+                    "project" : project_name,
+                    "chain" : chain,
+                    "context" : "up",
+                    "response" : _response
+                }
+
+                log.append(response)
 
             except Exception as err:
                 error = overlord.util.get_error(err)
                 error_type = error.get("type")
                 error_message = error.get("message")
 
-                response["nodes"][chain] = {
+                exception = {
+                    "project" : project_name,
+                    "chain" : chain,
                     "exception" : {
                         "type" : error_type,
                         "message" : error_message
                     }
                 }
 
+                log.append(exception)
+
                 logger.exception("(chain:%s, project:%s, exception:%s) %s", chain, project_name, error_type, error_message)
 
                 continue
 
-        return response
+        return log
 
     if cleanup:
         cleanup_options = await overlord.metadata.get(f"overlord.autoscale-cleanup.{project_name}")
@@ -444,7 +480,20 @@ async def scale_project(client, project_name, options, force):
                         logger.debug("(chain:%s, project:%s, nodes:%d, force:%s) destroying ...",
                                      chain, project_name, nodes["count"], cleanup_force)
 
-                        response["nodes"][chain] = await client.down(project_name, environment, force=cleanup_force, chain=chain)
+                        _response = await client.down(
+                            project_name, environment, force=cleanup_force,
+                            chain=chain
+                        )
+
+                        response = {
+                            "project" : project_name,
+                            "chain" : chain,
+                            "force" : cleanup_force,
+                            "context" : "down",
+                            "response" : _response
+                        }
+
+                        log.append(response)
 
                         remove_metadata = False
 
@@ -453,25 +502,39 @@ async def scale_project(client, project_name, options, force):
                     error_type = error.get("type")
                     error_message = error.get("message")
 
-                    response["nodes"][chain] = {
+                    exception = {
+                        "project" : project_name,
+                        "chain" : chain,
                         "exception" : {
                             "type" : error_type,
                             "message" : error_message
                         }
                     }
 
+                    log.append(exception)
+
                     logger.exception("(chain:%s, project:%s, exception:%s) %s", chain, project_name, error_type, error_message)
 
                     continue
 
             if not remove_metadata:
-                return response
+                return log
 
         if fails > 0:
-            response["message"] = f"(project:{project_name}, fails:{fails}) metadata cannot be destroyed because there is a likelihood that a project has been deployed in a failed chain."
+            _response = "metadata cannot be destroyed because there is a likelihood that a " \
+                        "project has been deployed in a failed chain."
 
-            logger.debug("(project:%s, fails:%d) metadata cannot be destroyed because there is a likelihood that a project has been deployed in a failed chain.",
-                         project_name, fails)
+            response = {
+                "project" : project_name,
+                "fails" : fails,
+                "context" : "destroy",
+                "response" : _response
+            }
+
+            log.append(response)
+
+            logger.debug("(project:%s, fails:%d) %s",
+                         project_name, fails, _response)
 
         else:
             if overlord.metadata.check(f"overlord.autoscale.{project_name}"):
@@ -486,9 +549,17 @@ async def scale_project(client, project_name, options, force):
 
                 overlord.metadata.delete(f"overlord.autoscale-cleanup.{project_name}")
 
-            response["message"] = "There are no more nodes to destroy the project."
+            _response = "There are no more nodes to destroy the project."
 
-        return response
+            response = {
+                "project" : project_name,
+                "context" : "destroy",
+                "response" : _response
+            }
+
+            log.append(_response)
+
+        return log
 
     if max is None:
         max = good["count"] + bad["count"]
@@ -502,22 +573,50 @@ async def scale_project(client, project_name, options, force):
             logger.debug("(chain:%s, project:%s, nodes:%d, min:%d) deploying ...", chain, project_name, good["count"], min)
 
             try:
-                response["nodes"][chain] = await client.up(
+                _response = await write_metadata(
+                    client, project_name, chain,
+                    metadata_replication
+                )
+
+                response = {
+                    "project" : project_name,
+                    "chain" : chain,
+                    "context" : "metadata",
+                    "length" : len(metadata_replication),
+                    "response" : _response
+                }
+
+                log.append(response)
+
+                _response = await client.up(
                     project_name, project_file, environment,
                     reserve_port=reserve_port, chain=chain
                 )
+
+                response = {
+                    "project" : project_name,
+                    "chain" : chain,
+                    "context" : "up",
+                    "response" : _response
+                }
+
+                log.append(response)
 
             except Exception as err:
                 error = overlord.util.get_error(err)
                 error_type = error.get("type")
                 error_message = error.get("message")
 
-                response["nodes"][chain] = {
+                exception = {
+                    "project" : project_name,
+                    "chain" : chain,
                     "exception" : {
                         "type" : error_type,
                         "message" : error_message
                     }
                 }
+
+                log.append(exception)
 
                 logger.exception("(chain:%s, project:%s, exception:%s) %s", chain, project_name, error_type, error_message)
 
@@ -531,11 +630,20 @@ async def scale_project(client, project_name, options, force):
                 break
 
         if good["count"] < min:
-            logger.debug("(project:%s, nodes:%d, min:%d) insufficient nodes to replicate the project", project_name, good["count"], min)
+            _response = "Insufficient nodes to replicate the project (%d/%d)" % (good["count"], min)
 
-            response["message"] = "Insufficient nodes to replicate the project (%d/%d)" % (good["count"], min)
+            logger.debug("(project:%s, nodes:%d, min:%d) %s", project_name, good["count"], min, _response)
 
-        return response
+            response = {
+                "project" : project_name,
+                "nodes" : good["count"],
+                "min" : min,
+                "response" : _response
+            }
+
+            log.append(response)
+
+        return log
 
     if rules is not None:
         index = 0
@@ -554,16 +662,29 @@ async def scale_project(client, project_name, options, force):
                 error_type = error.get("type")
                 error_message = error.get("message")
 
-                response["nodes"][chain] = {
+                exception = {
+                    "project" : project_name,
+                    "chain" : chain,
                     "exception" : {
                         "type" : error_type,
                         "message" : error_message
                     }
                 }
 
+                log.append(exception)
+
                 logger.exception("(chain:%s, project:%s, exception:%s) %s", chain, project_name, error_type, error_message)
 
                 continue
+
+            response = {
+                "project" : project_name,
+                "chain" : chain,
+                "context" : "rctl",
+                "response" : test
+            }
+
+            log.append(response)
 
             if test:
                 logger.debug("(chain:%s, project:%s) ok", chain, project_name)
@@ -609,29 +730,57 @@ async def scale_project(client, project_name, options, force):
             logger.debug("(chain:%s, project:%s, nodes:%d, max:%d) deploying ...", chain, project_name, bad["count"], max)
 
             try:
-                response["nodes"][node] = await client.up(
+                _response = await write_metadata(
+                    client, project_name, chain,
+                    metadata_replication
+                )
+
+                response = {
+                    "project" : project_name,
+                    "chain" : chain,
+                    "context" : "metadata",
+                    "length" : len(metadata_replication),
+                    "response" : _response
+                }
+
+                log.append(response)
+
+                _response = await client.up(
                     project_name, project_file, environment,
                     reserve_port=reserve_port, chain=node
                 )
+
+                response = {
+                    "project" : project_name,
+                    "chain" : chain,
+                    "context" : "up",
+                    "response" : _response
+                }
+
+                log.append(response)
 
             except Exception as err:
                 error = overlord.util.get_error(err)
                 error_type = error.get("type")
                 error_message = error.get("message")
 
-                response["nodes"][node] = {
+                exception = {
+                    "project" : project_name,
+                    "chain" : chain,
                     "exception" : {
                         "type" : error_type,
                         "message" : error_message
                     }
                 }
 
+                log.append(exception)
+
                 logger.exception("(chain:%s, project:%s, exception:%s) %s", chain, project_name, error_type, error_message)
 
                 continue
 
             else:
-                return response
+                return log
 
     if destroy \
             and good["count"] > min:
@@ -641,28 +790,48 @@ async def scale_project(client, project_name, options, force):
             logger.debug("(chain:%s, project:%s, nodes:%d, min:%d) destroying ...", chain, project_name, good["count"], min)
 
             try:
-                response["nodes"][chain] = await client.down(project_name, environment, chain=chain)
+                _response = await client.down(project_name, environment, chain=chain)
+
+                response = {
+                    "project" : project_name,
+                    "chain" : chain,
+                    "context" : "down",
+                    "response" : _response
+                }
+
+                log.append(response)
 
             except Exception as err:
                 error = overlord.util.get_error(err)
                 error_type = error.get("type")
                 error_message = error.get("message")
 
-                response["nodes"][chain] = {
+                exception = {
+                    "project" : project_name,
+                    "chain" : chain,
                     "exception" : {
                         "type" : error_type,
                         "message" : error_message
                     }
                 }
 
+                log.append(exception)
+
                 logger.exception("(chain:%s, project:%s, exception:%s) %s", chain, project_name, error_type, error_message)
 
                 continue
 
             else:
-                return response
+                return log
 
-    return response
+    return log
+
+async def write_metadata(client, project_name, chain, metadata):
+    for key, value in metadata.items():
+        logger.debug("(chain:%s, project:%s, metadata:%s) Writing metadata ...",
+                     chain, project_name, key)
+
+        await client.metadata_set(key, value, chain=chain)
 
 async def test_economy(client, project_name, chain, rules):
     stats = await client.get_server_stats(chain=chain)
@@ -883,10 +1052,17 @@ def get_options(options):
     if labels is None:
         labels = overlord.default.LABELS
 
+    metadata = scale_options.get("metadata")
+
+    if metadata is None:
+        metadata = []
+
     reserve_port = options.get("reserve_port")
 
     if reserve_port is None:
         reserve_port = {}
+
+    overlord.spec.director_project.validate_reserve_port(options)
 
     options = {
         "projectFile" : project_file,
@@ -901,8 +1077,9 @@ def get_options(options):
             "rules" : scale_options.get("rules"),
             "economy" : scale_options.get("economy"),
             "labels" : labels,
-            "reserve_port" : reserve_port
-        }
+            "metadata" : metadata
+        },
+        "reserve_port" : reserve_port
     }
 
     return options
