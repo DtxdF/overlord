@@ -164,6 +164,11 @@ def get_autoScale_metadata():
 
     return get_default(autoScale.get("metadata"), [])
 
+def get_autoScale_load_balancer():
+    autoScale = get_autoScale()
+
+    return get_default(autoScale.get("load-balancer"), {})
+
 def get_reserve_port():
     return get_default(CONFIG.get("reserve_port"), {})
 
@@ -239,7 +244,8 @@ def validate_autoScale(document):
         "rules",
         "economy",
         "labels",
-        "metadata"
+        "metadata",
+        "load-balancer"
     )
 
     for key in autoScale:
@@ -252,6 +258,94 @@ def validate_autoScale(document):
     validate_autoScale_economy(autoScale)
     validate_autoScale_labels(autoScale)
     validate_autoScale_metadata(autoScale)
+    validate_autoScale_load_balancer(autoScale)
+
+def validate_autoScale_load_balancer(document):
+    load_balancer = document.get("load-balancer")
+
+    if load_balancer is None:
+        return
+
+    if not isinstance(load_balancer, dict):
+        raise overlord.exceptions.InvalidSpec("'autoScale.load-balancer' is invalid.")
+
+    keys = ("frontend", "backend")
+
+    for key in load_balancer:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"autoScale.load-balancer.{key}: this key is invalid.")
+
+    for type, options in load_balancer.items():
+        name = options.get("name")
+
+        if name is None:
+            raise overlord.exceptions.InvalidSpec(f"'autoScale.load-balancer.{type}.name' is required but hasn't been specified.")
+
+        if not isinstance(name, str):
+            raise overlord.exceptions.InvalidSpec(f"{name}: invalid value type for 'autoScale.load-balancer.{type}.name'")
+
+        rules_obj = options.get("rules")
+
+        if rules_obj is None:
+            raise overlord.exceptions.InvalidSpec(f"'autoScale.load-balancer.{type}.rules' is required but hasn't been specified.")
+
+        if not isinstance(rules_obj, dict):
+            raise overlord.exceptions.InvalidSpec(f"'autoScale.load-balancer.{type}.rules' is invalid.")
+
+        if len(rules_obj) == 0:
+            raise overlord.exceptions.InvalidSpec(f"'autoScale.load-balancer.{type}.rules': at least one rule must be specified.")
+
+        keys = ("or", "and")
+
+        for key in rules_obj:
+            if key not in keys:
+                raise overlord.exceptions.InvalidSpec(f"autoScale.load-balancer.{type}.rules.{key}: this key is invalid.")
+
+        for rule_type, rules in rules_obj.items():
+            for rule_name, rule_obj in rules.items():
+                if not isinstance(rule_name, str) \
+                        or not isinstance(rule_obj, dict):
+                    raise overlord.exceptions.InvalidSpec(f"Invalid rule name (autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}) or value (autoScale.load-balancer.{type}.rules.{rule_type}.{rule_obj}).")
+
+                if "value" not in rule_obj:
+                    raise overlord.exceptions.InvalidSpec(f"'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value' is required but hasn't been specified.")
+
+                value = rule_obj["value"]
+
+                if not isinstance(value, str) \
+                        and not isinstance(value, list):
+                    raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value'")
+
+                if isinstance(value, list):
+                    if len(value) != 2:
+                        raise overlord.exceptions.InvalidSpec(f"{value}: invalid value length for 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value'")
+
+                    begin = value[0]
+
+                    if not isinstance(begin, int) \
+                            or begin < 0:
+                        raise overlord.exceptions.InvalidSpec(f"{value}: invalid value for 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value.0'")
+
+                    end = value[1]
+
+                    if not isinstance(end, int) \
+                            or end < 0:
+                        raise overlord.exceptions.InvalidSpec(f"{value}: invalid value for 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value.1'")
+
+                    if begin > end:
+                        raise overlord.exceptions.InvalidSpec(f"{value}: 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value.1' must be greater than 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value.0'")
+
+                if "each" in rule_obj:
+                    each_value = rule_obj["each"]
+
+                    if not isinstance(each_value, int):
+                        raise overlord.exceptions.InvalidSpec(f"{each_value}: invalid value type for 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.each'")
+
+                keys = ("value", "each")
+
+                for key in rule_obj:
+                    if key not in keys:
+                        raise overlord.exceptions.InvalidSpec(f"autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.{key}: this key is invalid.")
 
 def validate_autoScale_replicas(document):
     replicas = document.get("replicas")

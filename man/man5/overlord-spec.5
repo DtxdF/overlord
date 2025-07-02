@@ -417,6 +417,26 @@ See
 .Sy chains. Ns Ar chain Ns Sy .*
 for details.
 .Pp
+.It Sy haproxy_stats
+HAProxy Stats settings to retrieve HAProxy metrics.
+.Pp
+.It Sy haproxy_stats.auth
+.It Sy haproxy_stats.auth.username
+.It Sy haproxy_stats.auth.password
+.It Sy haproxy_stats.entrypoint
+.It Sy haproxy_stats.timeout
+.It Sy haproxy_stats.read_timeout
+.It Sy haproxy_stats.write_timeout
+.It Sy haproxy_stats.connect_timeout
+.It Sy haproxy_stats.pool_timeout
+.It Sy haproxy_stats.max_keepalive_connections
+.It Sy haproxy_stats.max_connections
+.It Sy haproxy_stats.keepalive_expiry
+.It Sy haproxy_stats.cacert
+See
+.Sy dataplaneapi
+for details.
+.Pp
 .It Sy skydns
 .No Configuration to manipulate the SkyDNS Ns / Ns Xr coredns-etcd 7 No plugin.
 .Pp
@@ -720,6 +740,54 @@ This by itself does not solve the noisy neighbor problem
 .Po limiting resource usage could solve this problem Pc Ns ,
 but it can be useful for when you want to improve the latency response, so
 Overlord will throw away the project on an available chain.
+.Pp
+.It Sy autoScale.load-balancer
+Scale based on HAProxy metrics.
+.Pp
+.It Sy autoScale.load-balancer. Ns Ar type Ns Sy .rules. Ns Ar rule-type Ns Sy . Ns Ar rule-name Ns Sy .value
+Rules that specify when to scale.
+.Pp
+The metrics depend on the
+.Ar type Ns ,
+which can be
+.Sy frontend
+or
+.Sy backend Ns .
+The type of rule can be
+.Sy or
+and
+.Sy and Ns ,
+where the former passes if at least one rule tested is true and the latter to
+succeed in the test all tests must be true.
+.Pp
+The value can be an integer, a range of two integers or a string. However, the
+value type depends entirely on the metric. Using an incorrect value type generates
+an exception on the remote side
+.Po i.e., poll-autoscale Pc Ns .
+.Pp
+If the retrieved metric has a null value or the metric cannot be found, they are
+simply ignored. Note, however, that if a metric cannot be found, this may affect
+the result depending on whether you use
+.Sy or
+or
+.Sy and
+rules.
+.Pp
+.It Sy autoScale.load-balancer. Ns Ar type Ns Sy .rules. Ns Ar rule-type Ns Sy . Ns Ar rule-name Ns Sy .each
+The HAProxy metrics are reset, but Overlord will store the
+.Qq Counter
+and
+.Qq Max
+type metrics in memcached and perform calculations based on the differences.
+This is to avoid a
+.Qq scaling loop
+where a metric has a specific value and when the project is scaled the metric
+value is reset to 0 as the Data Plane API is effectively reloading or restarting
+HAProxy.
+.Pp
+This parameter resets the metric to zero when it reaches the value specified here.
+This is useful in situations where you want to scale up or down from time to time
+as the metric is reset to 0.
 .Pp
 .It Sy autoScale.labels
 See

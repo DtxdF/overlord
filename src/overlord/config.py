@@ -126,6 +126,22 @@ def get_config():
             "keepalive_expiry" : get_dataplaneapi_keepalive_expiry(),
             "cacert" : get_dataplaneapi_cacert()
         },
+        "haproxy_stats" : {
+            "entrypoint" : get_haproxy_stats_entrypoint(),
+            "auth" : {
+                "username" : get_haproxy_stats_auth_username(),
+                "password" : get_haproxy_stats_auth_password()
+            },
+            "timeout" : get_haproxy_stats_timeout(),
+            "read_timeout" : get_haproxy_stats_read_timeout(),
+            "write_timeout" : get_haproxy_stats_write_timeout(),
+            "connect_timeout" : get_haproxy_stats_connect_timeout(),
+            "pool_timeout" : get_haproxy_stats_pool_timeout(),
+            "max_keepalive_connections" : get_haproxy_stats_max_keepalive_connections(),
+            "max_connections" : get_haproxy_stats_max_connections(),
+            "keepalive_expiry" : get_haproxy_stats_keepalive_expiry(),
+            "cacert" : get_haproxy_stats_cacert()
+        },
         "skydns" : {
             "path" : get_skydns_path(),
             "zone" : get_skydns_zone()
@@ -799,6 +815,122 @@ def get_dataplaneapi_cacert():
 
     return cacert
 
+def get_haproxy_stats():
+    return get_default(CONFIG.get("haproxy_stats"), {})
+
+def get_haproxy_stats_entrypoint():
+    haproxy_stats = get_haproxy_stats()
+
+    return haproxy_stats.get("entrypoint")
+
+def get_haproxy_stats_auth():
+    haproxy_stats = get_haproxy_stats()
+
+    return get_default(haproxy_stats.get("auth"), {})
+
+def get_haproxy_stats_auth_username():
+    auth = get_haproxy_stats_auth()
+
+    return auth.get("username")
+
+def get_haproxy_stats_auth_password():
+    auth = get_haproxy_stats_auth()
+
+    return auth.get("password")
+
+def get_haproxy_stats_timeout():
+    haproxy_stats = get_haproxy_stats()
+
+    timeout = get_default(haproxy_stats.get("timeout"), overlord.default.DATAPLANEAPI_TIMEOUT)
+
+    if timeout < 0:
+        timeout = None
+
+    elif timeout == 0:
+        pass # ignore
+
+    return timeout
+
+def get_haproxy_stats_read_timeout():
+    haproxy_stats = get_haproxy_stats()
+
+    read_timeout = get_default(haproxy_stats.get("read_timeout"), overlord.default.DATAPLANEAPI_READ_TIMEOUT)
+
+    if read_timeout < 0:
+        read_timeout = None
+
+    elif read_timeout == 0:
+        pass # ignore
+
+    return read_timeout
+
+def get_haproxy_stats_write_timeout():
+    haproxy_stats = get_haproxy_stats()
+
+    write_timeout = get_default(haproxy_stats.get("write_timeout"), overlord.default.DATAPLANEAPI_WRITE_TIMEOUT)
+
+    if write_timeout < 0:
+        write_timeout = None
+
+    elif write_timeout == 0:
+        pass # ignore
+
+    return write_timeout
+
+def get_haproxy_stats_connect_timeout():
+    haproxy_stats = get_haproxy_stats()
+
+    connect_timeout = get_default(haproxy_stats.get("connect_timeout"), overlord.default.DATAPLANEAPI_CONNECT_TIMEOUT)
+
+    if connect_timeout < 0:
+        connect_timeout = None
+
+    elif connect_timeout == 0:
+        pass # ignore
+
+    return connect_timeout
+
+def get_haproxy_stats_pool_timeout():
+    haproxy_stats = get_haproxy_stats()
+
+    pool_timeout = get_default(haproxy_stats.get("pool_timeout"), overlord.default.DATAPLANEAPI_POOL_TIMEOUT)
+
+    if pool_timeout < 0:
+        pool_timeout = None
+
+    elif pool_timeout == 0:
+        pass # ignore
+
+    return pool_timeout
+
+def get_haproxy_stats_max_keepalive_connections():
+    haproxy_stats = get_haproxy_stats()
+
+    max_keepalive_connections = get_default(haproxy_stats.get("max_keepalive_connections"), overlord.default.DATAPLANEAPI_MAX_KEEPALIVE_CONNECTIONS)
+
+    return max_keepalive_connections
+
+def get_haproxy_stats_max_connections():
+    haproxy_stats = get_haproxy_stats()
+
+    max_connections = get_default(haproxy_stats.get("max_connections"), overlord.default.DATAPLANEAPI_MAX_CONNECTIONS)
+
+    return max_connections
+
+def get_haproxy_stats_keepalive_expiry():
+    haproxy_stats = get_haproxy_stats()
+
+    keepalive_expiry = get_default(haproxy_stats.get("keepalive_expiry"), overlord.default.DATAPLANEAPI_KEEPALIVE_EXPIRY)
+
+    return keepalive_expiry
+
+def get_haproxy_stats_cacert():
+    haproxy_stats = get_haproxy_stats()
+
+    cacert = haproxy_stats.get("cacert")
+
+    return cacert
+
 def get_skydns():
     return get_default(CONFIG.get("skydns"), overlord.default.SKYDNS)
 
@@ -914,6 +1046,7 @@ def validate(document):
         "beanstalkd_addr",
         "execution_time",
         "dataplaneapi",
+        "haproxy_stats",
         "skydns",
         "etcd",
         "max_watch_projects",
@@ -947,6 +1080,7 @@ def validate(document):
     validate_beanstalkd_addr(document)
     validate_execution_time(document)
     validate_dataplaneapi(document)
+    validate_haproxy_stats(document)
     validate_skydns(document)
     validate_etcd(document)
     validate_max_watch_projects(document)
@@ -1294,6 +1428,174 @@ def validate_skydns_zone(document):
 
     if not isinstance(zone, str):
         raise overlord.exceptions.InvalidSpec(f"{zone}: invalid value type for 'skydns.zone'")
+
+def validate_haproxy_stats(document):
+    haproxy_stats = document.get("haproxy_stats")
+
+    if haproxy_stats is None:
+        return
+
+    if not isinstance(haproxy_stats, dict):
+        raise overlord.exceptions.InvalidSpec("'haproxy_stats' is invalid.")
+
+    keys = (
+        "entrypoint",
+        "auth",
+        "timeout",
+        "read_timeout",
+        "write_timeout",
+        "connect_timeout",
+        "pool_timeout",
+        "max_keepalive_connections",
+        "max_connections",
+        "keepalive_expiry",
+        "cacert"
+    )
+
+    for key in haproxy_stats:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"haproxy_stats.{key}: this key is invalid.")
+
+    validate_haproxy_stats_entrypoint(haproxy_stats)
+    validate_haproxy_stats_auth(haproxy_stats)
+    validate_haproxy_stats_timeout(haproxy_stats)
+    validate_haproxy_stats_read_timeout(haproxy_stats)
+    validate_haproxy_stats_write_timeout(haproxy_stats)
+    validate_haproxy_stats_connect_timeout(haproxy_stats)
+    validate_haproxy_stats_pool_timeout(haproxy_stats)
+    validate_haproxy_stats_max_keepalive_connections(haproxy_stats)
+    validate_haproxy_stats_max_connections(haproxy_stats)
+    validate_haproxy_stats_keepalive_expiry(haproxy_stats)
+    validate_haproxy_stats_cacert(haproxy_stats)
+
+def validate_haproxy_stats_entrypoint(document):
+    entrypoint = document.get("entrypoint")
+
+    if entrypoint is None:
+        raise overlord.exceptions.InvalidSpec("'haproxy_stats.entrypoint' is required but hasn't been specified.")
+
+    if not isinstance(entrypoint, str):
+        raise overlord.exceptions.InvalidSpec(f"{entrypoint}: invalid value type for 'haproxy_stats.entrypoint'")
+
+def validate_haproxy_stats_auth(document):
+    auth = document.get("auth")
+
+    if auth is None:
+        raise overlord.exceptions.InvalidSpec("'haproxy_stats.auth' is required but hasn't been specified.")
+
+    if not isinstance(auth, dict):
+        raise overlord.exceptions.InvalidSpec("'haproxy_stats.auth' is invalid.")
+
+    keys = (
+        "username",
+        "password"
+    )
+
+    for key in auth:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"haproxy_stats.auth.{key}: this key is invalid.")
+
+    validate_haproxy_stats_auth_username(auth)
+    validate_haproxy_stats_auth_password(auth)
+
+def validate_haproxy_stats_auth_username(document):
+    username = document.get("username")
+
+    if username is None:
+        raise overlord.exceptions.InvalidSpec("'haproxy_stats.auth.username' is required but hasn't been specified.")
+
+    if not isinstance(username, str):
+        raise overlord.exceptions.InvalidSpec(f"{username}: invalid value type for 'haproxy_stats.auth.username'")
+
+def validate_haproxy_stats_auth_password(document):
+    password = document.get("password")
+
+    if password is None:
+        raise overlord.exceptions.InvalidSpec("'haproxy_stats.auth.password' is required but hasn't been specified.")
+
+    if not isinstance(password, str):
+        raise overlord.exceptions.InvalidSpec(f"{password}: invalid value type for 'haproxy_stats.auth.password'")
+
+def validate_haproxy_stats_timeout(document):
+    timeout = document.get("timeout")
+
+    if timeout is None:
+        return
+
+    if not isinstance(timeout, int):
+        raise overlord.exceptions.InvalidSpec(f"{timeout}: invalid value type for 'haproxy_stats.timeout'")
+
+def validate_haproxy_stats_read_timeout(document):
+    read_timeout = document.get("read_timeout")
+
+    if read_timeout is None:
+        return
+
+    if not isinstance(read_timeout, int):
+        raise overlord.exceptions.InvalidSpec(f"{read_timeout}: invalid value type for 'haproxy_stats.read_timeout'")
+
+def validate_haproxy_stats_write_timeout(document):
+    write_timeout = document.get("write_timeout")
+
+    if write_timeout is None:
+        return
+
+    if not isinstance(write_timeout, int):
+        raise overlord.exceptions.InvalidSpec(f"{write_timeout}: invalid value type for 'haproxy_stats.write_timeout'")
+
+def validate_haproxy_stats_connect_timeout(document):
+    connect_timeout = document.get("connect_timeout")
+
+    if connect_timeout is None:
+        return
+
+    if not isinstance(connect_timeout, int):
+        raise overlord.exceptions.InvalidSpec(f"{connect_timeout}: invalid value type for 'haproxy_stats.connect_timeout'")
+
+def validate_haproxy_stats_pool_timeout(document):
+    pool_timeout = document.get("pool_timeout")
+
+    if pool_timeout is None:
+        return
+
+    if not isinstance(pool_timeout, int):
+        raise overlord.exceptions.InvalidSpec(f"{pool_timeout}: invalid value type for 'haproxy_stats.pool_timeout'")
+
+def validate_haproxy_stats_max_keepalive_connections(document):
+    max_keepalive_connections = document.get("max_keepalive_connections")
+
+    if max_keepalive_connections is None:
+        return
+
+    if not isinstance(max_keepalive_connections, int):
+        raise overlord.exceptions.InvalidSpec(f"{max_keepalive_connections}: invalid value type for 'haproxy_stats.max_keepalive_connections'")
+
+def validate_haproxy_stats_max_connections(document):
+    max_connections = document.get("max_connections")
+
+    if max_connections is None:
+        return
+
+    if not isinstance(max_connections, int):
+        raise overlord.exceptions.InvalidSpec(f"{max_connections}: invalid value type for 'haproxy_stats.max_connections'")
+
+def validate_haproxy_stats_keepalive_expiry(document):
+    keepalive_expiry = document.get("keepalive_expiry")
+
+    if keepalive_expiry is None:
+        return
+
+    if not isinstance(keepalive_expiry, int):
+        raise overlord.exceptions.InvalidSpec(f"{keepalive_expiry}: invalid value type for 'haproxy_stats.keepalive_expiry'")
+
+def validate_haproxy_stats_cacert(document):
+    cacert = document.get("cacert")
+
+    if cacert is None:
+        return
+
+    if not isinstance(cacert, str):
+        raise overlord.exceptions.InvalidSpec(f"{cacert}: invalid value type for 'haproxy_stats.cacert'")
 
 def validate_dataplaneapi(document):
     dataplaneapi = document.get("dataplaneapi")

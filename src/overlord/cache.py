@@ -168,6 +168,17 @@ def save_project_status_autoscale(project, status):
 
     return save(f"overlord_project_status_autoscale_{project}", status, expire=expire_time)
 
+def save_haproxy_stats(type, name, stats):
+    return save(f"overlord_haproxy_stats_{type}_{name}", stats)
+
+def get_haproxy_stats(type, name):
+    data = get(f"overlord_haproxy_stats_{type}_{name}")
+
+    if data is None:
+        return {}
+    
+    return data
+
 def get_jails():
     data = get("overlord_jails")
 

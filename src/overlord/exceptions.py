@@ -80,3 +80,6 @@ class MetadataNotFound(Exception):
 
 class UnavailableChain(Exception):
     pass
+
+class ConfigError(Exception):
+    pass

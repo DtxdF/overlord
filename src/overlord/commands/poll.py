@@ -149,6 +149,8 @@ async def _poll_autoscale():
         )
 
         while True:
+            await asyncio.sleep(overlord.config.get_polling_autoscale() + overlord.util.get_skew())
+
             files = overlord.metadata.glob("overlord.autoscale.*")
 
             if files is None:
@@ -261,8 +263,6 @@ async def _poll_autoscale():
                     "logs" : AUTOSCALE_LOGS[project_name]
                 })
 
-            await asyncio.sleep(overlord.config.get_polling_autoscale() + overlord.util.get_skew())
-
     except Exception as err:
         error = overlord.util.get_error(err)
         error_type = error.get("type")
@@ -294,6 +294,7 @@ async def scale_project(client, project_name, options, force):
     labels = scale_options.get("labels")
     metadata = scale_options.get("metadata")
     reserve_port = options.get("reserve_port")
+    load_balancer = scale_options.get("load-balancer")
 
     good = {
         "count" : 0,
@@ -645,17 +646,52 @@ async def scale_project(client, project_name, options, force):
 
         return log
 
-    if rules is not None:
+    if rules is not None \
+            or economy is not None \
+            or load_balancer is not None:
         index = 0
 
-        logger.debug("(project:%s, rules:%d) processing rules ...", project_name, len(rules))
+        logger.debug("(project:%s) processing rules ...", project_name)
 
         for chain in good["nodes"]:
             try:
-                test = await test_rctl(client, project_name, chain, type, value, rules)
+                test = True
+
+                if rules is not None:
+                    test = await test_rctl(client, project_name, chain, type, value, rules)
+
+                    response = {
+                        "project" : project_name,
+                        "chain" : chain,
+                        "context" : "rctl",
+                        "response" : test
+                    }
+
+                    log.append(response)
 
                 if test and economy is not None:
                     test = await test_economy(client, project_name, chain, economy)
+
+                    response = {
+                        "project" : project_name,
+                        "chain" : chain,
+                        "context" : "economy",
+                        "response" : test
+                    }
+
+                    log.append(response)
+
+                if test and load_balancer is not None:
+                    test = await test_load_balancer(project_name, load_balancer)
+
+                    response = {
+                        "project" : project_name,
+                        "chain" : chain,
+                        "context" : "load-balancer",
+                        "response" : test
+                    }
+
+                    log.append(response)
 
             except Exception as err:
                 error = overlord.util.get_error(err)
@@ -676,15 +712,6 @@ async def scale_project(client, project_name, options, force):
                 logger.exception("(chain:%s, project:%s, exception:%s) %s", chain, project_name, error_type, error_message)
 
                 continue
-
-            response = {
-                "project" : project_name,
-                "chain" : chain,
-                "context" : "rctl",
-                "response" : test
-            }
-
-            log.append(response)
 
             if test:
                 logger.debug("(chain:%s, project:%s) ok", chain, project_name)
@@ -832,6 +859,149 @@ async def write_metadata(client, project_name, chain, metadata):
                      chain, project_name, key)
 
         await client.metadata_set(key, value, chain=chain)
+
+async def test_load_balancer(project_name, rules):
+    frontend = rules.get("frontend")
+
+    if frontend is not None:
+        frontend_name = frontend["name"]
+        frontend_rules = frontend["rules"]
+
+        result = await test_load_balancer_rules(
+            project_name, "Frontend",
+            frontend_name, frontend_rules
+        )
+
+        if not result:
+            return False
+
+    backend = rules.get("backend")
+
+    if backend is not None:
+        backend_name = backend["name"]
+        backend_rules = backend["rules"]
+
+        result = await test_load_balancer_rules(
+            project_name, "Backend",
+            backend_name, backend_rules
+        )
+
+        if not result:
+            return False
+
+    return True
+
+async def test_load_balancer_rules(project_name, type, name, rules):
+    limits_settings = {
+        "max_keepalive_connections" : overlord.config.get_haproxy_stats_max_keepalive_connections(),
+        "max_connections" : overlord.config.get_haproxy_stats_max_connections(),
+        "keepalive_expiry" : overlord.config.get_haproxy_stats_keepalive_expiry()
+    }
+
+    timeout_settings = {
+        "timeout" : overlord.config.get_haproxy_stats_timeout(),
+        "read" : overlord.config.get_haproxy_stats_read_timeout(),
+        "write" : overlord.config.get_haproxy_stats_write_timeout(),
+        "connect" : overlord.config.get_haproxy_stats_connect_timeout(),
+        "pool" : overlord.config.get_haproxy_stats_pool_timeout()
+    }
+
+    entrypoint = overlord.config.get_haproxy_stats_entrypoint()
+    username = overlord.config.get_haproxy_stats_auth_username()
+    password = overlord.config.get_haproxy_stats_auth_password()
+
+    if entrypoint is None \
+            or username is None \
+            or password is None:
+        raise overlord.exceptions.ConfigError("HAProxy Stats client is not configured.")
+
+    kwargs = {}
+
+    cacert = overlord.config.get_haproxy_stats_cacert()
+
+    if cacert is not None:
+        ctx = ssl.create_default_context(cafile=cacert)
+
+        kwargs["verify"] = ctx
+
+    stats = await overlord.dataplaneapi.haproxy_stats(
+        entrypoint, name, type,
+        username, password
+    )
+
+    and_rules = rules.get("and", {})
+
+    for rule_name, rule_obj in and_rules.items():
+        if rule_name not in stats:
+            logger.warning("(project:%s, type:%s, name:%s, and-length:%d, rule:%s) rule cannot be found.",
+                           project_name, type, name, len(and_rules), rule_name)
+            continue
+
+        current_value = stats[rule_name]["value"]
+
+        value = rule_obj.get("value")
+
+        each_value = rule_obj.get("each")
+
+        if not test_load_balancer_rule(project_name, current_value, rule_name, value, each_value):
+            return False
+
+    or_rules = rules.get("or", {})
+
+    if len(or_rules) == 0:
+        return True
+
+    for rule_name, rule_obj in or_rules.items():
+        if rule_name not in stats:
+            logger.warning("(project:%s, type:%s, name:%s, or-length:%d, rule:%s) rule cannot be found.",
+                           project_name, type, name, len(or_rules), rule_name)
+            continue
+
+        current_value = stats[rule_name]["value"]
+
+        value = rule_obj.get("value")
+
+        each_value = rule_obj.get("each")
+
+        if test_load_balancer_rule(project_name, current_value, rule_name, value, each_value):
+            return True
+
+    return False
+
+def test_load_balancer_rule(project_name, current, name, value, each):
+    if current is None:
+        logger.warning("(project:%s, type:%s, rule:%s) rule is null.",
+                       project_name, type, name)
+        return True
+
+    if isinstance(current, str):
+        value_type = type(value).__name__
+
+        if not isinstance(value, str):
+            raise ValueError(f"(project:{project_name}, type:{type}, rule:{name}) '{name}' is a string but '{value_type}' has been specified.")
+
+        result = current == value
+
+    else:
+        if each is not None:
+            current = current % each
+
+        if isinstance(value, list):
+            (begin, end) = value
+
+            result = current >= begin and current <= end
+
+        else:
+            value = int(value)
+
+            result = current >= value
+
+        result = not result
+
+    logger.debug("(project:%s, rule:%s, current:%s, expected:%s) %s",
+                 project_name, name, current, value, result)
+
+    return result
 
 async def test_economy(client, project_name, chain, rules):
     stats = await client.get_server_stats(chain=chain)
@@ -1057,6 +1227,8 @@ def get_options(options):
     if metadata is None:
         metadata = []
 
+    load_balancer = scale_options.get("load-balancer")
+
     reserve_port = options.get("reserve_port")
 
     if reserve_port is None:
@@ -1077,7 +1249,8 @@ def get_options(options):
             "rules" : scale_options.get("rules"),
             "economy" : scale_options.get("economy"),
             "labels" : labels,
-            "metadata" : metadata
+            "metadata" : metadata,
+            "load-balancer" : scale_options.get("load-balancer")
         },
         "reserve_port" : reserve_port
     }
