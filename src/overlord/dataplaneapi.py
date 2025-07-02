@@ -44,7 +44,8 @@ class DataPlaneAPIClientv3(httpx.AsyncClient):
         super().__init__(
             *args,
             base_url=base_url,
-            auth=auth
+            auth=auth,
+            **kwargs
         )
 
     async def commit_transaction(self, id, force_reload=False, *, _raise_for_status=True):
