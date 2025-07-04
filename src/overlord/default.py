@@ -49,6 +49,7 @@ VALID_KEYWORDS = {
         "created",
         "devfs_ruleset",
         "dirty",
+        "ephemeral",
         "hostname",
         "inet",
         "inet6",
