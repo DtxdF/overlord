@@ -65,6 +65,8 @@ def apply(*args, **kwargs):
 async def _apply(file, restart):
     global FROM_APPCONFIG
 
+    overlord.process.init()
+
     try:
         deployments = 0
 
