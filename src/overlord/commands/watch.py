@@ -39,6 +39,7 @@ import tempfile
 import time
 
 import click
+import greenstalk
 import httpx
 import yaml
 
@@ -121,6 +122,17 @@ async def _async_watch_vm():
 
             try:
                 (job_id, job_body) = await overlord.queue.reserve_vm()
+
+            except (greenstalk.Error, ConnectionError, ConnectionRefusedError) as err:
+                error = overlord.util.get_error(err)
+                error_type = error.get("type")
+                error_message = error.get("message")
+
+                logger.exception("(exception:%s) %s:", error_type, error_message)
+
+                await asyncio.sleep(overlord.util.get_skew())
+
+                continue
 
             except overlord.exceptions.InvalidQueue as err:
                 error = overlord.util.get_error(err)
@@ -457,6 +469,17 @@ async def _async_watch_projects():
 
             try:
                 (job_id, job_body) = await overlord.queue.reserve_project()
+
+            except (greenstalk.Error, ConnectionError, ConnectionRefusedError) as err:
+                error = overlord.util.get_error(err)
+                error_type = error.get("type")
+                error_message = error.get("message")
+
+                logger.exception("(exception:%s) %s:", error_type, error_message)
+
+                await asyncio.sleep(overlord.util.get_skew())
+
+                continue
 
             except overlord.exceptions.InvalidQueue as err:
                 error = overlord.util.get_error(err)
