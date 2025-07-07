@@ -119,7 +119,16 @@ async def _async_watch_vm():
         while True:
             logger.debug("Waiting for new jobs ...")
 
-            (job_id, job_body) = await overlord.queue.reserve_vm()
+            try:
+                (job_id, job_body) = await overlord.queue.reserve_vm()
+
+            except overlord.exceptions.InvalidQueue as err:
+                error = overlord.util.get_error(err)
+                error_type = error.get("type")
+                error_message = error.get("message")
+
+                logger.exception("(exception:%s) %s:", error_type, error_message)
+                continue
 
             message = job_body.get("message")
             vm = message.get("name")
@@ -446,7 +455,16 @@ async def _async_watch_projects():
         while True:
             logger.debug("Waiting for new jobs ...")
 
-            (job_id, job_body) = await overlord.queue.reserve_project()
+            try:
+                (job_id, job_body) = await overlord.queue.reserve_project()
+
+            except overlord.exceptions.InvalidQueue as err:
+                error = overlord.util.get_error(err)
+                error_type = error.get("type")
+                error_message = error.get("message")
+
+                logger.exception("(exception:%s) %s:", error_type, error_message)
+                continue
 
             message = job_body.get("message")
             project = message.get("name")

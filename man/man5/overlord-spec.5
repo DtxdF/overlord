@@ -34,7 +34,9 @@
 .Sh CONFIGURATION
 .Bl -tag -compact -width xxx
 .It Sy serverid
-Path to a file containing the server identifier. Give all responsability to Overlord
+Path to a file containing the server identifier.
+.Pp
+Give all responsability to Overlord
 for generating this identifier, or in other words, do not manually change the
 contents of the file.
 .Pp
@@ -385,6 +387,13 @@ Beanstalkd address to connect to. Use the
 prefix to connect to a UNIX socket. If the port is not specified,
 .Sy 11300
 will be used.
+.Pp
+.It Sy beanstalkd_secret
+Path to a file containing the secret key used by the queue module to place or
+reserve authenticated jobs using HMAC-SHA256.
+.Pp
+Give all responsability to Overlord for generating this identifier, or in other
+words, do not manually change the contents of the file.
 .Pp
 .It Sy execution_time
 Maximum time to execute a command or

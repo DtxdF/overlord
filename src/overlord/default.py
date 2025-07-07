@@ -344,6 +344,7 @@ METADATA = {
 }
 COMPONENTS = os.path.join(PREFIX, "components")
 SERVERID = os.path.join(PREFIX, "serverid")
+BEANSTALKD_SECRET = os.path.join(PREFIX, "beanstalkd_secret")
 SECRET_KEYFILE = os.path.join(PREFIX, "keyfile")
 METADATA_MAX_SIZE = 2**10 # 1 KiB
 CPU_COUNT = os.cpu_count()

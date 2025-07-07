@@ -83,3 +83,6 @@ class UnavailableChain(Exception):
 
 class ConfigError(Exception):
     pass
+
+class InvalidQueue(Exception):
+    pass

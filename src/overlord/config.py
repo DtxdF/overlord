@@ -109,6 +109,7 @@ def get_config():
             "images" : get_appjail_images()
         },
         "beanstalkd_addr" : get_beanstalkd_addr(),
+        "beanstalkd_secret" : get_beanstalkd_secret(),
         "execution_time" : get_execution_time(),
         "dataplaneapi" : {
             "entrypoint" : get_dataplaneapi_entrypoint(),
@@ -257,6 +258,9 @@ def get_execution_time():
 
 def get_beanstalkd_addr():
     return get_default(CONFIG.get("beanstalkd_addr"), overlord.default.BEANSTALKD_ADDR)
+
+def get_beanstalkd_secret():
+    return get_default(CONFIG.get("beanstalkd_secret"), overlord.default.BEANSTALKD_SECRET)
 
 def get_director():
     return get_default(CONFIG.get("director"), overlord.default.DIRECTOR)
@@ -1044,6 +1048,7 @@ def validate(document):
         "director",
         "appjail",
         "beanstalkd_addr",
+        "beanstalkd_secret",
         "execution_time",
         "dataplaneapi",
         "haproxy_stats",
@@ -1078,6 +1083,7 @@ def validate(document):
     validate_director(document)
     validate_appjail(document)
     validate_beanstalkd_addr(document)
+    validate_beanstalkd_secret(document)
     validate_execution_time(document)
     validate_dataplaneapi(document)
     validate_haproxy_stats(document)
@@ -1796,6 +1802,15 @@ def validate_beanstalkd_addr(document):
             addr = (parsed[0], int(parsed[1]))
 
     document["beanstalkd_addr"] = addr
+
+def validate_beanstalkd_secret(document):
+    beanstalkd_secret = document.get("beanstalkd_secret")
+
+    if beanstalkd_secret is None:
+        return
+
+    if not isinstance(beanstalkd_secret, str):
+        raise overlord.exceptions.InvalidSpec(f"{beanstalkd_secret}: invalid value type for 'beanstalkd_secret'")
 
 def validate_director(document):
     director = document.get("director")

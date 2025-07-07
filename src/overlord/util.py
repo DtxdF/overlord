@@ -28,11 +28,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import contextlib
+import hmac
 import ipaddress
 import logging
 import os
 import random
 import re
+import secrets
 import socket
 import uuid
 
@@ -44,6 +46,7 @@ import overlord.exceptions
 logger = logging.getLogger(__name__)
 
 SERVERID = None
+BEANSTALKD_SECRET = None
 
 def get_skew():
     (skew_begin, skew_end) = overlord.config.get_polling_skew()
@@ -93,6 +96,54 @@ def iface2ip(interface, netaddr):
 
         else:
             logger.debug("%s not in %s", ip, netaddr)
+
+def hmac_hexdigest(secret_key, message):
+    hmac_object = hmac.new(secret_key, message, "sha256")
+
+    hexdigest = hmac_object.hexdigest()
+
+    return hexdigest
+
+def hmac_validation(secret_key, message, expected_digest):
+    hmac_object = hmac.new(secret_key, message, "sha256")
+
+    hexdigest = hmac_object.hexdigest()
+
+    return hmac.compare_digest(hmac_object.hexdigest(), expected_digest)
+
+def get_beanstalkd_secret():
+    global BEANSTALKD_SECRET
+
+    if BEANSTALKD_SECRET is not None:
+        return BEANSTALKD_SECRET
+
+    beanstalkd_secret_file = overlord.config.get_beanstalkd_secret()
+
+    keylen = 64
+    beanstalkd_secret = ""
+
+    if os.path.isfile(beanstalkd_secret_file):
+        with open(beanstalkd_secret_file, "rb") as fd:
+            beanstalkd_secret = fd.read()
+
+    if len(beanstalkd_secret) == 0:
+        beanstalkd_secret_dir = os.path.dirname(beanstalkd_secret_file)
+
+        if len(beanstalkd_secret_dir) > 0:
+            os.makedirs(beanstalkd_secret_dir, exist_ok=True)
+
+        beanstalkd_secret = secrets.token_bytes(keylen)
+
+        with open(beanstalkd_secret_file, "wb", buffering=0) as fd:
+            fd.write(beanstalkd_secret)
+            fd.flush()
+            os.fsync(fd.fileno())
+
+        os.chmod(beanstalkd_secret_file, 0o400)
+
+    BEANSTALKD_SECRET = beanstalkd_secret
+
+    return beanstalkd_secret
 
 def get_serverid():
     global SERVERID

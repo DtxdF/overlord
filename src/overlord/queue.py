@@ -33,6 +33,8 @@ import logging
 import aiostalk
 
 import overlord.config
+import overlord.exceptions
+import overlord.util
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +51,17 @@ async def connect():
 
 async def put(message, tube):
     client = await connect()
+
+    secret = overlord.util.get_beanstalkd_secret()
+
+    json_message = json.dumps(message)
+
+    digest = overlord.util.hmac_hexdigest(secret, json_message.encode())
+
+    message = {
+        "message" : message,
+        "digest" : digest
+    }
 
     json_message = json.dumps(message)
 
@@ -83,7 +96,23 @@ async def reserve(tube):
 
     logger.debug("Job ID is '%d'", job_id)
 
-    return (job_id, job_body)
+    if "digest" not in job_body \
+            or "message" not in job_body:
+        raise overlord.exceptions.InvalidQueue(f"Malformed job body from job '{job_id}'")
+
+    expected = job_body["digest"]
+    message = job_body["message"]
+
+    json_message = json.dumps(message)
+
+    secret = overlord.util.get_beanstalkd_secret()
+
+    digest = overlord.util.hmac_hexdigest(secret, json_message.encode())
+
+    if not overlord.util.hmac_validation(secret, json_message.encode(), expected):
+        raise overlord.exceptions.InvalidQueue(f"Job body validation failed from job '{job_id}': {expected} != {digest}")
+
+    return (job_id, message)
 
 async def reserve_project():
     return await reserve("overlord_project")
