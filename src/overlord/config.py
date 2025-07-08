@@ -148,8 +148,7 @@ def get_config():
             "zone" : get_skydns_zone()
         },
         "etcd" : {},
-        "max_watch_projects" : get_max_watch_projects(),
-        "max_watch_vm" : get_max_watch_vm(),
+        "max_watch_commands" : get_max_watch_commands(),
         "metadata" : {
             "location" : get_metadata_location(),
             "size" : get_metadata_size()
@@ -1009,11 +1008,8 @@ def get_etcd_api_path(host):
 
     return etcd_host.get("api_path")
 
-def get_max_watch_projects():
-    return get_default(CONFIG.get("max_watch_projects"), overlord.default.CPU_COUNT)
-
-def get_max_watch_vm():
-    return get_default(CONFIG.get("max_watch_vm"), overlord.default.CPU_COUNT)
+def get_max_watch_commands():
+    return get_default(CONFIG.get("max_watch_commands"), overlord.default.CPU_COUNT)
 
 def get_metadata():
     return get_default(CONFIG.get("metadata"), {})
@@ -1054,8 +1050,7 @@ def validate(document):
         "haproxy_stats",
         "skydns",
         "etcd",
-        "max_watch_projects",
-        "max_watch_vm",
+        "max_watch_commands",
         "metadata",
         "components",
         "autodisable",
@@ -1089,8 +1084,7 @@ def validate(document):
     validate_haproxy_stats(document)
     validate_skydns(document)
     validate_etcd(document)
-    validate_max_watch_projects(document)
-    validate_max_watch_vm(document)
+    validate_max_watch_commands(document)
     validate_metadata(document)
     validate_components(document)
     validate_autodisable(document)
@@ -1276,29 +1270,17 @@ def validate_metadata_location(document):
     if not isinstance(location, str):
         raise overlord.exceptions.InvalidSpec(f"{location}: invalid value type for 'metadata.location'")
 
-def validate_max_watch_projects(document):
-    max_watch_projects = document.get("max_watch_projects")
+def validate_max_watch_commands(document):
+    max_watch_commands = document.get("max_watch_commands")
 
-    if max_watch_projects is None:
+    if max_watch_commands is None:
         return
 
-    if not isinstance(max_watch_projects, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_watch_projects}: invalid value type for 'max_watch_projects'")
+    if not isinstance(max_watch_commands, int):
+        raise overlord.exceptions.InvalidSpec(f"{max_watch_commands}: invalid value type for 'max_watch_commands'")
 
-    if max_watch_projects <= 0:
-        raise ValueError(f"{max_watch_projects}: invalid value for 'max_watch_projects'.")
-
-def validate_max_watch_vm(document):
-    max_watch_vm = document.get("max_watch_vm")
-
-    if max_watch_vm is None:
-        return
-
-    if not isinstance(max_watch_vm, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_watch_vm}: invalid value type for 'max_watch_vm'")
-
-    if max_watch_vm <= 0:
-        raise ValueError(f"{max_watch_vm}: invalid value for 'max_watch_vm'.")
+    if max_watch_commands <= 0:
+        raise ValueError(f"{max_watch_commands}: invalid value for 'max_watch_commands'.")
 
 def validate_etcd(document):
     etcd = document.get("etcd")

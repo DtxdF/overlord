@@ -40,6 +40,7 @@ import httpx
 
 import overlord.cache
 import overlord.commands
+import overlord.dataplaneapi
 import overlord.jwt
 import overlord.config
 import overlord.default

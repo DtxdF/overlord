@@ -47,14 +47,24 @@ logger = logging.getLogger(__name__)
 @click.group(add_help_option=False)
 @click.version_option()
 @click.option("-e", "--env-file", default=overlord.default.ENV_FILE, help="Specify an alternate file to load environment variables.")
-def cli(env_file):
+def cli(*args, **kwargs):
     """
     Overlord is a fast, distributed orchestrator for FreeBSD jails oriented to GitOps.
     You define a file with the service intended to run on your cluster and deployment
     takes seconds to minutes.
     """
+
+    _cli(*args, **kwargs)
+
+def _cli(env_file):
+    _cli_load_environment(env_file)
+    _cli_load_config()
+    _cli_init()
+
+def _cli_load_environment(env_file):
     overlord.environment.init(env_file)
 
+def _cli_load_config():
     config = os.getenv("OVERLORD_CONFIG", overlord.default.CONFIG)
 
     if os.path.isfile(config):
@@ -70,6 +80,9 @@ def cli(env_file):
 
             sys.exit(EX_SOFTWARE)
 
+        os.environ["OVERLORD_CONFIG"] = config
+
+def _cli_init():
     overlord.signals.ignore_other_signals()
     overlord.signals.enable_handler()
 

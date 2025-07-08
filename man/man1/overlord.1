@@ -115,6 +115,9 @@
 .Cm poll-heartbeat
 .Nm
 .Op Fl Fl env-file Ar file
+.Cm watch-commands
+.Nm
+.Op Fl Fl env-file Ar file
 .Cm watch-projects
 .Sh DESCRIPTION
 .Sy Overlord
@@ -349,8 +352,26 @@ disable a chain if it is slow to respond after a few attempts but does not
 necessarily mean it is faulty. So instead of simply disabling a chain for a
 while, this command influences this operation because it allows a user to
 make requests based on the health of the chain.
+.It Cm watch-commands
+Commands such as
+.Cm watch-projects
+or
+.Cm watch-vm
+take care of sorting the jobs and creating the raw command that this command will execute.
+.Pp
+The purpose of using a separate command for this task is to restart or update Overlord
+processes without terminating a project, resulting in a
+.Sy FAILED
+status. Of course, the
+.Cm watch-commands
+command can be restarted but doing this with a running project will result in a
+.Sy FAILED
+state, but at least this minimizes this problem as you will rarely need to restart
+the process created by this command and in many cases you will need to restart all
+other processes.
+.Pp
 .It Cm watch-projects
-Wait for jobs to create or destroy a project.
+Wait for jobs to create, destroy or cancel a project.
 .Pp
 See
 .Sx SPECIAL LABELS

@@ -164,6 +164,12 @@ async def reserve_project():
 async def reserve_vm():
     return await reserve("overlord_vm")
 
+async def reserve_cmd():
+    return await reserve("overlord_cmd")
+
+async def put_cmd(message):
+    return await put(message, "overlord_cmd")
+
 async def put_create_project(message):
     return await put({ "type" : "create", "message" : message }, "overlord_project")
 
