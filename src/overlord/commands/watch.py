@@ -120,27 +120,7 @@ async def _async_watch_vm():
         while True:
             logger.debug("Waiting for new jobs ...")
 
-            try:
-                (job_id, job_body) = await overlord.queue.reserve_vm()
-
-            except (greenstalk.Error, ConnectionError, ConnectionRefusedError) as err:
-                error = overlord.util.get_error(err)
-                error_type = error.get("type")
-                error_message = error.get("message")
-
-                logger.exception("(exception:%s) %s:", error_type, error_message)
-
-                await asyncio.sleep(overlord.util.get_skew())
-
-                continue
-
-            except overlord.exceptions.InvalidQueue as err:
-                error = overlord.util.get_error(err)
-                error_type = error.get("type")
-                error_message = error.get("message")
-
-                logger.exception("(exception:%s) %s:", error_type, error_message)
-                continue
+            (job_id, job_body) = await overlord.queue.reserve_vm()
 
             message = job_body.get("message")
             vm = message.get("name")
@@ -467,27 +447,7 @@ async def _async_watch_projects():
         while True:
             logger.debug("Waiting for new jobs ...")
 
-            try:
-                (job_id, job_body) = await overlord.queue.reserve_project()
-
-            except (greenstalk.Error, ConnectionError, ConnectionRefusedError) as err:
-                error = overlord.util.get_error(err)
-                error_type = error.get("type")
-                error_message = error.get("message")
-
-                logger.exception("(exception:%s) %s:", error_type, error_message)
-
-                await asyncio.sleep(overlord.util.get_skew())
-
-                continue
-
-            except overlord.exceptions.InvalidQueue as err:
-                error = overlord.util.get_error(err)
-                error_type = error.get("type")
-                error_message = error.get("message")
-
-                logger.exception("(exception:%s) %s:", error_type, error_message)
-                continue
+            (job_id, job_body) = await overlord.queue.reserve_project()
 
             message = job_body.get("message")
             project = message.get("name")

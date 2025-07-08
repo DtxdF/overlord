@@ -27,10 +27,12 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import asyncio
 import json
 import logging
 
 import aiostalk
+import greenstalk
 
 import overlord.config
 import overlord.exceptions
@@ -50,6 +52,27 @@ async def connect():
     return client
 
 async def put(message, tube):
+    while True:
+        try:
+            return await _put(message, tube)
+
+        except (greenstalk.Error, ConnectionError, ConnectionRefusedError) as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
+            logger.exception("(exception:%s) %s:", error_type, error_message)
+
+            await asyncio.sleep(overlord.util.get_skew())
+
+        except overlord.exceptions.InvalidQueue as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
+            logger.exception("(exception:%s) %s:", error_type, error_message)
+
+async def _put(message, tube):
     client = await connect()
 
     secret = overlord.util.get_beanstalkd_secret()
@@ -80,6 +103,27 @@ async def put(message, tube):
     return job_id
 
 async def reserve(tube):
+    while True:
+        try:
+            return await _reserve(tube)
+
+        except (greenstalk.Error, ConnectionError, ConnectionRefusedError) as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
+            logger.exception("(exception:%s) %s:", error_type, error_message)
+
+            await asyncio.sleep(overlord.util.get_skew())
+
+        except overlord.exceptions.InvalidQueue as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
+            logger.exception("(exception:%s) %s:", error_type, error_message)
+
+async def _reserve(tube):
     client = await connect()
 
     logger.debug("Watching tube '%s'", tube)

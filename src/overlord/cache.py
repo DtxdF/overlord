@@ -28,6 +28,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
+import time
+import logging
 
 import pymemcache
 
@@ -35,6 +37,8 @@ import overlord.config
 import overlord.util
 
 CLIENT = None
+
+logger = logging.getLogger(__name__)
 
 def connect():
     global CLIENT
@@ -69,6 +73,20 @@ def _get_key(key):
     return key
 
 def save(key, value, *args, **kwargs):
+    while True:
+        try:
+            return _save(key, value, *args, **kwargs)
+
+        except (pymemcache.exceptions.MemcacheError, ConnectionError, ConnectionRefusedError) as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
+            logger.exception("(exception:%s) %s:", error_type, error_message)
+
+            time.sleep(overlord.util.get_skew())
+
+def _save(key, value, *args, **kwargs):
     key = _get_key(key)
 
     conn = connect()
@@ -80,6 +98,20 @@ def save(key, value, *args, **kwargs):
     return result
 
 def get(key):
+    while True:
+        try:
+            return _get(key)
+
+        except (pymemcache.exceptions.MemcacheError, ConnectionError, ConnectionRefusedError) as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
+            logger.exception("(exception:%s) %s:", error_type, error_message)
+
+            time.sleep(overlord.util.get_skew())
+
+def _get(key):
     key = _get_key(key)
 
     conn = connect()
@@ -96,6 +128,20 @@ def get(key):
     return result
 
 def delete(key):
+    while True:
+        try:
+            return _delete(key)
+
+        except (pymemcache.exceptions.MemcacheError, ConnectionError, ConnectionRefusedError) as err:
+            error = overlord.util.get_error(err)
+            error_type = error.get("type")
+            error_message = error.get("message")
+
+            logger.exception("(exception:%s) %s:", error_type, error_message)
+
+            time.sleep(overlord.util.get_skew())
+
+def _delete(key):
     key = _get_key(key)
 
     conn = connect()
