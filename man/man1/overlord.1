@@ -119,6 +119,9 @@
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm watch-projects
+.Nm
+.Op Fl Fl env-file Ar file
+.Cm watch-vm
 .Sh DESCRIPTION
 .Sy Overlord
 is a fast, distributed orchestrator for FreeBSD jails oriented to GitOps.
@@ -376,6 +379,9 @@ Wait for jobs to create, destroy or cancel a project.
 See
 .Sx SPECIAL LABELS
 for more information on the labels that this command can use to perform some operations.
+.Pp
+.It Cm watch-vm
+Wait for jobs to create or destroy a VM.
 .El
 .Sh SPECIAL LABELS
 Jails can have labels and some of them cause the
