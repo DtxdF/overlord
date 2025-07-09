@@ -60,9 +60,7 @@ import overlord.metadata
 
 from overlord.sysexits import EX_SOFTWARE
 
-overlord.process.init()
 overlord.commands._cli_load_config()
-overlord.commands._cli_init()
 
 logger = logging.getLogger("overlord.libexec.create")
 
