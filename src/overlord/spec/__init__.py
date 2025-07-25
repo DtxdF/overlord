@@ -96,6 +96,7 @@ def get_config():
         config["start-arguments"] = overlord.spec.vm_jail.get_start_arguments()
         config["build-environment"] = overlord.spec.vm_jail.get_build_environment()
         config["build-arguments"] = overlord.spec.vm_jail.get_build_arguments()
+        config["cloud-init"] = overlord.spec.vm_jail.get_cloud_init()
 
     elif kind == OverlordKindTypes.APPCONFIG.value:
         config["appName"] = overlord.spec.app_config.get_appName()

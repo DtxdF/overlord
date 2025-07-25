@@ -897,7 +897,7 @@ files to be installed on the root partition that must correspond to the FreeBSD
 installation. Once this process is complete, a new virtual machine will be up
 and running.
 .Pp
-.Bl -tag -width xxxxx
+.Bl -tag -width xxxxx -compact
 .It Sy vmName
 The name of the project, the jail and the virtual machine.
 .Pp
@@ -967,10 +967,64 @@ may or may not be valid.
 .Pp
 Only
 .Sy appjailImage Ns ,
-.Sy components
-and
+.Sy components Ns ,
 .Sy iso
+and
+.Sy img
 are supported.
+.Pp
+.It Sy cloud-init
+If the guest operating system has cloud-init installed and enabled, an additional
+.Sy ahci-cd
+disk is used to initialize the operating system.
+.Pp
+Please note that
+.Sy disk1_*
+will be used, so you will need to use a different number if you plan to add an
+additional disk.
+.Pp
+.It Sy cloud-init.flags
+Parameters used by
+.Xr makefs 8
+when creating the seed.iso file.
+.Pp
+By default is
+.Do -t cd9660 -o R,L=cidata Dc Ns ,
+however, you can't change
+.Dq -t cd9660
+and using this parameter overwrites the default flags, so at least include the
+mentioned flags or the NoCloud datastore will not be detected by cloud-init.
+.Pp
+.It Sy cloud-init.user-data
+.It Sy cloud-init.meta-data
+.It Sy cloud-init.network-config
+Parameters used by the NoCloud data store. See the cloud-init documentation for
+more details.
+.Pp
+All parameters are dictionaries
+.Pq or objects
+and all of them are optional, but at least
+.Sy instance-id
+must be added to the meta-data; however, not adding any parameters is as useless
+as not using cloud-init.
+.Pp
+.It Sy diskLayout.from.imgFile
+Similar to
+.Sy diskLayout.from.isoFile
+but for the
+.Sy img
+type. However, unlike the previous one, which requires explicit installation using
+an ISO, this type does not, as it relies on the image itself, which makes more
+sense if you are using a cloud image.
+.Pp
+Please note that in order to use this type of installation effectively, you need
+to install
+.Sy qemu-tools
+in your jail.
+.Pp
+This parameter is only valid for the
+.Sy img
+type.
 .Pp
 .It Sy diskLayout.from.isoFile
 The name of the ISO file containing the operating system to install. Due to the

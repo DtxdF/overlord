@@ -76,6 +76,9 @@ def get_build_environment():
 def get_build_arguments():
     return get_default(CONFIG.get("build-arguments"), [])
 
+def get_cloud_init():
+    return get_default(CONFIG.get("cloud-init"), {})
+
 def validate(document):
     global CONFIG
 
@@ -99,7 +102,8 @@ def validate(document):
         "start-environment",
         "start-arguments",
         "build-environment",
-        "build-arguments"
+        "build-arguments",
+        "cloud-init"
     )
 
     for key in document:
@@ -118,8 +122,67 @@ def validate(document):
     validate_start_arguments(document)
     validate_build_environment(document)
     validate_build_arguments(document)
+    validate_cloud_init(document)
 
     CONFIG = document
+
+def validate_cloud_init(document):
+    cloud_init = document.get("cloud-init")
+
+    if cloud_init is None:
+        return
+
+    keys = (
+        "flags",
+        "meta-data",
+        "network-config",
+        "user-data"
+    )
+
+    for key in cloud_init:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"cloud-init.{key}: this key is invalid.")
+
+    validate_cloud_init_flags(cloud_init)
+    validate_cloud_init_meta_data(cloud_init)
+    validate_cloud_init_network_config(cloud_init)
+    validate_cloud_init_user_data(cloud_init)
+
+def validate_cloud_init_user_data(document):
+    user_data = document.get("user-data")
+
+    if user_data is None:
+        return
+
+    if not isinstance(user_data, dict):
+        raise overlord.exceptions.InvalidSpec("'cloud-init.user-data' is invalid.")
+
+def validate_cloud_init_network_config(document):
+    network_config = document.get("network-config")
+
+    if network_config is None:
+        return
+
+    if not isinstance(network_config, dict):
+        raise overlord.exceptions.InvalidSpec("'cloud-init.network-config' is invalid.")
+
+def validate_cloud_init_meta_data(document):
+    meta_data = document.get("meta-data")
+
+    if meta_data is None:
+        return
+
+    if not isinstance(meta_data, dict):
+        raise overlord.exceptions.InvalidSpec("'cloud-init.meta-data' is invalid.")
+
+def validate_cloud_init_flags(document):
+    flags = document.get("flags")
+
+    if flags is None:
+        return
+
+    if not isinstance(flags, str):
+        raise overlord.exceptions.InvalidSpec(f"{flags}: invalid value type for 'cloud-init.flags'")
 
 def validate_options(document):
     options = document.get("options")
@@ -440,6 +503,12 @@ def validate_diskLayout_from_type(document):
             "installed"
         )
 
+    elif type == "img":
+        keys = (
+            "type",
+            "imgFile"
+        )
+
     else:
         raise overlord.exceptions.InvalidSpec(f"{type}: invalid value for 'diskLayout.from.type'")
 
@@ -462,6 +531,19 @@ def validate_diskLayout_from_type(document):
     elif type == "iso":
         validate_diskLayout_from_isoFile(document)
         validate_diskLayout_from_installed(document)
+
+    elif type == "img":
+        validate_diskLayout_from_imgFile(document)
+        validate_diskLayout_from_installed(document)
+
+def validate_diskLayout_from_imgFile(document):
+    imgFile = document.get("imgFile")
+
+    if imgFile is None:
+        raise overlord.exceptions.InvalidSpec("'imgFile' is required but hasn't been specified.")
+
+    if not isinstance(imgFile, str):
+        raise overlord.exceptions.InvalidSpec(f"{imgFile}: invalid value type for 'imgFile'")
 
 def validate_diskLayout_from_installed(document):
     installed = document.get("installed")

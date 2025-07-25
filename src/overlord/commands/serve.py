@@ -696,6 +696,10 @@ class VMHandler(InternalHandler):
 
             makejailFromMetadata = self.get_json_argument("makejailFromMetadata", None, strip=False, value_type=str)
 
+            cloud_init = self.get_json_argument("cloud-init", {}, value_type=dict)
+
+            overlord.spec.vm_jail.validate_cloud_init({ "cloud-init" : cloud_init })
+
             template = self.get_json_argument("template", value_type=dict)
 
             overlord.spec.vm_jail.validate_template({ "template" : template })
@@ -753,6 +757,7 @@ class VMHandler(InternalHandler):
             "name" : name,
             "makejail" : makejail,
             "makejailFromMetadata" : makejailFromMetadata,
+            "cloud-init" : cloud_init,
             "template" : template,
             "diskLayout" : diskLayout,
             "script" : script,
@@ -862,6 +867,10 @@ class ChainVMHandler(ChainInternalHandler):
 
             makejailFromMetadata = self.get_json_argument("makejailFromMetadata", None, strip=False, value_type=str)
 
+            cloud_init = self.get_json_argument("cloud-init", {}, value_type=dict)
+
+            overlord.spec.vm_jail.validate_cloud_init({ "cloud-init" : cloud_init })
+
             template = self.get_json_argument("template", value_type=dict)
 
             overlord.spec.vm_jail.validate_template({ "template" : template })
@@ -917,6 +926,7 @@ class ChainVMHandler(ChainInternalHandler):
 
         profile = {
             "makejail" : makejail,
+            "cloud-init" : cloud_init,
             "template" : template,
             "diskLayout" : diskLayout,
             "script" : script,

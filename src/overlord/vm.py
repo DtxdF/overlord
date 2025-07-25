@@ -31,6 +31,7 @@ import logging
 import os
 import re
 import shlex
+import yaml
 import sys
 
 import overlord.config
@@ -198,7 +199,53 @@ def write_template(jail_path, template_name, template):
         fd.flush()
         os.fsync(fd.fileno())
 
-def create(jail, name, datastore=None, template=None, size=None):
+def write_seed(jail_path, flags, datastore):
+    cidir = os.path.join(jail_path, "cloud-init")
+
+    os.makedirs(cidir, exist_ok=True)
+
+    meta_data = datastore.get("meta-data")
+
+    if meta_data is not None:
+        meta_data_file = os.path.join(cidir, "meta-data")
+
+        meta_data = yaml.dump(meta_data)
+
+        with open(meta_data_file, "w") as fd:
+            fd.write(meta_data)
+
+    user_data = datastore.get("user-data")
+
+    if user_data is not None:
+        user_data_file = os.path.join(cidir, "user-data")
+
+        user_data = "#cloud-config" + "\n" + yaml.dump(user_data)
+
+        with open(user_data_file, "w") as fd:
+            fd.write(user_data)
+
+    network_config = datastore.get("network-config")
+
+    if network_config is not None:
+        network_config_file = os.path.join(cidir, "network-config")
+
+        network_config = yaml.dump(network_config)
+
+        with open(network_config_file, "w") as fd:
+            fd.write(network_config)
+
+    seed_file = os.path.join(jail_path, "seed.iso")
+
+    if flags is None:
+        flags = "-o R,L=cidata"
+
+    flags = shlex.split(flags)
+
+    args = ["makefs", "-t", "cd9660"] + flags + ["--", seed_file, cidir]
+
+    return _run(args)
+
+def create(jail, name, datastore=None, template=None, size=None, image=None):
     args = ["appjail", "cmd", "jexec", jail, "vm", "create"]
 
     if datastore is not None:
@@ -209,6 +256,9 @@ def create(jail, name, datastore=None, template=None, size=None):
 
     if size is not None:
         args.extend(["-s", size])
+
+    if image is not None:
+        args.extend(["-i", image])
 
     args.append(name)
 

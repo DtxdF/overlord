@@ -373,6 +373,7 @@ async def _apply(file, restart):
 
                     profile = {
                         "template" : overlord.spec.vm_jail.get_template(),
+                        "cloud-init" : overlord.spec.vm_jail.get_cloud_init(),
                         "diskLayout" : overlord.spec.vm_jail.get_diskLayout(),
                         "options" : overlord.spec.vm_jail.get_options(),
                         "script-environment" : overlord.spec.vm_jail.get_script_environment(),

@@ -31,7 +31,7 @@ import asyncio
 import errno
 import json
 import logging
-
+import shutil
 import os
 import ssl
 import sys
@@ -103,6 +103,7 @@ async def _async_vm(data):
             profile = {
                 "name" : vm,
                 "makejail" : makejail,
+                "cloud_init" : message.get("cloud-init"),
                 "template" : message.get("template"),
                 "diskLayout" : message.get("diskLayout"),
                 "script" : message.get("script"),
@@ -153,6 +154,7 @@ async def create_vm(
     job_id, *,
     name,
     makejail,
+    cloud_init,
     template,
     diskLayout,
     script,
@@ -273,6 +275,38 @@ async def create_vm(
             "job_id" : job_id
         })
 
+        if jail_path is None:
+            jail_path = overlord.jail.get_jail_path(vm)
+
+            if jail_path is None:
+                logger.error("(jail:%s) can't get jail path!", vm)
+                return
+
+        if len(cloud_init) > 0:
+            flags = cloud_init.get("flags")
+
+            nocloud = {
+                "meta-data" : cloud_init.get("meta-data"),
+                "user-data" : cloud_init.get("user-data"),
+                "network-config" : cloud_init.get("network-config")
+            }
+
+            (rc, result) = overlord.vm.write_seed(jail_path, flags, nocloud)
+
+            if rc != 0:
+                overlord.cache.save_vm_status(vm, {
+                    "operation" : "FAILED",
+                    "output" : result,
+                    "last_update" : time.time(),
+                    "job_id" : job_id
+                })
+
+                return
+
+            template["disk1_type"] = "ahci-cd"
+            template["disk1_name"] = "seed.iso"
+            template["disk1_dev"] = "file"
+
         from_ = diskLayout["from"]
 
         driver = diskLayout["driver"]
@@ -282,13 +316,6 @@ async def create_vm(
         template["disk0_name"] = "disk0.img"
         template["disk0_dev"] = "file"
         template["disk0_size"] = size
-
-        if jail_path is None:
-            jail_path = overlord.jail.get_jail_path(vm)
-
-            if jail_path is None:
-                logger.error("(jail:%s) can't get jail path!", vm)
-                return
 
         overlord.vm.write_template(jail_path, "overlord", template)
 
@@ -307,7 +334,9 @@ async def create_vm(
                 ignore_create = True
 
         if not ignore_create:
-            (rc, result) = overlord.vm.create(vm, vm, template="overlord")
+            imgFile = from_.get("imgFile")
+
+            (rc, result) = overlord.vm.create(vm, vm, template="overlord", image=imgFile)
 
             if rc != 0:
                 overlord.cache.save_vm_status(vm, {
@@ -318,6 +347,14 @@ async def create_vm(
                 })
 
                 return
+
+            # cloud-init
+            seed_file = os.path.join(jail_path, "seed.iso")
+
+            if os.path.isfile(seed_file):
+                dst = os.path.join(jail_path, f"vm/{vm}/seed.iso")
+
+                shutil.move(seed_file, dst)
 
         (rc, result) = (0, "")
 
@@ -389,6 +426,9 @@ async def create_vm(
                 (rc, result) = overlord.vm.install_from_iso(vm, isoFile)
 
                 ignore_done = True
+
+        elif from_type == "img":
+            (rc, result) = overlord.vm.start(vm)
 
         result = overlord.util.sansi(result)
 
