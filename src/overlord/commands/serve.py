@@ -710,6 +710,8 @@ class VMHandler(InternalHandler):
 
             script = self.get_json_argument("script", None, strip=False, value_type=str)
 
+            overlord.spec.vm_jail.validate_script({ "script" : script })
+
             metadata = self.get_json_argument("metadata", [], value_type=list)
 
             overlord.spec.vm_jail.validate_metadata({ "metadata" : metadata })
@@ -862,10 +864,23 @@ class ChainVMHandler(ChainInternalHandler):
         })
 
     async def post(self, chain, name):
+        profile = {}
+
         try:
             makejail = self.get_json_argument("makejail", None, strip=False, value_type=str)
 
             makejailFromMetadata = self.get_json_argument("makejailFromMetadata", None, strip=False, value_type=str)
+
+            overlord.spec.vm_jail.validate_makejail({
+                "makejail" : makejail,
+                "makejailFromMetadata" : makejailFromMetadata
+            })
+
+            if makejail is None:
+                profile["makejailFromMetadata"] = makejailFromMetadata
+
+            else:
+                profile["makejail"] = makejail
 
             cloud_init = self.get_json_argument("cloud-init", {}, value_type=dict)
 
@@ -881,9 +896,17 @@ class ChainVMHandler(ChainInternalHandler):
 
             script = self.get_json_argument("script", None, strip=False, value_type=str)
 
+            if script is not None:
+                overlord.spec.vm_jail.validate_script({ "script" : script })
+
+                profile["script"] = script
+
             metadata = self.get_json_argument("metadata", [], value_type=list)
 
-            overlord.spec.vm_jail.validate_metadata({ "metadata" : metadata })
+            if metadata is not None:
+                overlord.spec.vm_jail.validate_metadata({ "metadata" : metadata })
+
+                profile["metadata"] = metadata
 
             script_environment = self.get_json_argument("script-environment", [], value_type=list)
 
@@ -925,13 +948,9 @@ class ChainVMHandler(ChainInternalHandler):
             return
 
         profile = {
-            "makejail" : makejail,
-            "makejailFromMetadata" : makejailFromMetadata,
             "cloud-init" : cloud_init,
             "template" : template,
             "diskLayout" : diskLayout,
-            "script" : script,
-            "metadata" : metadata,
             "script-environment" : script_environment,
             "start-environment" : start_environment,
             "start-arguments" : start_arguments,
