@@ -926,6 +926,7 @@ class ChainVMHandler(ChainInternalHandler):
 
         profile = {
             "makejail" : makejail,
+            "makejailFromMetadata" : makejailFromMetadata,
             "cloud-init" : cloud_init,
             "template" : template,
             "diskLayout" : diskLayout,
