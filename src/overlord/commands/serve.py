@@ -947,7 +947,7 @@ class ChainVMHandler(ChainInternalHandler):
 
             return
 
-        profile = {
+        profile.update({
             "cloud-init" : cloud_init,
             "template" : template,
             "diskLayout" : diskLayout,
@@ -958,7 +958,7 @@ class ChainVMHandler(ChainInternalHandler):
             "build-arguments" : build_arguments,
             "options" : options,
             "restart" : restart
-        }
+        })
 
         result = await self.remote_call(chain, "create_vm", name, profile)
 
