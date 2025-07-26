@@ -131,7 +131,7 @@ async def _async_vm(data):
 
             logger.exception("(exception:%s) %s:", error_type, error_message)
             
-            overlord.cache.save_vm_status(profile["name"], {
+            overlord.cache.save_vm_status(vm, {
                 "operation" : "FAILED",
                 "exception" : {
                     "type" : error_type,
