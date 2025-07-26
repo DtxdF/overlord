@@ -38,6 +38,7 @@ Assume that only `charlie` and `delta` have the `db-only` label. To deploy proje
 * VM support - deploy virtual machines anywhere!
 * HAProxy / Data Plane API integration (load balancer)
 * appConfigs - Templates everywhere!
+* cloud-init support
 
 ## Documentation
 
