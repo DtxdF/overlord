@@ -348,6 +348,13 @@ async def create_vm(
 
                 return
 
+            # vm-bhyve does not respect some parameters that the user can specify from the
+            # template. This behavior makes sense when vm-bhyve is used on a single machine
+            # but with multiple virtual machines. However, since we use one virtual machine
+            # for each jail, it might make sense for it to match the configuration we specify
+            # from the template.
+            overlord.vm.clone_template(jail_path, "overlord", vm)
+
             # cloud-init
             seed_file = os.path.join(jail_path, "seed.iso")
 

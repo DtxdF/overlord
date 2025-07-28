@@ -31,6 +31,7 @@ import logging
 import os
 import re
 import shlex
+import shutil
 import yaml
 import sys
 
@@ -198,6 +199,13 @@ def write_template(jail_path, template_name, template):
         fd.write(vm_template.encode())
         fd.flush()
         os.fsync(fd.fileno())
+
+def clone_template(jail_path, template_name, vm):
+    template_path = os.path.join(jail_path, f"vm/.templates/{template_name}.conf")
+
+    vmconf_path = os.path.join(jail_path, f"vm/{vm}/{vm}.conf")
+
+    shutil.copy(template_path, vmconf_path)
 
 def write_seed(jail_path, flags, datastore):
     cidir = os.path.join(jail_path, "cloud-init")
