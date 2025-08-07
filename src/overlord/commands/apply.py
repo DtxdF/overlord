@@ -383,7 +383,8 @@ async def _apply(file, restart):
                         "build-arguments" : overlord.spec.vm_jail.get_build_arguments(),
                         "restart" : restart,
                         "overwrite" : overlord.spec.vm_jail.get_overwrite(),
-                        "datastore" : overlord.spec.vm_jail.get_datastore()
+                        "datastore" : overlord.spec.vm_jail.get_datastore(),
+                        "poweroff" : overlord.spec.vm_jail.get_poweroff()
                     }
 
                     makejail = overlord.spec.vm_jail.get_makejail()

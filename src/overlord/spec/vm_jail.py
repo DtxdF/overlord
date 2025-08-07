@@ -85,6 +85,9 @@ def get_overwrite():
 def get_datastore():
     return CONFIG.get("datastore")
 
+def get_poweroff():
+    return get_default(CONFIG.get("poweroff"), False)
+
 def validate(document):
     global CONFIG
 
@@ -111,7 +114,8 @@ def validate(document):
         "build-arguments",
         "cloud-init",
         "overwrite",
-        "datastore"
+        "datastore",
+        "poweroff"
     )
 
     for key in document:
@@ -133,8 +137,18 @@ def validate(document):
     validate_cloud_init(document)
     validate_overwrite(document)
     validate_datastore(document)
+    validate_poweroff(document)
 
     CONFIG = document
+
+def validate_poweroff(document):
+    poweroff = document.get("poweroff")
+
+    if poweroff is None:
+        return
+
+    if not isinstance(poweroff, bool):
+        raise overlord.exceptions.InvalidSpec(f"{poweroff}: invalid value type for 'poweroff'")
 
 def validate_datastore(document):
     datastore = document.get("datastore")

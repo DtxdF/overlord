@@ -702,6 +702,8 @@ class VMHandler(InternalHandler):
 
             overwrite = self.get_json_argument("overwrite", False, value_type=bool)
 
+            poweroff = self.get_json_argument("poweroff", False, value_type=bool)
+
             cloud_init = self.get_json_argument("cloud-init", {}, value_type=dict)
 
             overlord.spec.vm_jail.validate_cloud_init({ "cloud-init" : cloud_init })
@@ -778,7 +780,8 @@ class VMHandler(InternalHandler):
             "build-arguments" : build_arguments,
             "options" : options,
             "restart" : restart,
-            "overwrite" : overwrite
+            "overwrite" : overwrite,
+            "poweroff" : poweroff
         })
 
         self.write_template({
@@ -885,6 +888,8 @@ class ChainVMHandler(ChainInternalHandler):
 
             overwrite = self.get_json_argument("overwrite", False, value_type=bool)
 
+            poweroff = self.get_json_argument("poweroff", False, value_type=bool)
+
             overlord.spec.vm_jail.validate_makejail({
                 "makejail" : makejail,
                 "makejailFromMetadata" : makejailFromMetadata
@@ -973,6 +978,7 @@ class ChainVMHandler(ChainInternalHandler):
             "options" : options,
             "restart" : restart,
             "overwrite" : overwrite,
+            "poweroff" : poweroff,
             "datastore" : datastore
         })
 

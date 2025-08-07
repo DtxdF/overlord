@@ -121,7 +121,8 @@ async def _async_vm(data):
                 "options" : message.get("options"),
                 "restart" : message.get("restart"),
                 "overwrite" : message.get("overwrite"),
-                "datastore" : message.get("datastore")
+                "datastore" : message.get("datastore"),
+                "poweroff" : message.get("poweroff")
             }
 
             await create_vm(job_id, **profile)
@@ -166,7 +167,8 @@ async def create_vm(
     options,
     restart,
     overwrite,
-    datastore
+    datastore,
+    poweroff
 ):
     vm = name
 
@@ -208,7 +210,8 @@ async def create_vm(
 
                 director_file = overlord.vm.get_done(jail_path)
 
-                poweroff_if_vm(vm)
+                if poweroff:
+                    poweroff_if_vm(vm)
 
                 overlord.director.down(vm, env=environment["process"])
 
@@ -709,7 +712,7 @@ def poweroff_if_vm(project):
     if rc != 0:
         return
 
-    logger.debug("(jail:%s, vm:1) doing a forced shutdown!", jail)
+    logger.debug("(jail:%s, vm:1) shutting down virtual machine ...", jail)
 
     overlord.vm.poweroff(jail, jail)
 

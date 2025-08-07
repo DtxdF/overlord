@@ -973,6 +973,17 @@ and
 .Sy img
 are supported.
 .Pp
+.It Sy poweroff
+By default, Overlord will simply stop the jail, and vm-bhyve should stop it correctly.
+However, if this parameter is set to
+.Sy true Ns , Overlord will force the virtual machine to shut down before stopping the
+jail, which may result in dirty data loss
+.Pq data in memory but not yet committed
+or other issues.
+.Pp
+When destroying a virtual machine, this parameter is ignored and the virtual machine is
+forcibly shut down.
+.Pp
 .It Sy overwrite
 By default,
 .Qq The Ephemeral Concept
