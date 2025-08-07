@@ -45,12 +45,19 @@ def check_vm_name(name):
     return re.match(r"[a-zA-Z0-9][.a-zA-Z0-9_-]{0,229}[a-zA-Z0-9]", name) is not None
 
 def is_done(jail_path):
-    done_file = os.path.join(jail_path, ".done")
+    # .done is accepted for backward compatibility.
+    done_files = (".done", "vm/.done")
 
-    return os.path.isfile(done_file)
+    for done_file in done_files:
+        done_file = os.path.join(jail_path, done_file)
+
+        if os.path.isfile(done_file):
+            return True
+
+    return False
 
 def write_done(jail_path, content=""):
-    done_file = os.path.join(jail_path, ".done")
+    done_file = os.path.join(jail_path, "vm/.done")
 
     with open(done_file, "w") as fd:
         fd.write(content)
@@ -59,6 +66,12 @@ def write_done(jail_path, content=""):
 
 def get_done(jail_path):
     done_file = os.path.join(jail_path, ".done")
+
+    if not os.path.isfile(done_file):
+        done_file = os.path.join(jail_path, "vm/.done")
+
+    if not os.path.isfile(done_file):
+        return
 
     with open(done_file) as fd:
         return fd.read()

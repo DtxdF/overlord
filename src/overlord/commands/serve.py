@@ -696,6 +696,12 @@ class VMHandler(InternalHandler):
 
             makejailFromMetadata = self.get_json_argument("makejailFromMetadata", None, strip=False, value_type=str)
 
+            datastore = self.get_json_argument("datastore", None, strip=False, value_type=str)
+
+            overlord.spec.vm_jail.validate_datastore({ "datastore" : datastore })
+
+            overwrite = self.get_json_argument("overwrite", False, value_type=bool)
+
             cloud_init = self.get_json_argument("cloud-init", {}, value_type=dict)
 
             overlord.spec.vm_jail.validate_cloud_init({ "cloud-init" : cloud_init })
@@ -759,6 +765,7 @@ class VMHandler(InternalHandler):
             "name" : name,
             "makejail" : makejail,
             "makejailFromMetadata" : makejailFromMetadata,
+            "datastore" : datastore,
             "cloud-init" : cloud_init,
             "template" : template,
             "diskLayout" : diskLayout,
@@ -770,7 +777,8 @@ class VMHandler(InternalHandler):
             "build-environment" : build_environment,
             "build-arguments" : build_arguments,
             "options" : options,
-            "restart" : restart
+            "restart" : restart,
+            "overwrite" : overwrite
         })
 
         self.write_template({
@@ -871,6 +879,12 @@ class ChainVMHandler(ChainInternalHandler):
 
             makejailFromMetadata = self.get_json_argument("makejailFromMetadata", None, strip=False, value_type=str)
 
+            datastore = self.get_json_argument("datastore", None, strip=False, value_type=str)
+
+            overlord.spec.vm_jail.validate_datastore({ "datastore" : datastore })
+
+            overwrite = self.get_json_argument("overwrite", False, value_type=bool)
+
             overlord.spec.vm_jail.validate_makejail({
                 "makejail" : makejail,
                 "makejailFromMetadata" : makejailFromMetadata
@@ -957,7 +971,9 @@ class ChainVMHandler(ChainInternalHandler):
             "build-environment" : build_environment,
             "build-arguments" : build_arguments,
             "options" : options,
-            "restart" : restart
+            "restart" : restart,
+            "overwrite" : overwrite,
+            "datastore" : datastore
         })
 
         result = await self.remote_call(chain, "create_vm", name, profile)

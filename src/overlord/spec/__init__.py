@@ -97,6 +97,8 @@ def get_config():
         config["build-environment"] = overlord.spec.vm_jail.get_build_environment()
         config["build-arguments"] = overlord.spec.vm_jail.get_build_arguments()
         config["cloud-init"] = overlord.spec.vm_jail.get_cloud_init()
+        config["overwrite"] = overlord.spec.vm_jail.get_overwrite()
+        config["datastore"] = overlord.spec.vm_jail.get_datastore()
 
     elif kind == OverlordKindTypes.APPCONFIG.value:
         config["appName"] = overlord.spec.app_config.get_appName()

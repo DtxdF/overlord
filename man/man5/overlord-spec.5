@@ -973,6 +973,42 @@ and
 .Sy img
 are supported.
 .Pp
+.It Sy overwrite
+By default,
+.Qq The Ephemeral Concept
+of AppJail is not honored, and Overlord attempts
+not to recreate the jail. Using this parameter recreates the jail, so you must
+separate the data that must persist from the data considered ephemeral.
+.Pp
+If you use the
+.Sy iso
+installation type, remember to set the
+.Sy installed
+parameter to
+.Sy true
+after installing the guest operating system and before reapplying the deployment.
+If you ignore this step, you could lose your data, as the
+.Qq done file
+is not written until the aforementioned parameter is specified. After the
+.Sy installed
+parameter is set, the deployment must be applied at least twice to recreate the jail.
+The first attempt is to create the
+.Qq done file
+and on the second attempt, Overlord will detect that this file is written, allowing it
+to freely recreate the jail.
+.Pp
+.It Sy datastore
+A directory that Overlord will create and that will contain the
+.Sy .img
+and
+.Sy .iso
+subdirectories.
+.Pp
+This directory is supposed to be the default data store for vm-bhyve, but you must
+explicitly mount it as an
+.Xr appjail-fstab 1
+entry.
+.Pp
 .It Sy cloud-init
 If the guest operating system has cloud-init installed and enabled, an additional
 .Sy ahci-cd

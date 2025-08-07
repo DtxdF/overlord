@@ -119,7 +119,9 @@ async def _async_vm(data):
                     "start" : message.get("start-environment")
                 },
                 "options" : message.get("options"),
-                "restart" : message.get("restart")
+                "restart" : message.get("restart"),
+                "overwrite" : message.get("overwrite"),
+                "datastore" : message.get("datastore")
             }
 
             await create_vm(job_id, **profile)
@@ -162,17 +164,31 @@ async def create_vm(
     environment,
     arguments,
     options,
-    restart
+    restart,
+    overwrite,
+    datastore
 ):
     vm = name
 
-    logger.debug("(VM:%s) creating VM ...", vm)
+    logger.debug("(VM:%s) processing ...", vm)
 
     director_file = None
 
     restarted = False
 
     jail_path = None
+
+    if datastore is not None and not os.path.isdir(datastore):
+        dirs = (
+            datastore,
+            os.path.join(datastore, ".img"),
+            os.path.join(datastore, ".iso")
+        )
+
+        for dir_ in dirs:
+            os.makedirs(dir_, exist_ok=True)
+
+    is_done = False
 
     if overlord.jail.status(vm) < 2:
         jail_path = overlord.jail.get_jail_path(vm)
@@ -181,12 +197,16 @@ async def create_vm(
             logger.error("(jail:%s) can't get jail path!", vm)
             return
 
-        if overlord.vm.is_done(jail_path):
-            if not restart:
+        is_done = overlord.vm.is_done(jail_path)
+
+        if is_done:
+            if not restart and not overwrite:
                 return
 
-            if overlord.director.check(vm):
+            if restart and overlord.director.check(vm):
                 logger.debug("(vm:%s) stopping ...", vm)
+
+                director_file = overlord.vm.get_done(jail_path)
 
                 poweroff_if_vm(vm)
 
@@ -194,7 +214,8 @@ async def create_vm(
 
                 restarted = True
 
-                director_file = overlord.vm.get_done(jail_path)
+                # Restart or overwrite, but not both.
+                overwrite = False
 
     overlord.cache.save_project_status_up(vm, {
         "operation" : "RUNNING",
@@ -202,7 +223,7 @@ async def create_vm(
         "job_id" : job_id
     })
 
-    if director_file is None:
+    if director_file is None or overwrite:
         director_file = {
             "services" : {
                 "vm" : {
@@ -234,46 +255,69 @@ async def create_vm(
         director_file = yaml.dump(director_file)
 
     with tempfile.NamedTemporaryFile(prefix="overlord", mode="wb", buffering=0) as fd:
-        fd.write(director_file.encode())
+        from_ = diskLayout["from"]
 
-        result = overlord.director.up(vm, fd.name, env=environment["process"])
+        from_type = from_["type"]
 
-        errlevel = result["stdout"]["errlevel"]
+        ignore_done = False
+        ignore_create = False
+        installed = False
+        recreate = True
 
-        if errlevel == 0:
-            failed = result["stdout"]["failed"]
+        if from_type == "iso":
+            installed = from_.get("installed")
 
-            error = len(failed) > 0
+            if installed is None:
+                installed = False
+
+            if installed:
+                ignore_create = True
+
+            if installed and not is_done and not restart:
+                recreate = False
+
+        if recreate:
+            fd.write(director_file.encode())
+
+            result = overlord.director.up(vm, fd.name, env=environment["process"], overwrite=overwrite)
+
+            errlevel = result["stdout"]["errlevel"]
+
+            if errlevel == 0:
+                failed = result["stdout"]["failed"]
+
+                error = len(failed) > 0
+
+            else:
+                error = True
+
+            if error:
+                operation_status = "INCOMPLETED"
+
+            else:
+                operation_status = "COMPLETED"
+
+            overlord.cache.save_project_status_up(vm, {
+                "operation" : operation_status,
+                "output" : result,
+                "last_update" : time.time(),
+                "job_id" : job_id,
+                "restarted" : restarted
+            })
+
+            if error:
+                return
+
+            # We must limit our execution to just restarting the project and nothing else.
+            if restarted:
+                return
 
         else:
-            error = True
-
-        if error:
-            operation_status = "INCOMPLETED"
-
-        else:
-            operation_status = "COMPLETED"
-
-        overlord.cache.save_project_status_up(vm, {
-            "operation" : operation_status,
-            "output" : result,
-            "last_update" : time.time(),
-            "job_id" : job_id,
-            "restarted" : restarted
-        })
-
-        if error:
-            return
-
-        # We must limit our execution to just restarting the project and nothing else.
-        if restarted:
-            return
-
-        overlord.cache.save_vm_status(vm, {
-            "operation" : "RUNNING",
-            "last_update" : time.time(),
-            "job_id" : job_id
-        })
+            overlord.cache.save_project_status_up(vm, {
+                "operation" : "NOOP",
+                "last_update" : time.time(),
+                "job_id" : job_id
+            })
 
         if jail_path is None:
             jail_path = overlord.jail.get_jail_path(vm)
@@ -281,6 +325,12 @@ async def create_vm(
             if jail_path is None:
                 logger.error("(jail:%s) can't get jail path!", vm)
                 return
+
+        overlord.cache.save_vm_status(vm, {
+            "operation" : "RUNNING",
+            "last_update" : time.time(),
+            "job_id" : job_id
+        })
 
         if len(cloud_init) > 0:
             flags = cloud_init.get("flags")
@@ -307,8 +357,6 @@ async def create_vm(
             template["disk1_name"] = "seed.iso"
             template["disk1_dev"] = "file"
 
-        from_ = diskLayout["from"]
-
         driver = diskLayout["driver"]
         size = diskLayout["size"]
 
@@ -319,19 +367,10 @@ async def create_vm(
 
         overlord.vm.write_template(jail_path, "overlord", template)
 
-        from_type = from_["type"]
+        is_done = overlord.vm.is_done(jail_path)
 
-        ignore_done = False
-        ignore_create = False
-
-        if from_type == "iso":
-            installed = from_.get("installed")
-
-            if installed is None:
-                installed = False
-
-            if installed:
-                ignore_create = True
+        if overwrite and is_done:
+            ignore_create = True
 
         if not ignore_create:
             imgFile = from_.get("imgFile")
@@ -348,20 +387,20 @@ async def create_vm(
 
                 return
 
-            # vm-bhyve does not respect some parameters that the user can specify from the
-            # template. This behavior makes sense when vm-bhyve is used on a single machine
-            # but with multiple virtual machines. However, since we use one virtual machine
-            # for each jail, it might make sense for it to match the configuration we specify
-            # from the template.
-            overlord.vm.clone_template(jail_path, "overlord", vm)
+        # vm-bhyve does not respect some parameters that the user can specify from the
+        # template. This behavior makes sense when vm-bhyve is used on a single machine
+        # but with multiple virtual machines. However, since we use one virtual machine
+        # for each jail, it might make sense for it to match the configuration we specify
+        # from the template.
+        overlord.vm.clone_template(jail_path, "overlord", vm)
 
-            # cloud-init
-            seed_file = os.path.join(jail_path, "seed.iso")
+        # cloud-init
+        seed_file = os.path.join(jail_path, "seed.iso")
 
-            if os.path.isfile(seed_file):
-                dst = os.path.join(jail_path, f"vm/{vm}/seed.iso")
+        if os.path.isfile(seed_file):
+            dst = os.path.join(jail_path, f"vm/{vm}/seed.iso")
 
-                shutil.move(seed_file, dst)
+            shutil.move(seed_file, dst)
 
         (rc, result) = (0, "")
 
@@ -409,9 +448,13 @@ async def create_vm(
                     overlord.config.get_components(), osArch, osVersion
                 )
 
-                (rc, result) = overlord.vm.install_from_components(
-                    vm, downloadURL, components_path, components
-                )
+                if overwrite and is_done:
+                    (rc, result) = overlord.vm.start(vm)
+
+                else:
+                    (rc, result) = overlord.vm.install_from_components(
+                        vm, downloadURL, components_path, components
+                    )
 
             elif from_type == "appjailImage":
                 entrypoint = from_["entrypoint"]
@@ -419,9 +462,13 @@ async def create_vm(
                 imageArch = from_["imageArch"]
                 imageTag = from_["imageTag"]
 
-                (rc, result) = overlord.vm.install_from_appjail_image(
-                    vm, entrypoint, imageName, imageArch, imageTag
-                )
+                if overwrite and is_done:
+                    (rc, result) = overlord.vm.start(vm)
+
+                else:
+                    (rc, result) = overlord.vm.install_from_appjail_image(
+                        vm, entrypoint, imageName, imageArch, imageTag
+                    )
 
         elif from_type == "iso":
             if installed:

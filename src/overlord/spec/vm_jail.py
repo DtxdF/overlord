@@ -79,6 +79,12 @@ def get_build_arguments():
 def get_cloud_init():
     return get_default(CONFIG.get("cloud-init"), {})
 
+def get_overwrite():
+    return get_default(CONFIG.get("overwrite"), False)
+
+def get_datastore():
+    return CONFIG.get("datastore")
+
 def validate(document):
     global CONFIG
 
@@ -103,7 +109,9 @@ def validate(document):
         "start-arguments",
         "build-environment",
         "build-arguments",
-        "cloud-init"
+        "cloud-init",
+        "overwrite",
+        "datastore"
     )
 
     for key in document:
@@ -123,8 +131,28 @@ def validate(document):
     validate_build_environment(document)
     validate_build_arguments(document)
     validate_cloud_init(document)
+    validate_overwrite(document)
+    validate_datastore(document)
 
     CONFIG = document
+
+def validate_datastore(document):
+    datastore = document.get("datastore")
+
+    if datastore is None:
+        return
+
+    if not isinstance(datastore, str):
+        raise overlord.exceptions.InvalidSpec(f"{datastore}: invalid value type for 'datastore'")
+
+def validate_overwrite(document):
+    overwrite = document.get("overwrite")
+
+    if overwrite is None:
+        return
+
+    if not isinstance(overwrite, bool):
+        raise overlord.exceptions.InvalidSpec(f"{overwrite}: invalid value type for 'overwrite'")
 
 def validate_cloud_init(document):
     cloud_init = document.get("cloud-init")

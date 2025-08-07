@@ -79,8 +79,11 @@ def describe(project):
 
     return (rc, data)
 
-def up(name, director_file, env=None, cwd=None):
+def up(name, director_file, env=None, cwd=None, overwrite=False):
     args = ["appjail-director", "up", "-j", "-f", director_file, "-p", name]
+
+    if overwrite:
+        args.append("--overwrite")
 
     (rc, stdout, stderr) = overlord.process.run_proc(args, env=env, cwd=cwd)
 
