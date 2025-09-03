@@ -53,6 +53,7 @@
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm destroy
+.Op Fl Fl filter-root-chain
 .Op Fl Fl force
 .Op Fl Fl filter-chain Ar filter
 .Fl Fl file Ar file
@@ -168,9 +169,12 @@ Prints the configuration in JSON format. This includes the default values.
 .It Cm print-spec
 Prints the specification of a deployment file in JSON format. This includes the
 default values.
-.It Cm destroy Oo Fl Fl force Oc Oo Fl Fl filter-chain Ar filter Oc Fl Fl file Ar file
+.It Cm destroy Oo Fl Fl filter-root-chain Oc Oo Fl Fl force Oc Oo Fl Fl filter-chain Ar filter Oc Fl Fl file Ar file
 Destroy a project or metadata.
 .Bl -tag -width xx
+.It Fl Fl filter-root-chain
+Adds the root chain to the list used by
+.Fl Fl filter-chain Ns "."
 .It Fl Fl force
 Force the destruction of a project.
 .Pp

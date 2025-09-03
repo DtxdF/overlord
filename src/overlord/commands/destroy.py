@@ -56,10 +56,11 @@ FROM_APPCONFIG = False
 @click.option("-f", "--file", required=True)
 @click.option("-F", "--force", is_flag=True, default=False)
 @click.option("--filter-chain", default=[], multiple=True)
+@click.option("--filter-root-chain", is_flag=True, default=False)
 def destroy(*args, **kwargs):
     asyncio.run(_destroy(*args, **kwargs))
 
-async def _destroy(file, force, filter_chain):
+async def _destroy(file, force, filter_chain, filter_root_chain):
     global FROM_APPCONFIG
 
     try:
@@ -156,7 +157,12 @@ async def _destroy(file, force, filter_chain):
                 chains.append(_chain)
 
             for chain in chains:
-                if len(filter_chain) > 0 \
+                if chain is None:
+                    if not filter_root_chain:
+                        logger.debug("(datacenter:%s, filter-root-chain:0) excluding root chain ...", datacenter)
+                        continue
+
+                elif len(filter_chain) > 0 \
                         and chain not in filter_chain:
                     logger.debug("(datacenter:%s, chain:%s, filter:%s) it doesn't match the specified chain, ignoring ...",
                                  datacenter, chain, filter_chain)
