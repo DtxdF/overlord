@@ -372,7 +372,7 @@ async def _destroy(file, force, filter_chain, filter_root_chain):
 
                         FROM_APPCONFIG = True
 
-                        await _destroy(fd.name, force, filter_chain)
+                        await _destroy(fd.name, force, filter_chain, filter_root_chain)
 
                     return
 
