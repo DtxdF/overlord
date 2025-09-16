@@ -39,6 +39,7 @@ import overlord.commands.destroy
 import overlord.commands.logs
 import overlord.commands.spec
 import overlord.commands.cancel
+import overlord.commands.template
 
 def cli():
     overlord.commands.cli()
