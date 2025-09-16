@@ -45,6 +45,7 @@ import overlord.commands
 import overlord.util
 
 from mako.template import Template
+from mako.lookup import TemplateLookup
 
 from overlord.sysexits import EX_NOINPUT, EX_SOFTWARE, EX_CONFIG
 
@@ -57,10 +58,11 @@ FROM_APPCONFIG = False
 @click.option("-F", "--force", is_flag=True, default=False)
 @click.option("--filter-chain", default=[], multiple=True)
 @click.option("--filter-root-chain", is_flag=True, default=False)
+@click.option("--mako-directories", default=["."], multiple=True)
 def destroy(*args, **kwargs):
     asyncio.run(_destroy(*args, **kwargs))
 
-async def _destroy(file, force, filter_chain, filter_root_chain):
+async def _destroy(file, force, filter_chain, filter_root_chain, mako_directories):
     global FROM_APPCONFIG
 
     try:
@@ -338,7 +340,8 @@ async def _destroy(file, force, filter_chain, filter_root_chain):
                         continue
 
                     try:
-                        appRendered = Template(appTemplate)
+                        appLookup = TemplateLookup(directories=mako_directories)
+                        appRendered = Template(appTemplate, lookup=appLookup)
 
                         with io.StringIO(initial_value=appRendered.render(**appConfig)) as fd:
                             appSpec = yaml.load(fd, Loader=yaml.SafeLoader)
@@ -372,7 +375,10 @@ async def _destroy(file, force, filter_chain, filter_root_chain):
 
                         FROM_APPCONFIG = True
 
-                        await _destroy(fd.name, force, filter_chain, filter_root_chain)
+                        await _destroy(
+                            fd.name, force, filter_chain, filter_root_chain,
+                            mako_directories
+                        )
 
                     return
 

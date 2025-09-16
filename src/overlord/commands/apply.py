@@ -49,6 +49,7 @@ import overlord.spec
 import overlord.util
 
 from mako.template import Template
+from mako.lookup import TemplateLookup
 
 from overlord.sysexits import EX_OK, EX_NOINPUT, EX_SOFTWARE, EX_CONFIG
 
@@ -59,10 +60,11 @@ FROM_APPCONFIG = False
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
 @click.option("--restart", is_flag=True, default=False)
+@click.option("--mako-directories", default=["."], multiple=True)
 def apply(*args, **kwargs):
     asyncio.run(_apply(*args, **kwargs))
 
-async def _apply(file, restart):
+async def _apply(file, restart, mako_directories):
     global FROM_APPCONFIG
 
     overlord.process.init()
@@ -330,7 +332,8 @@ async def _apply(file, restart):
                         continue
 
                     try:
-                        appRendered = Template(appTemplate)
+                        appLookup = TemplateLookup(directories=mako_directories)
+                        appRendered = Template(appTemplate, lookup=appLookup)
 
                         with io.StringIO(initial_value=appRendered.render(**appConfig)) as fd:
                             appSpec = yaml.load(fd, Loader=yaml.SafeLoader)
@@ -364,7 +367,7 @@ async def _apply(file, restart):
 
                         FROM_APPCONFIG = True
 
-                        await _apply(fd.name, restart)
+                        await _apply(fd.name, restart, mako_directories)
 
                     return
 
