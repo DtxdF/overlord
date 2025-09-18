@@ -43,6 +43,7 @@
 .Nm
 .Op Fl Fl env-file Ar file
 .Cm cancel
+.Op Fl Fl mako-directories Ar directory
 .Op Fl Fl filter-chain Ar filter
 .Fl Fl file Ar file
 .Nm
@@ -167,9 +168,12 @@ By default, the current directory is used.
 .It Fl f Ar file Ns , No Fl Fl file Ar file
 Deployment file.
 .El
-.It Cm cancel Oo Fl Fl filter-chain Ar filter Oc Fl Fl file Ar file
+.It Cm cancel Oo Fl Fl mako-directories Ar directory Oc Oo Fl Fl filter-chain Ar filter Oc Fl Fl file Ar file
 Cancels a project or VM in execution.
 .Bl -tag -width xx
+.It Fl Fl mako-directories Ar directory
+See description in
+.Cm apply Ns "."
 .It Fl Fl filter-chain Ar filter
 Destroy the project that matches with this chain.
 .Pp

@@ -31,9 +31,13 @@ import asyncio
 import logging
 import ssl
 import sys
+import io
+import tempfile
+import sys
 
 import click
 import httpx
+import yaml
 
 import overlord.chains
 import overlord.client
@@ -41,27 +45,40 @@ import overlord.commands
 import overlord.spec
 import overlord.util
 
+from mako.template import Template
+from mako.lookup import TemplateLookup
+
 from overlord.sysexits import EX_OK, EX_NOINPUT, EX_SOFTWARE, EX_CONFIG
 
 logger = logging.getLogger(__name__)
 
+FROM_APPCONFIG = False
+
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
 @click.option("--filter-chain", default=[], multiple=True)
+@click.option("--mako-directories", default=["."], multiple=True)
 def cancel(*args, **kwargs):
     asyncio.run(_cancel(*args, **kwargs))
 
-async def _cancel(file, filter_chain):
+async def _cancel(file, filter_chain, mako_directories):
+    global FROM_APPCONFIG
+
     try:
         overlord.spec.load(file)
 
         kind = overlord.spec.get_kind()
 
         if kind != overlord.spec.OverlordKindTypes.PROJECT.value \
-                and kind != overlord.spec.OverlordKindTypes.VMJAIL.value:
+                and kind != overlord.spec.OverlordKindTypes.VMJAIL.value \
+                and kind != overlord.spec.OverlordKindTypes.APPCONFIG.value:
             logger.error(f"(kind:{kind}) can't cancel this type of deployment!")
             sys.exit(EX_CONFIG)
 
+        if FROM_APPCONFIG \
+                and kind == overlord.spec.OverlordKindTypes.APPCONFIG.value:
+            logger.error("(kind:appConfig) loop detected in an appConfig deployment!")
+            sys.exit(EX_CONFIG)
 
         scale_options = overlord.spec.director_project.get_autoScale()
 
@@ -201,6 +218,58 @@ async def _cancel(file, filter_chain):
                 elif kind == overlord.spec.OverlordKindTypes.VMJAIL.value:
                     name = overlord.spec.vm_jail.get_vmName()
 
+                elif kind == overlord.spec.OverlordKindTypes.APPCONFIG.value:
+                    appName = overlord.spec.app_config.get_appName()
+                    appFrom = overlord.spec.app_config.get_appFrom()
+                    appConfig = overlord.spec.app_config.get_appConfig()
+                    appConfig["appName"] = appName
+
+                    try:
+                        appTemplate = await client.metadata_get(appFrom, chain=chain)
+
+                    except Exception as err:
+                        error = overlord.util.get_error(err)
+                        error_type = error.get("type")
+                        error_message = error.get("message")
+
+                        logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) error obtaining the template from the metadata: %s",
+                                       datacenter, chain, appFrom, error_type, error_message)
+
+                        continue
+
+                    try:
+                        appLookup = TemplateLookup(directories=mako_directories)
+                        appRendered = Template(appTemplate, lookup=appLookup)
+
+                        with io.StringIO(initial_value=appRendered.render(**appConfig)) as fd:
+                            appSpec = yaml.load(fd, Loader=yaml.SafeLoader)
+
+                        appSpec["datacenters"] = overlord.spec.get_datacenters()
+                        appSpec["deployIn"] = overlord.spec.get_deployIn()
+                        appSpec["maximumDeployments"] = overlord.spec.get_maximumDeployments()
+
+                        appYAML = yaml.dump(appSpec)
+
+                    except Exception as err:
+                        error = overlord.util.get_error(err)
+                        error_type = error.get("type")
+                        error_message = error.get("message")
+
+                        logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) error parsing the template: %s",
+                                       datacenter, chain, appFrom, error_type, error_message)
+                        continue
+
+                    appKind = appSpec.get("kind")
+
+                    with tempfile.NamedTemporaryFile(prefix="overlord", mode="wb", buffering=0) as fd:
+                        fd.write(appYAML.encode())
+
+                        FROM_APPCONFIG = True
+
+                        await _cancel(fd.name, filter_chain, mako_directories)
+
+                    return
+
                 try:
                     response = await client.cancel(name, chain=chain)
 
@@ -211,7 +280,6 @@ async def _cancel(file, filter_chain):
 
                     logger.warning("(datacenter:%s, chain:%s, project:%s, exception:%s) error cancelling this project!",
                                    datacenter, chain, name, error_type, error_message)
-
                     continue
 
                 job_id = response.get("job_id")
