@@ -234,6 +234,7 @@ async def _print_template(file, mako_directories):
                     continue
 
                 print(appYAML)
+                return
 
     except Exception as err:
         error = overlord.util.get_error(err)
