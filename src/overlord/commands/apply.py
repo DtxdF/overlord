@@ -386,7 +386,6 @@ async def _apply(file, restart, mako_directories):
                         "build-arguments" : overlord.spec.vm_jail.get_build_arguments(),
                         "restart" : restart,
                         "overwrite" : overlord.spec.vm_jail.get_overwrite(),
-                        "datastore" : overlord.spec.vm_jail.get_datastore(),
                         "poweroff" : overlord.spec.vm_jail.get_poweroff()
                     }
 
@@ -402,6 +401,11 @@ async def _apply(file, restart, mako_directories):
 
                     if vm_script is not None:
                         profile["script"] = vm_script
+
+                    datastore = overlord.spec.vm_jail.get_datastore()
+
+                    if datastore is not None:
+                        profile["datastore"] = datastore
 
                     vm_metadata = overlord.spec.vm_jail.get_metadata()
 
