@@ -56,7 +56,14 @@ def get_script():
     return CONFIG.get("script")
 
 def get_metadata():
-    return get_default(CONFIG.get("metadata"), [])
+    metadata = get_default(CONFIG.get("metadata"), [])
+
+    prefix = CONFIG.get("metadataPrefix")
+
+    if prefix is not None:
+        metadata = [(prefix + "." + m) for m in metadata]
+
+    return metadata
 
 def get_options():
     return get_default(CONFIG.get("options"), [])
@@ -106,6 +113,7 @@ def validate(document):
         "diskLayout",
         "script",
         "metadata",
+        "metadataPrefix",
         "options",
         "script-environment",
         "start-environment",
@@ -128,6 +136,7 @@ def validate(document):
     validate_diskLayout(document)
     validate_script(document)
     validate_metadata(document)
+    validate_metadataPrefix(document)
     validate_options(document)
     validate_script_environment(document)
     validate_start_environment(document)
@@ -883,6 +892,15 @@ def validate_script(document):
 
     if not isinstance(script, str):
         raise overlord.exceptions.InvalidSpec(f"{script}: invalid value type for 'script'")
+
+def validate_metadataPrefix(document):
+    metadataPrefix = document.get("metadataPrefix")
+
+    if metadataPrefix is None:
+        return
+
+    if not isinstance(metadataPrefix, str):
+        raise overlord.exceptions.InvalidSpec(f"{metadataPrefix}: invalid value type for 'metadataPrefix'")
 
 def validate_metadata(document):
     metadata = document.get("metadata")

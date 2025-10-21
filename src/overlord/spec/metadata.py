@@ -30,7 +30,19 @@
 CONFIG = {}
 
 def get_metadata():
-    return CONFIG.get("metadata")
+    metadata = CONFIG.get("metadata")
+
+    prefix = CONFIG.get("metadataPrefix")
+
+    if prefix is not None:
+        _metadata = {}
+
+        for key, value in metadata.items():
+            _metadata[prefix + "." + key] = value
+
+        metadata = _metadata
+
+    return metadata
 
 def validate(document):
     global CONFIG
@@ -43,7 +55,8 @@ def validate(document):
         "datacenters",
         "deployIn",
         "maximumDeployments",
-        "metadata"
+        "metadata",
+        "metadataPrefix"
     )
 
     for key in document:
@@ -51,8 +64,18 @@ def validate(document):
             raise overlord.exceptions.InvalidSpec(f"{key}: this key is invalid.")
 
     validate_metadata(document)
+    validate_metadataPrefix(document)
 
     CONFIG = document
+
+def validate_metadataPrefix(document):
+    metadataPrefix = document.get("metadataPrefix")
+
+    if metadataPrefix is None:
+        return
+
+    if not isinstance(metadataPrefix, str):
+        raise overlord.exceptions.InvalidSpec(f"{metadataPrefix}: invalid value type for 'metadataPrefix'")
 
 def validate_metadata(document):
     metadata = document.get("metadata")
