@@ -135,11 +135,13 @@ async def write_partitions(jail_path, scheme, partitions, bootcode=None):
     for index, partition in enumerate(partitions, 1):
         for key, value in partition.items():
             if key == "format":
-                key = "format.flags"
-                value = value.get("flags")
+                if "flags" in value:
+                    key = "format.flags"
+                    value = value.get("flags")
 
-                if value is None:
-                    continue
+                elif "script" in value:
+                    key = "format.script"
+                    value = value.get("script")
 
             await _write_metadata(jail_path, f"overlord.diskLayout.disk.partitions.{index}.{key}", value)
 

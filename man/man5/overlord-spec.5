@@ -1218,6 +1218,54 @@ will be formatted.
 .Xr newfs 8
 flags.
 .Pp
+.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .format.script
+Instead of using
+.Xr newfs 8
+to format the partition, use a custom script executed from the host.
+.Pp
+When the script is executed, four environment variables are defined:
+.Pp
+.Bl -bullet -compact
+.It
+.Ev OVERLORD_PHASE Ns :
+Execution phase.
+.Pp
+The first phase is
+.Sy format Ns ,
+which indicates that you should format the device specified by
+.Ev OVERLORD_DEVICE Ns "."
+The second phase is
+.Sy mount Ns ,
+which indicates that you should mount any file systems on the formatted device to
+.Ev OVERLORD_MNTDIR Ns "."
+And the third phase is
+.Sy umount Ns ,
+which indicates that you should unmount the file system mounted in
+.Ev OVERLORD_MNTDIR Ns "."
+.Pp
+You can specify this parameter on multiple partitions, however,
+.Sy mount
+and
+.Sy umount
+are only available for the first partition where this parameter appears.
+.It
+.Ev OVERLORD_UUID Ns :
+A random UUID with the prefix
+.Sy overlord- Ns ,
+mainly useful for ZFS in-core pool names.
+.It
+.Ev OVERLORD_DEVICE Ns :
+Device for formatting and/or mounting/unmounting.
+.It
+.Ev OVERLORD_MNTDIR Ns :
+Temporary directory where the device's file system should be mounted in order
+to populate it with FreeBSD files.
+.El
+.Pp
+This option cannot be used at the same time as the
+.Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .format.flags
+parameter.
+.Pp
 .It Sy diskLayout.disk.bootcode
 Embed bootstrap code into the partitioning scheme's metadata on the root partition
 or write bootstrap code into a partition.

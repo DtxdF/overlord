@@ -29,6 +29,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 MD=
+MOUNT_INDEX=
+FORMAT_SCRIPT=
+OVERLORD_UUID=overlord-`uuidgen -r`
 MOUNTED=false
 JAIL_PATH=
 LOCKFILE=
@@ -100,7 +103,7 @@ main()
 
     local partition_prefix="${JAIL_PATH}/metadata/overlord.diskLayout.disk.partitions"
 
-    local mount_index= index=1
+    local index=1
 
     while :; do
         local extra_flags=
@@ -148,14 +151,29 @@ main()
         sh -c "gpart add -t \"${type}\" ${extra_flags} -i ${index} /dev/${MD}" || exit $?
 
         local format_flags="${partition_prefix}.${index}.format.flags"
+        local format_script="${partition_prefix}.${index}.format.script"
 
         if [ -f "${format_flags}" ]; then
             format_flags=`head -1 -- "${format_flags}"` || exit $?
 
             sh -c "newfs ${format_flags} /dev/${MD}p${index}" || exit $?
 
-            if [ -z "${mount_index}" ]; then
-                mount_index="${index}"
+            if [ -z "${MOUNT_INDEX}" ]; then
+                MOUNT_INDEX="${index}"
+            fi
+        elif [ -f "${format_script}" ]; then
+            if [ -z "${FORMAT_SCRIPT}" ]; then
+                FORMAT_SCRIPT="${format_script}"
+            fi
+
+            chmod +x "${format_script}" || exit $?
+            env OVERLORD_PHASE="format" \
+                OVERLORD_UUID="${OVERLORD_UUID}" \
+                OVERLORD_DEVICE="/dev/${MD}p${index}" \
+                OVERLORD_MNTDIR="${JAIL_PATH}/mnt" "${format_script}" || exit $?
+
+            if [ -z "${MOUNT_INDEX}" ]; then
+                MOUNT_INDEX="${index}"
             fi
         fi
 
@@ -179,10 +197,17 @@ main()
         gpart bootcode -p "${partcode}" -i "${index}" "/dev/${MD}" || exit $?
     fi
 
-    if [ -n "${mount_index}" ]; then
+    if [ -n "${MOUNT_INDEX}" ]; then
         MOUNTED=true
 
-        mount "/dev/${MD}p${mount_index}" "${JAIL_PATH}/mnt" || exit $?
+        if [ -z "${FORMAT_SCRIPT}" ]; then
+            mount "/dev/${MD}p${MOUNT_INDEX}" "${JAIL_PATH}/mnt" || exit $?
+        else
+            env OVERLORD_PHASE="mount" \
+                OVERLORD_UUID="${OVERLORD_UUID}" \
+                OVERLORD_DEVICE="/dev/${MD}p${MOUNT_INDEX}" \
+                OVERLORD_MNTDIR="${JAIL_PATH}/mnt" "${FORMAT_SCRIPT}" || exit $?
+        fi
     fi
 
     LOCKFILE=`mktemp -t overlord` || exit $?
@@ -232,7 +257,14 @@ main()
     fi
 
     if ${MOUNTED}; then
-        umount -- "${JAIL_PATH}/mnt"
+        if [ -z "${FORMAT_SCRIPT}" ]; then
+            umount -- "${JAIL_PATH}/mnt"
+        else
+            env OVERLORD_PHASE="umount" \
+                OVERLORD_UUID="${OVERLORD_UUID}" \
+                OVERLORD_DEVICE="/dev/${MD}p${MOUNT_INDEX}" \
+                OVERLORD_MNTDIR="${JAIL_PATH}/mnt" "${FORMAT_SCRIPT}"
+        fi
 
         MOUNTED=false
     fi
@@ -253,7 +285,14 @@ cleanup()
 	trap '' ${HANDLER_SIGNALS} EXIT
 
     if ${MOUNTED}; then
-        umount -- "${JAIL_PATH}/mnt"
+        if [ -z "${FORMAT_SCRIPT}" ]; then
+            umount -- "${JAIL_PATH}/mnt"
+        else
+            env OVERLORD_PHASE="umount" \
+                OVERLORD_UUID="${OVERLORD_UUID}" \
+                OVERLORD_DEVICE="/dev/${MD}p${MOUNT_INDEX}" \
+                OVERLORD_MNTDIR="${JAIL_PATH}/mnt" "${FORMAT_SCRIPT}"
+        fi
     fi
 
     if [ -n "${MD}" ]; then

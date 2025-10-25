@@ -815,23 +815,28 @@ def validate_diskLayout_disk_partition_format(index, partition):
         raise overlord.exceptions.InvalidSpec(f"'diskLayout.disk.partitions.{index}.format' is invalid.")
 
     keys = (
-        "flags"
+        "flags",
+        "script"
     )
 
     for key in format:
         if key not in keys:
             raise overlord.exceptions.InvalidSpec(f"diskLayout.disk.partitions.{index}.{key}: this key is invalid.")
 
-    validate_diskLayout_disk_partition_format_flags(index, format)
+    if "flags" in format and "script" in format:
+        raise overlord.exceptions.InvalidSpec("Only 'flags' or 'script' should be specified, but not both.")
 
-def validate_diskLayout_disk_partition_format_flags(index, partition):
-    flags = partition.get("flags")
+    elif "flags" in format:
+        flags = format.get("flags")
 
-    if flags is None:
-        return
+        if not isinstance(flags, str):
+            raise overlord.exceptions.InvalidSpec(f"{flags}: invalid value type for 'diskLayout.disk.partition.{index}.format.flags'")
 
-    if not isinstance(flags, str):
-        raise overlord.exceptions.InvalidSpec(f"{flags}: invalid value type for 'diskLayout.disk.partition.{index}.format.flags'")
+    elif "script" in format:
+        script = format.get("script")
+
+        if not isinstance(script, str):
+            raise overlord.exceptions.InvalidSpec(f"{script}: invalid value type for 'diskLayout.disk.partition.{index}.format.script'")
 
 def validate_diskLayout_disk_bootcode(document):
     bootcode = document.get("bootcode")
