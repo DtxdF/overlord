@@ -573,7 +573,7 @@ def validate_diskLayout_from_type(document):
         validate_diskLayout_from_osArch(document)
         validate_diskLayout_from_downloadURL(document)
 
-    elif type == "entrypoint":
+    elif type == "appjailImage":
         validate_diskLayout_from_entrypoint(document)
         validate_diskLayout_from_imageName(document)
         validate_diskLayout_from_imageArch(document)
