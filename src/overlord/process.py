@@ -44,7 +44,7 @@ PROCS = set()
 INIT = False
 EXIT = True
 
-def run(cmd, env=None, timeout=None, cwd=None):
+def run(cmd, env=None, timeout=None, cwd=None, merge_output=False):
     init()
 
     settings = {
@@ -55,6 +55,9 @@ def run(cmd, env=None, timeout=None, cwd=None):
         "env" : env,
         "cwd" : cwd
     }
+
+    if merge_output:
+        settings["stderr"] = subprocess.STDOUT
 
     if isinstance(cmd, str):
         settings["shell"] = True
@@ -67,8 +70,9 @@ def run(cmd, env=None, timeout=None, cwd=None):
         for line in proc.stdout:
             yield { "line" : line }
 
-        for stderr in proc.stderr:
-            yield { "stderr" : stderr }
+        if not merge_output:
+            for stderr in proc.stderr:
+                yield { "stderr" : stderr }
 
         while True:
             try:

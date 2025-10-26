@@ -293,7 +293,7 @@ def poweroff(jail, name):
     return _run(args)
 
 def _run(args):
-    (rc, stdout, stderr) = overlord.process.run_proc(args)
+    (rc, stdout, stderr) = overlord.process.run_proc(args, merge_output=True)
 
     if stderr:
         logger.warning("(rc:%d, args:%s, stderr:1): %s", rc, repr(args), stderr.rstrip())
