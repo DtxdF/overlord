@@ -44,7 +44,7 @@ uninstall-libexec:
 	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/vm-install-from-appjail-image.sh"
 	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/vm-start.sh"
 	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/safe-exc.sh"
-	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/create.py
+	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/create.py"
 
 uninstall-manpages:
 	${RM} -f "${DESTDIR}${MANDIR}/man1/overlord.1"
