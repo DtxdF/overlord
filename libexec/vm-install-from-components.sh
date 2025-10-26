@@ -314,7 +314,7 @@ cleanup()
 
 usage()
 {
-    echo "usage: vm-install-from-components.sh -j <jail> -c <componentsdir> -u <downloadurl> component ..."
+    echo "usage: vm-install-from-components.sh -j <jail> -c <componentsdir> -u <downloadurl> <component> ..."
 }
 
 main "$@"
