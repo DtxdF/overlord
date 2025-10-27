@@ -547,6 +547,16 @@ def validate_diskLayout_from_type(document):
             "imageTag"
         )
 
+    elif type == "pkgbase":
+        keys = (
+            "type",
+            "osVersion",
+            "osArch",
+            "packages",
+            "pkgConf",
+            "fingerprints"
+        )
+
     elif type == "iso":
         keys = (
             "type",
@@ -579,6 +589,13 @@ def validate_diskLayout_from_type(document):
         validate_diskLayout_from_imageArch(document)
         validate_diskLayout_from_imageTag(document)
 
+    elif type == "pkgbase":
+        validate_diskLayout_from_osVersion(document)
+        validate_diskLayout_from_osArch(document)
+        validate_diskLayout_from_packages(document)
+        validate_diskLayout_from_pkgConf(document)
+        validate_diskLayout_from_fingerprints(document)
+
     elif type == "iso":
         validate_diskLayout_from_isoFile(document)
         validate_diskLayout_from_installed(document)
@@ -586,6 +603,37 @@ def validate_diskLayout_from_type(document):
     elif type == "img":
         validate_diskLayout_from_imgFile(document)
         validate_diskLayout_from_installed(document)
+
+def validate_diskLayout_from_fingerprints(document):
+    fingerprints = document.get("fingerprints")
+
+    if fingerprints is None:
+        return
+
+    if not isinstance(fingerprints, str):
+        raise overlord.exceptions.InvalidSpec(f"{fingerprints}: invalid value type for 'fingerprints'")
+
+def validate_diskLayout_from_pkgConf(document):
+    pkgConf = document.get("pkgConf")
+
+    if pkgConf is None:
+        return
+
+    if not isinstance(pkgConf, str):
+        raise overlord.exceptions.InvalidSpec(f"{pkgConf}: invalid value type for 'pkgConf'")
+
+def validate_diskLayout_from_packages(document):
+    packages = document.get("packages")
+
+    if packages is None:
+        raise overlord.exceptions.InvalidSpec("'packages' is required but hasn't been specified.")
+
+    if not isinstance(packages, list):
+        raise overlord.exceptions.InvalidSpec("'diskLayout.from.packages' is invalid.")
+
+    for index, package in enumerate(packages):
+        if not isinstance(package, str):
+            raise overlord.exceptions.InvalidSpec(f"{package}: invalid value type for 'diskLayout.from.packages.{index}'")
 
 def validate_diskLayout_from_imgFile(document):
     imgFile = document.get("imgFile")

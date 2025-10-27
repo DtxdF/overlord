@@ -408,7 +408,8 @@ async def create_vm(
         (rc, result) = (0, "")
 
         if from_type == "components" \
-                or from_type == "appjailImage":
+                or from_type == "appjailImage" \
+                or from_type == "pkgbase":
             for metadata_name in metadata:
                 await overlord.vm.write_metadata(jail_path, metadata_name)
 
@@ -471,6 +472,22 @@ async def create_vm(
                 else:
                     (rc, result) = overlord.vm.install_from_appjail_image(
                         vm, entrypoint, imageName, imageArch, imageTag
+                    )
+
+            elif from_type == "pkgbase":
+                osVersion = from_["osVersion"]
+                osArch = from_["osArch"]
+                packages = from_["packages"]
+                pkgConf = from_.get("pkgConf")
+                fingerprints = from_.get("fingerprints")
+
+                if overwrite and is_done:
+                    (rc, result) = overlord.vm.start(vm)
+
+                else:
+                    (rc, result) = overlord.vm.install_from_pkgbase(
+                        vm, osVersion, osArch, packages, pkgConf,
+                        fingerprints
                     )
 
         elif from_type == "iso":

@@ -25,7 +25,7 @@
 .\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 .\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 .\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd January 13, 2025
+.Dd Octuber 26, 2025
 .Dt OVERLORD-SPEC 5
 .Os
 .Sh NAME
@@ -970,6 +970,7 @@ may or may not be valid.
 .Pp
 Only
 .Sy appjailImage Ns ,
+.Sy pkgbase Ns ,
 .Sy components Ns ,
 .Sy iso
 and
@@ -1100,6 +1101,49 @@ This parameter is only valid for the
 .Sy iso
 type.
 .Pp
+.It Sy diskLayout.from.packages
+A list of PkgBase packages to install.
+.Pp
+This parameter is only valid for the
+.Sy pkgbase
+type.
+.Pp
+.It Sy diskLayout.from.pkgConf
+Path containing the
+.Xr pkg.conf 5
+files.
+.Pp
+If this parameter is not set,
+.Pa %%PREFIX%%/share/overlord/files/pkgbase/base.conf
+will be the default value. The specified directory must exist on the destination chain.
+.Pp
+This parameter is only valid for the
+.Sy pkgbase
+type.
+.Pp
+.It Sy diskLayout.from.fingerprints
+Path containing known signatures for the repository.
+.Pp
+This directory will be copied as
+.Pa /usr/share/keys/pkg
+inside the jail, so your
+.Xr pkg.conf 5
+should reflect this in the
+.Sy FINGERPRINTS
+parameter.
+.Pp
+If this parameter is not set,
+.Pa /usr/share/keys/pkg
+will be the default value.
+.Pp
+If this parameter is set to
+.Sy none Ns ,
+the fingerprint directory will not be copied.
+.Pp
+This parameter is only valid for the
+.Sy pkgbase
+type.
+.Pp
 .It Sy diskLayout.from.components
 A list of components to download and extract into the VM root partition.
 .Pp
@@ -1112,14 +1156,18 @@ FreeBSD version.
 .Pp
 This parameter is only valid for the
 .Sy components
-type.
+and
+.Sy pkgbase
+types.
 .Pp
 .It Sy diskLayout.from.osArch
 FreeBSD architecture.
 .Pp
 This parameter is only valid for the
 .Sy components
-type.
+and
+.Sy pkgbase
+types.
 .Pp
 .It Sy diskLayout.from.downloadURL
 URL of the web site where the components will be downloaded. The special strings

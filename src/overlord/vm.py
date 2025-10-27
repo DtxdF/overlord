@@ -76,6 +76,23 @@ def get_done(jail_path):
     with open(done_file) as fd:
         return fd.read()
 
+def install_from_pkgbase(jail, major_version, arch, packages, pkg_conf=None, fingerprints=None):
+    args = []
+
+    args.append(os.path.join(sys.prefix, "libexec/overlord/safe-exc.sh"))
+    args.append(os.path.join(sys.prefix, "libexec/overlord/vm-install-from-pkgbase.sh"))
+    args.extend(["-a", arch])
+    if pkg_conf is not None:
+        args.extend(["-c", pkg_conf])
+    if fingerprints is not None:
+        args.extend(["-f", fingerprints])
+    args.extend(["-j", jail])
+    args.extend(["-v", major_version])
+    args.append("--")
+    args.extend(packages)
+
+    return _run(args)
+
 def install_from_components(jail, download_url, components_path, components):
     args = []
 
