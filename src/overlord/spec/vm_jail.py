@@ -698,6 +698,10 @@ def validate_diskLayout_from_components(document):
     if not isinstance(components, list):
         raise overlord.exceptions.InvalidSpec("'diskLayout.from.components' is invalid.")
 
+    for index, component in enumerate(components):
+        if not isinstance(component, str):
+            raise overlord.exceptions.InvalidSpec(f"{component}: invalid value type for 'diskLayout.from.components.{index}'")
+
 def validate_diskLayout_from_osVersion(document):
     osVersion = document.get("osVersion")
 
