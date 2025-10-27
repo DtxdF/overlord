@@ -611,7 +611,7 @@ def validate_diskLayout_from_fingerprints(document):
         return
 
     if not isinstance(fingerprints, str):
-        raise overlord.exceptions.InvalidSpec(f"{fingerprints}: invalid value type for 'fingerprints'")
+        raise overlord.exceptions.InvalidSpec(f"{fingerprints}: invalid value type for 'diskLayout.from.fingerprints'")
 
 def validate_diskLayout_from_pkgConf(document):
     pkgConf = document.get("pkgConf")
@@ -620,13 +620,13 @@ def validate_diskLayout_from_pkgConf(document):
         return
 
     if not isinstance(pkgConf, str):
-        raise overlord.exceptions.InvalidSpec(f"{pkgConf}: invalid value type for 'pkgConf'")
+        raise overlord.exceptions.InvalidSpec(f"{pkgConf}: invalid value type for 'diskLayout.from.pkgConf'")
 
 def validate_diskLayout_from_packages(document):
     packages = document.get("packages")
 
     if packages is None:
-        raise overlord.exceptions.InvalidSpec("'packages' is required but hasn't been specified.")
+        raise overlord.exceptions.InvalidSpec("'diskLayout.from.packages' is required but hasn't been specified.")
 
     if not isinstance(packages, list):
         raise overlord.exceptions.InvalidSpec("'diskLayout.from.packages' is invalid.")
@@ -639,10 +639,10 @@ def validate_diskLayout_from_imgFile(document):
     imgFile = document.get("imgFile")
 
     if imgFile is None:
-        raise overlord.exceptions.InvalidSpec("'imgFile' is required but hasn't been specified.")
+        raise overlord.exceptions.InvalidSpec("'diskLayout.from.imgFile' is required but hasn't been specified.")
 
     if not isinstance(imgFile, str):
-        raise overlord.exceptions.InvalidSpec(f"{imgFile}: invalid value type for 'imgFile'")
+        raise overlord.exceptions.InvalidSpec(f"{imgFile}: invalid value type for 'diskLayout.from.imgFile'")
 
 def validate_diskLayout_from_installed(document):
     installed = document.get("installed")
@@ -651,43 +651,43 @@ def validate_diskLayout_from_installed(document):
         return
 
     if not isinstance(installed, bool):
-        raise overlord.exceptions.InvalidSpec(f"{installed}: invalid value type for 'installed'")
+        raise overlord.exceptions.InvalidSpec(f"{installed}: invalid value type for 'diskLayout.from.installed'")
 
 def validate_diskLayout_from_isoFile(document):
     isoFile = document.get("isoFile")
 
     if isoFile is None:
-        raise overlord.exceptions.InvalidSpec("'isoFile' is required but hasn't been specified.")
+        raise overlord.exceptions.InvalidSpec("'diskLayout.from.isoFile' is required but hasn't been specified.")
 
     if not isinstance(isoFile, str):
-        raise overlord.exceptions.InvalidSpec(f"{isoFile}: invalid value type for 'isoFile'")
+        raise overlord.exceptions.InvalidSpec(f"{isoFile}: invalid value type for 'diskLayout.from.isoFile'")
 
 def validate_diskLayout_from_imageTag(document):
     imageTag = document.get("imageTag")
 
     if imageTag is None:
-        raise overlord.exceptions.InvalidSpec("'imageTag' is required but hasn't been specified.")
+        raise overlord.exceptions.InvalidSpec("'diskLayout.from.imageTag' is required but hasn't been specified.")
 
     if not isinstance(imageTag, str):
-        raise overlord.exceptions.InvalidSpec(f"{imageTag}: invalid value type for 'imageTag'")
+        raise overlord.exceptions.InvalidSpec(f"{imageTag}: invalid value type for 'diskLayout.from.imageTag'")
 
 def validate_diskLayout_from_imageArch(document):
     imageArch = document.get("imageArch")
 
     if imageArch is None:
-        raise overlord.exceptions.InvalidSpec("'imageArch' is required but hasn't been specified.")
+        raise overlord.exceptions.InvalidSpec("'diskLayout.from.imageArch' is required but hasn't been specified.")
 
     if not isinstance(imageArch, str):
-        raise overlord.exceptions.InvalidSpec(f"{imageArch}: invalid value type for 'imageArch'")
+        raise overlord.exceptions.InvalidSpec(f"{imageArch}: invalid value type for 'diskLayout.from.imageArch'")
 
 def validate_diskLayout_from_imageName(document):
     imageName = document.get("imageName")
 
     if imageName is None:
-        raise overlord.exceptions.InvalidSpec("'imageName' is required but hasn't been specified.")
+        raise overlord.exceptions.InvalidSpec("'diskLayout.from.imageName' is required but hasn't been specified.")
 
     if not isinstance(imageName, str):
-        raise overlord.exceptions.InvalidSpec(f"{imageName}: invalid value type for 'imageName'")
+        raise overlord.exceptions.InvalidSpec(f"{imageName}: invalid value type for 'diskLayout.from.imageName'")
 
 def validate_diskLayout_from_components(document):
     components = document.get("components")
@@ -702,19 +702,19 @@ def validate_diskLayout_from_osVersion(document):
     osVersion = document.get("osVersion")
 
     if osVersion is None:
-        raise overlord.exceptions.InvalidSpec("'osVersion' is required but hasn't been specified.")
+        raise overlord.exceptions.InvalidSpec("'diskLayout.from.osVersion' is required but hasn't been specified.")
 
     if not isinstance(osVersion, str):
-        raise overlord.exceptions.InvalidSpec(f"{osVersion}: invalid value type for 'osVersion'")
+        raise overlord.exceptions.InvalidSpec(f"{osVersion}: invalid value type for 'diskLayout.from.osVersion'")
 
 def validate_diskLayout_from_osArch(document):
     osArch = document.get("osArch")
 
     if osArch is None:
-        raise overlord.exceptions.InvalidSpec("'osArch' is required but hasn't been specified.")
+        raise overlord.exceptions.InvalidSpec("'diskLayout.from.osArch' is required but hasn't been specified.")
 
     if not isinstance(osArch, str):
-        raise overlord.exceptions.InvalidSpec(f"{osArch}: invalid value type for 'osArch'")
+        raise overlord.exceptions.InvalidSpec(f"{osArch}: invalid value type for 'diskLayout.from.osArch'")
 
 def validate_diskLayout_from_downloadURL(document):
     downloadURL = document.get("downloadURL")
@@ -723,7 +723,7 @@ def validate_diskLayout_from_downloadURL(document):
         return
 
     if not isinstance(downloadURL, str):
-        raise overlord.exceptions.InvalidSpec(f"{downloadURL}: invalid value type for 'downloadURL'")
+        raise overlord.exceptions.InvalidSpec(f"{downloadURL}: invalid value type for 'diskLayout.from.downloadURL'")
 
 def validate_diskLayout_from_entrypoint(document):
     entrypoint = document.get("entrypoint")
