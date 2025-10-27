@@ -14,17 +14,13 @@ PIPX_INSTALL_FLAGS+=--system-site-packages
 PIPX_INSTALL_FLAGS+=-e
 .endif
 
-all: install-overlord install-libexec install-manpages
+all: install-overlord install-libexec install-manpages install-files
 
 install-overlord:
 	pipx install ${PIPX_INSTALL_FLAGS} --force --global .
 
 install-libexec:
 	${MKDIR} -m 755 -p "${DESTDIR}${PREFIX}/libexec/overlord"
-	${MKDIR} -m 755 -p "${DESTDIR}${PREFIX}/share/overlord/files"
-	${MKDIR} -m 755 -p "${DESTDIR}${PREFIX}/share/overlord/files/pkgbase"
-
-	${INSTALL} -m 444 files/pkgbase/base.conf "${DESTDIR}${PREFIX}/share/overlord/files/pkgbase"
 
 	${INSTALL} -m 555 libexec/vm-install-from-components.sh "${DESTDIR}${PREFIX}/libexec/overlord/vm-install-from-components.sh"
 	${INSTALL} -m 555 libexec/vm-install-from-appjail-image.sh "${DESTDIR}${PREFIX}/libexec/overlord/vm-install-from-appjail-image.sh"
@@ -45,7 +41,13 @@ install-manpages:
 
 	${SED} -i "" -e "s|%%PREFIX%%|${PREFIX}|g" "${DESTDIR}${MANDIR}/man5/overlord-spec.5"
 
-uninstall: uninstall-overlord uninstall-libexec uninstall-manpages
+install-files:
+	${MKDIR} -m 755 -p "${DESTDIR}${PREFIX}/share/overlord/files"
+	${MKDIR} -m 755 -p "${DESTDIR}${PREFIX}/share/overlord/files/pkgbase"
+
+	${INSTALL} -m 444 files/pkgbase/base.conf "${DESTDIR}${PREFIX}/share/overlord/files/pkgbase"
+
+uninstall: uninstall-overlord uninstall-libexec uninstall-manpages uninstall-files
 
 uninstall-overlord:
 	pipx uninstall --global overlord
@@ -57,8 +59,10 @@ uninstall-libexec:
 	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/vm-start.sh"
 	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/safe-exc.sh"
 	${RM} -f "${DESTDIR}${PREFIX}/libexec/overlord/create.py"
-	${RM} -rf "${DESTDIR}${PREFIX}/share/overlord"
 
 uninstall-manpages:
 	${RM} -f "${DESTDIR}${MANDIR}/man1/overlord.1"
 	${RM} -f "${DESTDIR}${MANDIR}/man5/overlord-spec.5"
+
+uninstall-files:
+	${RM} -rf "${DESTDIR}${PREFIX}/share/overlord"
