@@ -64,6 +64,11 @@ overlord.commands._cli_load_config()
 
 logger = logging.getLogger("overlord.libexec.create")
 
+INTEGRATIONS = {
+    "load-balancer" : "load_balancer",
+    "skydns" : "skydns"
+}
+
 @click.group()
 def cli():
     pass
@@ -616,7 +621,7 @@ async def _async_projects(data):
                 error = special_labels_response.get("error")
 
                 if not error:
-                    for integration in ("load-balancer", "skydns"):
+                    for integration in INTEGRATIONS:
                         services = special_labels_response.get(integration, {})
 
                         for _, info in services.items():
@@ -663,7 +668,7 @@ async def _async_projects(data):
             error = special_labels_response.get("error")
 
             if not error:
-                for integration in ("load-balancer", "skydns"):
+                for integration in INTEGRATIONS:
                     services = special_labels_response.get(integration, {})
 
                     for _, info in services.items():
@@ -827,16 +832,12 @@ async def run_special_labels(project, type, force=False):
             if error:
                 continue
 
-            for integration in ("load-balancer", "skydns"):
+            for integration in INTEGRATIONS:
                 if integration not in response:
                     response[integration] = {}
 
                 try:
-                    if integration == "load-balancer":
-                        task = run_special_label_load_balancer(project, type, service, data)
-
-                    elif integration == "skydns":
-                        task = run_special_label_skydns(project, type, service, data)
+                    task = globals()["run_special_label_%s" % INTEGRATIONS[integration]](project, type, service, data)
 
                     (error, message) = await task
 
