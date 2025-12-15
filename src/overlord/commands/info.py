@@ -780,9 +780,10 @@ async def print_info_projects(client, chain, api_info, projects):
                         error = value.get("error")
                         message = value.get("message")
 
-                        print("        labels:")
-                        print(f"         error: {error}")
-                        print(f"         message: {message}")
+                        if error or message is not None:
+                            print("        labels:")
+                            print(f"         error: {error}")
+                            print(f"         message: {message}")
 
                         for integration in ("load-balancer", "skydns"):
                             data = value.get(f"{integration}", {})
@@ -790,14 +791,17 @@ async def print_info_projects(client, chain, api_info, projects):
                             print_service = True
 
                             for service, info in data.items():
+                                error = info.get("error")
+                                message = info.get("message")
+
+                                if not error and message is None:
+                                    continue
+
                                 if print_service:
                                     print(f"         {integration}:")
                                     print("           services:")
 
                                     print_service = False
-
-                                error = info.get("error")
-                                message = info.get("message")
 
                                 print(f"             {service}:")
                                 print(f"               error: {error}")
