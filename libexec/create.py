@@ -833,18 +833,19 @@ async def run_special_labels(project, type, force=False):
                 continue
 
             for integration in INTEGRATIONS:
-                if integration not in response:
-                    response[integration] = {}
-
                 try:
                     task = globals()["run_special_label_%s" % INTEGRATIONS[integration]](project, type, service, data)
 
                     (error, message) = await task
 
-                    response[integration][name] = {
-                        "error" : error,
-                        "message" : message
-                    }
+                    if error or message is not None:
+                        if integration not in response:
+                            response[integration] = {}
+
+                        response[integration][name] = {
+                            "error" : error,
+                            "message" : message
+                        }
 
                 except Exception as err:
                     error = overlord.util.get_error(err)
