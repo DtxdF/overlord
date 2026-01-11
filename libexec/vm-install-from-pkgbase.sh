@@ -207,7 +207,7 @@ main()
 
 	if [ "${fingerprints_directory}" != "none" ]; then
         mkdir -p -- "${JAIL_PATH}/mnt/usr/share/keys" || exit $?
-        cp -a -- "${fingerprints_directory}" "${JAIL_PATH}/mnt/usr/share/keys/pkg" || exit $?
+        cp -a -- "${fingerprints_directory}" "${JAIL_PATH}/mnt/usr/share/keys" || exit $?
     fi
 
 	local abi
