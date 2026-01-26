@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = "0.22.0"
+VERSION = "0.22.1"
 
 def get_description():
     return "\
