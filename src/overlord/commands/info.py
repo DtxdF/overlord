@@ -253,13 +253,14 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
                 elif type == "metadata":
                     if len(filter) == 0:
-                        filter = overlord.spec.metadata.get_metadata()
+                        metadata = overlord.spec.metadata.get_metadata()
 
-                        if filter is None:
+                        if metadata is None:
                             filter = []
 
                         else:
-                            filter = list(filter)
+                            filter = list(metadata)
+                            filter = [escape_filter(x) for x in filter]
 
                     await print_info_metadata(client, chain, info, filter)
 
@@ -271,7 +272,7 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
                             filter = []
 
                         else:
-                            namespace = namespace_struct["name"]
+                            namespace = escape_filter(namespace_struct["name"])
                             filter = [namespace]
 
                     await print_info_namespaces(client, chain, info, filter)
@@ -958,3 +959,9 @@ async def _safe_client(client, func, *args, ignore_http_codes=[], **kwargs):
 
         logger.warning("(function:%s, exception:%s) error executing the remote call: %s",
                        func, error_type, error_message)
+
+def escape_filter(s):
+    s = re.escape(s)
+    s = f"^{s}$"
+
+    return s
