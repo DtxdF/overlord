@@ -627,23 +627,23 @@ An array of dictionaries specifying the files to be created.
 Order is important. If you want to create a file in a subdirectory, you must first create the
 subdirectory.
 .Pp
-.It Sy namespace.mapping. Ns Ar entry Ns Sy .file
+.It Sy namespace.mapping.[].file
 This type of entry copies metadata as a file in the namespace. The metadata and the destination
 file are separated by a colon.
 .Pp
-.It Sy namespace.mapping. Ns Ar entry Ns Sy .directory
+.It Sy namespace.mapping.[].directory
 This type of entry creates a directory.
 .Pp
-.It Sy namespace.mapping. Ns Ar entry Ns Sy .owner
+.It Sy namespace.mapping.[].owner
 A string or integer representing the owner of the file or directory.
 .Pp
-.It Sy namespace.mapping. Ns Ar entry Ns Sy .group
+.It Sy namespace.mapping.[].group
 A string or integer representing the group owner of the file or directory.
 .Pp
-.It Sy namespace.mapping. Ns Ar entry Ns Sy .mode
+.It Sy namespace.mapping.[].mode
 File mode.
 .Pp
-.It Sy namespace.mapping. Ns Ar entry Ns Sy .umask
+.It Sy namespace.mapping.[].umask
 File mode creation.
 .Pp
 .El
@@ -1270,11 +1270,11 @@ Specify the partitioning scheme to use.
 A list of dictionaries specifying the configuration parameters of the virtual
 disk partition.
 .Pp
-.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .type
+.It Sy diskLayout.disk.partitions.[].type
 Create a partition of type
 .Ar type Ns "."
 .Pp
-.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .alignment
+.It Sy diskLayout.disk.partitions.[].alignment
 If specified, then
 .Sy Overlord
 tries to align
@@ -1285,18 +1285,18 @@ to be multiple of
 .Ar alignment
 value.
 .Pp
-.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .start
+.It Sy diskLayout.disk.partitions.[].start
 The logical block address where the partition will begin.
 .Pp
-.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .size
+.It Sy diskLayout.disk.partitions.[].size
 Create a partition of size
 .Ar size Ns "."
 .Pp
-.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .label
+.It Sy diskLayout.disk.partitions.[].label
 The label attached to the partition.  This option is only valid when used on
 partitioning schemes that support partition labels.
 .Pp
-.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .format
+.It Sy diskLayout.disk.partitions.[].format
 Configuration parameters for formatting the root partition.
 .Pp
 If this parameter is set, the root partition is not only formatted, but also mounted
@@ -1304,11 +1304,11 @@ and FreeBSD files are installed on it. You can specify this parameter multiple t
 but only the first one will be mounted, although all partitions with this parameter
 will be formatted.
 .Pp
-.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .format.flags
+.It Sy diskLayout.disk.partitions.[].format.flags
 .Xr newfs 8
 flags.
 .Pp
-.It Sy diskLayout.disk.partitions. Ns Ar partition Ns Sy .format.script
+.It Sy diskLayout.disk.partitions.[].format.script
 Instead of using
 .Xr newfs 8
 to format the partition, use a custom script executed from the host.
@@ -1376,24 +1376,24 @@ Specifies the entries to create an
 .Xr fstab 5
 file on the root partition.
 .Pp
-.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .device
+.It Sy diskLayout.fstab.[].device
 Special device or remote file system to be mounted.
 .Pp
-.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .mountpoint
+.It Sy diskLayout.fstab.[].mountpoint
 Mount point for the file system.
 .Pp
-.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .type
+.It Sy diskLayout.fstab.[].type
 Type of file system.
 .Pp
-.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .options
+.It Sy diskLayout.fstab.[].options
 Mount options associated with the file system.
 .Pp
-.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .dump
+.It Sy diskLayout.fstab.[].dump
 Used for these file systems by the
 .Xr dump 8
 command to determine which file systems need to be dumped.
 .Pp
-.It Sy diskLayout.fstab. Ns Ar entry Ns Sy .pass
+.It Sy diskLayout.fstab.[].pass
 Used by the
 .Xr fsck 8
 and
