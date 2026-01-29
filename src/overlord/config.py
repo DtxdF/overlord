@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -151,7 +151,8 @@ def get_config():
         "max_watch_commands" : get_max_watch_commands(),
         "metadata" : {
             "location" : get_metadata_location(),
-            "size" : get_metadata_size()
+            "size" : get_metadata_size(),
+            "namespaces" : get_namespaces()
         },
         "components" : get_components(),
         "autodisable" : {
@@ -1024,6 +1025,11 @@ def get_metadata_size():
 
     return get_default(metadata.get("size"), overlord.default.METADATA["size"])
 
+def get_namespaces():
+    metadata = get_metadata()
+
+    return get_default(metadata.get("namespaces"), overlord.default.METADATA["namespaces"])
+
 def validate(document):
     if not isinstance(document, dict):
         raise overlord.exceptions.InvalidSpec("The configuration is invalid.")
@@ -1239,7 +1245,8 @@ def validate_metadata(document):
 
     keys = (
         "location",
-        "size"
+        "size",
+        "namespaces"
     )
 
     for key in metadata.keys():
@@ -1248,6 +1255,16 @@ def validate_metadata(document):
 
     validate_metadata_location(metadata)
     validate_metadata_size(metadata)
+    validate_metadata_namespaces(metadata)
+
+def validate_metadata_namespaces(document):
+    namespaces = document.get("namespaces")
+
+    if namespaces is None:
+        return
+
+    if not isinstance(namespaces, str):
+        raise overlord.exceptions.InvalidSpec(f"{namespaces}: invalid value type for 'metadata.namespaces'")
 
 def validate_metadata_size(document):
     size = document.get("size")

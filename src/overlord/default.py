@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -340,7 +340,8 @@ DNS = {
 PREFIX = os.path.join(sys.prefix, "overlord")
 METADATA = {
     "location" : os.path.join(PREFIX, "metadata"),
-    "size" : 2**20 # 1 MiB
+    "size" : 2**20, # 1 MiB
+    "namespaces" : os.path.join(PREFIX, "namespace")
 }
 COMPONENTS = os.path.join(PREFIX, "components")
 SERVERID = os.path.join(PREFIX, "serverid")

@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -31,7 +31,9 @@ import asyncio
 import json
 import logging
 import os
+import pathlib
 import time
+import shutil
 import ssl
 
 import aiofiles
@@ -54,6 +56,7 @@ logger = logging.getLogger(__name__)
 
 CHAINS = {}
 METADATA = {}
+NAMESPACES = {}
 DISABLE_COUNTERS = {}
 
 class InternalHandler(overlord.tornado.JSONAuthHandler):
@@ -86,6 +89,20 @@ class InternalHandler(overlord.tornado.JSONAuthHandler):
         else:
             self.write_template({
                 "message" : "Metadata cannot be found."
+            }, status_code=404)
+
+            return False
+
+    def check_namespace(self, name):
+        namespaces = overlord.config.get_namespaces()
+        namespace = os.path.join(namespaces, name)
+
+        if os.path.isdir(namespace):
+            return True
+
+        else:
+            self.write_template({
+                "message" : "Namespace cannot be found."
             }, status_code=404)
 
             return False
@@ -580,6 +597,183 @@ class ProjectsLogHandler(InternalHandler):
             "log_content" : content
         })
 
+class NamespaceHandler(InternalHandler):
+    async def get(self, name):
+        if not self.check_namespace(name):
+            return
+
+        namespaces_pathname = overlord.config.get_namespaces()
+        namespace = os.path.join(namespaces_pathname, name)
+
+        path = pathlib.Path(namespace)
+
+        content = []
+
+        for file_ in path.rglob("*"):
+            struct = {}
+
+            if file_.is_dir():
+                struct["directory"] = "%s" % file_
+
+            elif file_.is_file():
+                struct["file"] = "%s" % file_
+
+            else:
+                # unknown
+                continue
+
+            stat = os.stat(file_)
+
+            struct["owner"] = stat.st_uid
+            struct["group"] = stat.st_gid
+            struct["mode"] = stat.st_mode
+
+            content.append(struct)
+
+        self.write_template({
+            "namespace" : content
+        })
+
+    async def post(self, name):
+        namespaces_pathname = overlord.config.get_namespaces()
+        namespace = os.path.join(namespaces_pathname, name)
+
+        if os.path.isdir(namespace):
+            self.write_template({
+                "message" : f"Namespace '{name}' has been successfully created."
+            }, status_code=201)
+            return
+
+        await self._write_namespace(name)
+
+        self.write_template({
+            "message" : f"Namespace '{name}' has been successfully created."
+        }, status_code=201)
+        return
+
+    async def put(self, name):
+        namespaces_pathname = overlord.config.get_namespaces()
+        namespace = os.path.join(namespaces_pathname, name)
+
+        if os.path.isdir(namespace):
+            shutil.rmtree(namespace, ignore_errors=True)
+
+        await self._write_namespace(name)
+
+        self.write_template({
+            "message" : f"Namespace '{name}' has been successfully updated."
+        }, status_code=200)
+
+    async def delete(self, name):
+        if not self.check_namespace(name):
+            return
+
+        if name in NAMESPACES:
+            del NAMESPACES[name]
+
+        self.set_status(204)
+
+        namespaces_pathname = overlord.config.get_namespaces()
+        namespace = os.path.join(namespaces_pathname, name)
+
+        shutil.rmtree(namespace, ignore_errors=True)
+
+    async def head(self, name):
+        namespaces_pathname = overlord.config.get_namespaces()
+        namespace = os.path.join(namespaces_pathname, name)
+
+        if os.path.isdir(namespace):
+            self.set_status(200)
+
+        else:
+            self.set_status(404)
+
+    async def _write_namespace(self, name):
+        namespaces_pathname = overlord.config.get_namespaces()
+        namespace = os.path.join(namespaces_pathname, name)
+        mapping = self.get_json_argument("mapping", None, value_type=list)
+
+        overlord.spec.metadata.validate_namespace_mapping({ "mapping" : mapping })
+
+        def clear_path(b, p):
+            p = p.lstrip("/")
+            full_path = (pathlib.Path(b) / p).resolve()
+            base_path = pathlib.Path(b).resolve()
+
+            try:
+                full_path.relative_to(base_path)
+
+                return os.fspath(full_path)
+
+            except ValueError:
+                raise tornado.web.HTTPError(400, reason=f"'{p}' is not a path of '{b}'")
+
+        for item in mapping:
+            if "file" in item:
+                (metadata, pathname) = item["file"]
+
+                pathname = clear_path(namespace, pathname)
+
+                if metadata not in METADATA:
+                    METADATA[metadata] = asyncio.Lock()
+
+                metadata_lock = METADATA[metadata]
+
+                async with metadata_lock:
+                    content = await overlord.metadata.get(metadata)
+
+                if name not in NAMESPACES:
+                    NAMESPACES[name] = {}
+
+                if pathname not in NAMESPACES[name]:
+                    NAMESPACES[name][pathname] = asyncio.Lock()
+
+                namespace_lock = NAMESPACES[name][pathname]
+
+                async with namespace_lock:
+                    async with aiofiles.open(pathname, "w") as fd:
+                        await fd.write(content)
+                        await fd.flush()
+                        os.fsync(fd.fileno())
+
+            else:
+                pathname = clear_path(namespace, item["directory"])
+
+                if not os.path.isdir(pathname):
+                    os.makedirs(pathname, exist_ok=True)
+
+            old_umask = None
+
+            umask = item.get("umask")
+
+            if umask is not None:
+                old_umask = os.umask(0)
+
+                os.umask(umask)
+
+            mode = item.get("mode")
+
+            if mode is not None:
+                os.chmod(pathname, mode)
+
+            owner = item.get("owner")
+            group = item.get("group")
+            
+            if owner is not None or group is not None:
+                shutil.chown(pathname, owner, group)
+
+            if old_umask is not None:
+                os.umask(old_umask)
+
+class NamespaceListHandler(InternalHandler):
+    async def get(self):
+        namespaces_pathname = overlord.config.get_namespaces()
+        namespaces = [n.name for n in pathlib.Path(namespaces_pathname).glob("*")]
+
+        self.write_template({
+            "namespaces" : namespaces
+        })
+
 class MetadataHandler(InternalHandler):
     async def get(self, key):
         if not self.check_metadata(key):
@@ -815,6 +1009,55 @@ class ChainsHandler(ChainInternalHandler):
 
         self.write_template({
             "chains" : chains
+        })
+
+class ChainNamespaceHandler(ChainInternalHandler):
+    async def get(self, chain, name):
+        mapping = await self.remote_call(chain, "namespace_get", name)
+
+        self.write_template({
+            "namespace" : mapping
+        })
+
+    async def post(self, chain, name):
+        mapping = self.get_json_argument("mapping", None, value_type=list)
+
+        result = await self.remote_call(chain, "namespace_set", name, mapping)
+
+        self.write_template({
+            "message" : result
+        })
+
+    async def put(self, chain, name):
+        mapping = self.get_json_argument("mapping", None, value_type=list)
+
+        result = await self.remote_call(chain, "namespace_set", name, mapping)
+
+        self.write_template({
+            "message" : result
+        })
+
+    async def delete(self, chain, name):
+        result = await self.remote_call(chain, "namespace_delete", name)
+
+        if result:
+            self.set_status(204)
+
+    async def head(self, chain, name):
+        result = await self.remote_call(chain, "namespace_check", name)
+
+        if result:
+            self.set_status(200)
+
+        else:
+            self.set_status(404)
+
+class ChainNamespaceListHandler(ChainInternalHandler):
+    async def get(self, chain):
+        namespaces = await self.remote_call(chain, "namespaces_list")
+
+        self.write_template({
+            "namespaces" : namespaces
         })
 
 class ChainMetadataHandler(ChainInternalHandler):
@@ -1296,11 +1539,15 @@ def make_app():
         (r"/v1/vm/([a-zA-Z0-9][.a-zA-Z0-9_-]{0,229}[a-zA-Z0-9])", VMHandler),
         (r"/v1/metadata/" + overlord.metadata.REGEX_KEY, MetadataHandler),
         (r"/v1/metadata/?", MetadataListHandler),
+        (r"/v1/namespace/" + overlord.metadata.REGEX_KEY, NamespaceHandler),
+        (r"/v1/namespace/?", NamespaceListHandler),
         (r"/v1/labels/?", LabelsHandler),
         (r"/v1/chains/?", ChainsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/ping/?", ChainPingHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/metadata/" + overlord.metadata.REGEX_KEY, ChainMetadataHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/metadata/?", ChainMetadataListHandler),
+        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/namespace/" + overlord.metadata.REGEX_KEY, ChainNamespaceHandler),
+        (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/namespace/?", ChainNamespaceListHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/vm/([a-zA-Z0-9][.a-zA-Z0-9_-]{0,229}[a-zA-Z0-9])", ChainVMHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/labels/?", ChainLabelsHandler),
         (r"/v1/chain/([a-zA-Z0-9_][a-zA-Z0-9._-]*)/chains/?", ChainChainsHandler),

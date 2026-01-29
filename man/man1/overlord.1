@@ -1,4 +1,4 @@
-.\"Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+.\"Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 .\"All rights reserved.
 .\"
 .\"Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,7 @@
 .\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 .\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 .\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd September 16, 2025
+.Dd January 29, 2026
 .Dt OVERLORD 1
 .Os
 .Sh NAME
@@ -307,6 +307,10 @@ to get server metrics,
 .Sy metadata
 to get the metadata specified in the deployment file or in the parameter
 .Fl Fl filter Ns ","
+.Sy namespaces
+to get the namespace specified in the deployment file or the namespaces
+specified using the parameter
+.Fl Fl filter Ns ","
 .Sy projects:logs
 for logs created by Director and
 .Sy jails:logs
@@ -547,6 +551,13 @@ An environment variable set by the
 .Cm watch-projects
 command to indicate where the metadata is located. Useful for using metadata as
 simple text files.
+.It OVERLORD_NAMESPACES
+An environment variable set by the
+.Cm watch-projects
+command to indicate where the namespaces are located. Useful in combination with the
+.Sy copydir
+option of
+.Xr appjail-quick 1 Ns "."
 .El
 .Sh SEE ALSO
 .Xr appjail 1

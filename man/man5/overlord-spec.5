@@ -25,7 +25,7 @@
 .\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 .\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 .\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd January 11, 2026
+.Dd January 29, 2026
 .Dt OVERLORD-SPEC 5
 .Os
 .Sh NAME
@@ -495,6 +495,10 @@ Size of each metadata. If a user tries to create a metadata with a size greater
 than or equal to this parameter, an error occurs. By default this parameter is
 set to 1 MiB.
 .Pp
+.It Sy metadata.namespaces
+Path to a directory to store the namespaces. If the specified directory doesn't exist,
+it will be created when writing any namespace.
+.Pp
 .It Sy autodisable
 Smart Timeouts is an Overlord feature that disables a chain that fails until it
 comes back online.
@@ -603,6 +607,44 @@ Prefix each key with this prefix plus a dot.
 .Pp
 .It Sy metadata
 A dictionary specifiying the metadata to be stored.
+.Pp
+.It Sy namespace
+A namespace is a directory located on the chain that contains directories and files
+in a more structured manner compared to metadata.
+.Pp
+The purpose of namespaces is to use the
+.Sy copydir
+option of
+.Xr appjail-quick 1 Ns ","
+so it is not necessary to modify an existing Makejail just to copy a file or create a directory.
+.Pp
+.It Sy namespace.name
+Namespace identifier.
+.Pp
+.It Sy namespace.mapping
+An array of dictionaries specifying the files to be created.
+.Pp
+Order is important. If you want to create a file in a subdirectory, you must first create the
+subdirectory.
+.Pp
+.It Sy namespace.mapping. Ns Ar entry Ns Sy .file
+This type of entry copies metadata as a file in the namespace. The metadata and the destination
+file are separated by a colon.
+.Pp
+.It Sy namespace.mapping. Ns Ar entry Ns Sy .directory
+This type of entry creates a directory.
+.Pp
+.It Sy namespace.mapping. Ns Ar entry Ns Sy .owner
+A string or integer representing the owner of the file or directory.
+.Pp
+.It Sy namespace.mapping. Ns Ar entry Ns Sy .group
+A string or integer representing the group owner of the file or directory.
+.Pp
+.It Sy namespace.mapping. Ns Ar entry Ns Sy .mode
+File mode.
+.Pp
+.It Sy namespace.mapping. Ns Ar entry Ns Sy .umask
+File mode creation.
 .Pp
 .El
 .Ss directorProject

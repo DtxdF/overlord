@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -46,6 +46,27 @@ def get_metadata():
 
     return metadata
 
+def get_namespace():
+    namespace = CONFIG.get("namespace")
+
+    if namespace is None:
+        return
+
+    prefix = CONFIG.get("metadataPrefix")
+
+    if prefix is not None:
+        mapping = namespace.get("mapping")
+
+        for item in mapping:
+            if "file" in item:
+                (metadata, file_) = item["file"]
+
+                metadata = prefix + "." + metadata
+
+                item["file"] = (metadata, file_)
+
+    return namespace
+
 def validate(document):
     global CONFIG
 
@@ -58,7 +79,8 @@ def validate(document):
         "deployIn",
         "maximumDeployments",
         "metadata",
-        "metadataPrefix"
+        "metadataPrefix",
+        "namespace"
     )
 
     for key in document:
@@ -67,8 +89,144 @@ def validate(document):
 
     validate_metadata(document)
     validate_metadataPrefix(document)
+    validate_namespace(document)
 
     CONFIG = document
+
+def validate_namespace(document):
+    namespace = document.get("namespace")
+
+    if namespace is None:
+        return
+
+    if not isinstance(namespace, dict):
+        raise overlord.exceptions.InvalidSpec("'namespace' is invalid.")
+
+    keys = (
+        "name",
+        "mapping"
+    )
+
+    for key in namespace:
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"namespace.{key}: this key is invalid.")
+
+    validate_namespace_name(namespace)
+    validate_namespace_mapping(namespace)
+
+def validate_namespace_name(document):
+    name = document.get("name")
+
+    if name is None:
+        raise overlord.exceptions.InvalidSpec("'namespace.name' is required but hasn't been specified.")
+
+def validate_namespace_mapping(document):
+    mapping = document.get("mapping")
+
+    if mapping is None:
+        raise overlord.exceptions.InvalidSpec("'namespace.mapping' is required but hasn't been specified.")
+
+    if not isinstance(mapping, list):
+        raise overlord.exceptions.InvalidSpec("'namespace.mapping' is invalid.")
+
+    if len(mapping) == 0:
+        raise overlord.exceptions.InvalidSpec("'namespace.mapping': at least one mapping must be specified.")
+
+    for index, entry in enumerate(mapping):
+        if not isinstance(entry, dict):
+            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'namespace.mapping.{index}'")
+
+        keys = (
+            "file",
+            "directory",
+            "owner",
+            "group",
+            "mode",
+            "umask"
+        )
+
+        for key in entry:
+            if key not in keys:
+                raise overlord.exceptions.InvalidSpec(f"namespace.mapping.{index}.{key}: this key is invalid.")
+
+        if "file" not in entry and "directory" not in entry:
+            raise overlord.exceptions.InvalidSpec(f"'namespace.mapping.{index}.file' or 'namespace.mapping.{index}.directory' is required but hasn't been specified.")
+
+        if "file" in entry and "directory" in entry:
+            raise overlord.exceptions.InvalidSpec(f"'namespace.mapping.{index}' specifies both 'file' and 'directory' but only one should be specified.")
+
+        if "file" in entry:
+            validate_namespace_mapping_file(index, entry)
+
+        else:
+            validate_namespace_mapping_directory(index, entry)
+
+        validate_namespace_mapping_owner(index, entry)
+        validate_namespace_mapping_group(index, entry)
+        validate_namespace_mapping_mode(index, entry)
+        validate_namespace_mapping_umask(index, entry)
+
+def validate_namespace_mapping_file(index, document):
+    file_ = document.get("file")
+
+    if file_ is None:
+        return
+
+    if not isinstance(file_, str) and not isinstance(file_, tuple) and not isinstance(file_, list):
+        raise overlord.exceptions.InvalidSpec(f"{file_}: invalid value type for 'namespace.mapping.{index}.file'")
+
+    if isinstance(file_, str):
+        file_ = file_.split(":", 1)
+
+    if len(file_) != 2:
+        raise overlord.exceptions.InvalidSpec(f"{file_}: 'namespace.mapping.{index}.file' must specify both the metadata and the mapping file.")
+
+    document["file"] = tuple(file_)
+
+def validate_namespace_mapping_directory(index, document):
+    directory = document.get("directory")
+
+    if directory is None:
+        return
+
+    if not isinstance(directory, str):
+        raise overlord.exceptions.InvalidSpec(f"{directory}: invalid value type for 'namespace.mapping.{index}.directory'")
+
+def validate_namespace_mapping_owner(index, document):
+    owner = document.get("owner")
+
+    if owner is None:
+        return
+
+    if not isinstance(owner, int) and not isinstance(owner, str):
+        raise overlord.exceptions.InvalidSpec(f"{owner}: invalid value type for 'namespace.mapping.{index}.owner'")
+
+def validate_namespace_mapping_group(index, document):
+    group = document.get("group")
+
+    if group is None:
+        return
+
+    if not isinstance(group, int) and not isinstance(group, str):
+        raise overlord.exceptions.InvalidSpec(f"{group}: invalid value type for 'namespace.mapping.{index}.group'")
+
+def validate_namespace_mapping_mode(index, document):
+    mode = document.get("mode")
+
+    if mode is None:
+        return
+
+    if not isinstance(mode, int):
+        raise overlord.exceptions.InvalidSpec(f"{mode}: invalid value type for 'namespace.mapping.{index}.mode'")
+
+def validate_namespace_mapping_umask(index, document):
+    umask = document.get("umask")
+
+    if umask is None:
+        return
+
+    if not isinstance(umask, int):
+        raise overlord.exceptions.InvalidSpec(f"{umask}: invalid value type for 'namespace.mapping.{index}.umask'")
 
 def validate_metadataPrefix(document):
     metadataPrefix = document.get("metadataPrefix")

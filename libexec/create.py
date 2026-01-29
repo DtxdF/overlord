@@ -537,6 +537,7 @@ async def _async_projects(data):
         environment.update(message.get("environment", {}))
 
         environment["OVERLORD_METADATA"] = overlord.config.get_metadata_location()
+        environment["OVERLORD_NAMESPACES"] = overlord.config.get_namespaces()
 
         type = data.get("type")
 

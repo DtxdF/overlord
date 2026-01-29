@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -52,6 +52,7 @@ class OverlordEntityTypes(enum.Enum):
     PROJECT = 2
     METADATA = 3
     VMJAIL = 4
+    NAMESPACE = 5
 
 class OverlordAuth(httpx.Auth):
     def __init__(self, token):
@@ -870,6 +871,194 @@ class OverlordClient(httpx.AsyncClient):
             async for chain in self.get_all_chains(chain=chain, on_fail=on_fail):
                 yield chain
 
+    async def namespace_set(self, name, mapping, chain=None):
+        """
+        Create a new namespace or update an existing one.
+
+        Args:
+            name (str):
+                Namespace identifier.
+            mapping (dict):
+                A dictionary that specifies a file or directory and, optionally, the owner,
+                group, mode, and umask. The owner and group can be an integer or a string.
+                The file specifies both the metadata and the pathname of the mapped file
+                within the namespace, separated by a colon.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            str: Message indicating whether namespace has been created or updated.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.InvalidKeyName
+            - overlord.exceptions.APIError
+        """
+
+        if await self.namespace_check(name, chain=chain):
+            response = await self.__put_parsed(f"namespace/{name}", chain=chain, json={
+                "mapping" : mapping
+            })
+
+        else:
+            response = await self.__post_parsed(f"namespace/{name}", chain=chain, json={
+                "mapping" : mapping
+            })
+
+        return response.get("message")
+
+    async def namespace_check(self, name, chain=None):
+        """
+        Checks for the existence of a namespace.
+
+        Args:
+            name (str): Namespace identifier.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            bool:
+                True if the namespace exists or False if not. An exception is thrown if unexpected
+                status code is detected.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.InvalidEntityType
+            - overlord.exceptions.InvalidKeyName
+            - overlord.exceptions.APIError
+        """
+
+        if re.match(r"[/]", name):
+            raise overlord.exceptions.InvalidArguments(f"{name}: The namespace contains a character not allowed.")
+
+        if not overlord.metadata.check_keyname(name):
+            raise overlord.exceptions.InvalidNamespaceName(f"{name}: Invalid namespace name.")
+
+        if chain is None:
+            url = f"/v1/namespace/{name}"
+
+        else:
+            if re.match(r"[/]", chain):
+                raise overlord.exceptions.InvalidArguments(f"{chain}: The chain contains a character not allowed.")
+
+            url = f"/v1/chain/{chain}/namespace/{name}"
+
+        request = await self.head(url)
+
+        status_code = request.status_code
+
+        if status_code == 200:
+            return True
+
+        elif status_code == 404:
+            return False
+
+        else:
+            reason = request.reason_phrase
+
+            try:
+                request.raise_for_status()
+
+            except httpx.HTTPStatusError:
+                raise overlord.exceptions.APIError(f"Error {status_code}: {reason}")
+
+    async def namespace_get(self, name, chain=None):
+        """
+        Obtain the content of a namespace.
+
+        Args:
+            name (str): Namespace identifier.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            list(dict): Namespace.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.InvalidEntityType
+            - overlord.exceptions.InvalidKeyName
+            - overlord.exceptions.APIError
+        """
+
+        response = await self.__get_entity(name, type=OverlordEntityTypes.NAMESPACE, chain=chain)
+
+        value = response.get("namespace")
+        
+        return value
+
+    async def namespace_delete(self, name, chain=None):
+        """
+        Delete an existing namespace.
+
+        Args:
+            name (str): Namespace identifier.
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            bool:
+                True if the namespace has been deleted succesfully or thown an exception if an
+                unexpected status code is detected.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.InvalidKeyName
+            - overlord.exceptions.APIError
+        """
+
+        if re.match(r"[/]", name):
+            raise overlord.exceptions.InvalidArguments(f"{name}: The namespace contains a character not allowed.")
+
+        if not overlord.metadata.check_keyname(name):
+            raise overlord.exceptions.InvalidNamespaceName(f"{name}: Invalid namespace name.")
+
+        if chain is None:
+            url = f"/v1/namespace/{name}"
+
+        else:
+            if re.match(r"[/]", chain):
+                raise overlord.exceptions.InvalidArguments(f"{chain}: The chain contains a character not allowed.")
+
+            url = f"/v1/chain/{chain}/namespace/{name}"
+
+        request = await self.delete(url)
+
+        status_code = request.status_code
+
+        if status_code == 204:
+            return True
+
+        else:
+            reason = request.reason_phrase
+
+            try:
+                request.raise_for_status()
+
+            except httpx.HTTPStatusError:
+                raise overlord.exceptions.APIError(f"Error {status_code}: {reason}")
+
+    async def namespaces_list(self, chain=None):
+        """
+        List all namespaces.
+
+        Args:
+            chain (str, optional):
+                The chain that the server(s) should use to redirect the request.
+
+        Returns:
+            list(str): Namespace.
+
+        Raises:
+            - overlord.exceptions.InvalidArguments
+            - overlord.exceptions.APIError
+        """
+
+        parsed = await self.__get_parsed("namespace", chain=chain)
+        namespaces = parsed.get("namespaces", [])
+
+        return namespaces
+
     async def metadata_set(self, key, value, chain=None):
         """
         Create a new metadata file or update an existing one.
@@ -1097,6 +1286,9 @@ class OverlordClient(httpx.AsyncClient):
 
         elif type == OverlordEntityTypes.VMJAIL:
             entity = "vm"
+
+        elif type == OverlordEntityTypes.NAMESPACE:
+            entity = "namespace"
 
         else:
             raise overlord.exceptions.InvalidEntityType("Invalid entity type.")

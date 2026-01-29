@@ -86,3 +86,6 @@ class ConfigError(Exception):
 
 class InvalidQueue(Exception):
     pass
+
+class InvalidNamespaceName(Exception):
+    pass

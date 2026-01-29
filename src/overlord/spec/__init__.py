@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -82,6 +82,7 @@ def get_config():
 
     elif kind == OverlordKindTypes.METADATA.value:
         config["metadata"] = overlord.spec.metadata.get_metadata()
+        config["namespace"] = overlord.spec.metadata.get_namespace()
 
     elif kind == OverlordKindTypes.VMJAIL.value:
         config["vmName"] = overlord.spec.vm_jail.get_vmName()

@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -31,6 +31,7 @@ import asyncio
 import logging
 import re
 import ssl
+import stat
 import sys
 import time
 
@@ -51,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 @overlord.commands.cli.command(add_help_option=False)
 @click.option("-f", "--file", required=True)
-@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "chains:tree", "chains:stats", "projects:logs", "jails:logs", "metadata", "autoscale", "vm")))
+@click.option("-t", "--type", required=True, type=click.Choice(("jails", "projects", "chains", "chains:tree", "chains:stats", "projects:logs", "jails:logs", "metadata", "namespaces", "autoscale", "vm")))
 @click.option("--jail-item", multiple=True, default=[], type=click.Choice(["stats", "info", "cpuset", "devfs", "expose", "healthcheck", "limits", "fstab", "labels", "nat", "volumes"]))
 @click.option("--all-labels", is_flag=True, default=False)
 @click.option("--filter", default=[], multiple=True)
@@ -262,6 +263,19 @@ async def _get_info(file, type, jail_item, all_labels, filter, filter_per_projec
 
                     await print_info_metadata(client, chain, info, filter)
 
+                elif type == "namespaces":
+                    if len(filter) == 0:
+                        namespace_struct = overlord.spec.metadata.get_namespace()
+
+                        if namespace_struct is None:
+                            filter = []
+
+                        else:
+                            namespace = namespace_struct["name"]
+                            filter = [namespace]
+
+                    await print_info_namespaces(client, chain, info, filter)
+
                 elif type == "autoscale":
                     if filter_per_project:
                         kind = overlord.spec.get_kind()
@@ -340,6 +354,41 @@ def match_pattern(value, patterns):
             return True
 
     return False
+
+async def print_info_namespaces(client, chain, api_info, patterns):
+    info = {}
+    info.update(api_info)
+    info["namespaces"] = {}
+
+    namespaces = await _safe_client(client, "namespaces_list", chain=chain)
+
+    if namespaces is None:
+        return
+
+    for namespace in namespaces:
+        if not match_pattern(namespace, patterns):
+            continue
+
+        info["namespaces"][namespace] = await client.namespace_get(namespace, chain=chain)
+
+    namespaces = info["namespaces"]
+
+    if len(namespaces) == 0:
+        logger.debug("(datacenter:%s, chain:%s) nothing to show.",
+                     api_info.get("datacenter"), api_info.get("chain"))
+        return
+
+    print_header(info)
+
+    print("  namespaces:")
+
+    for namespace, mapping in namespaces.items():
+        print(f"    {namespace}:")
+
+        for file_ in mapping:
+            file_["mode"] = stat.filemode(file_["mode"])
+
+            print(f"      - {file_}")
 
 async def print_info_chains_stats(client, chain, api_info):
     info = {}

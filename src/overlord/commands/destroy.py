@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -401,6 +401,29 @@ async def _destroy(file, force, filter_chain, filter_root_chain, mako_directorie
 
                             logger.warning("(datacenter:%s, chain:%s, metadata:%s, exception:%s) %s",
                                            datacenter, chain, metadata_name, error_type, error_message)
+
+                            continue
+
+                    namespace = overlord.spec.metadata.get_namespace()
+
+                    if namespace is not None:
+                        namespace_name = namespace.get("name")
+
+                        if not overlord.metadata.check_keyname(namespace_name):
+                            logger.warning("(datacenter:%s, chain:%s, namespace:%s) invalid namespace name.",
+                                         datacenter, chain, namespace_name)
+                            continue
+
+                        try:
+                            await client.namespace_delete(namespace_name, chain=chain)
+
+                        except Exception as err:
+                            error = overlord.util.get_error(err)
+                            error_type = error.get("type")
+                            error_message = error.get("message")
+
+                            logger.warning("(datacenter:%s, chain:%s, namespace:%s, exception:%s) %s",
+                                           datacenter, chain, namespace_name, error_type, error_message)
 
                             continue
 
