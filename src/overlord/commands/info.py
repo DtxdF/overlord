@@ -370,7 +370,12 @@ async def print_info_namespaces(client, chain, api_info, patterns):
         if not match_pattern(namespace, patterns):
             continue
 
-        info["namespaces"][namespace] = await client.namespace_get(namespace, chain=chain)
+        data = await _safe_client(client, "namespace_get", namespace, chain=chain)
+
+        if data is None:
+            continue
+
+        info["namespaces"][namespace] = data
 
     namespaces = info["namespaces"]
 
@@ -582,7 +587,12 @@ async def print_info_metadata(client, chain, api_info, patterns):
         if not match_pattern(key, patterns):
             continue
 
-        info["metadata"][key] = await client.metadata_get(key, chain=chain)
+        data = await _safe_client(client, "metadata_get", key, chain=chain)
+
+        if data is None:
+            continue
+
+        info["metadata"][key] = data
 
     metadata = info["metadata"]
 
