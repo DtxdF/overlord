@@ -646,6 +646,20 @@ File mode.
 .It Sy namespace.mapping.[].umask
 File mode creation.
 .Pp
+.It Sy namespace.mapping.[].prefix
+This parameter serves the same purpose as
+.Sy metadataPrefix Ns ,
+but applies individually to a file. If this parameter is specified with a negative value such as
+.Sy null
+or
+.Sy false Ns ,
+the prefix is not added to the metadata, even if
+.Sy metadataPrefix
+is specified.
+.Pp
+Although this parameter is validated when specified for both files and directories, it is only
+used for files.
+.Pp
 .El
 .Ss directorProject
 Director is used for the creation of a project, a simple text file in YAML format

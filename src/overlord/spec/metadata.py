@@ -58,10 +58,19 @@ def get_namespace():
         mapping = namespace.get("mapping")
 
         for item in mapping:
+            if "prefix" in item:
+                file_prefix = item["prefix"]
+
+                del item["prefix"]
+
+            else:
+                file_prefix = prefix
+
             if "file" in item:
                 (metadata, file_) = item["file"]
 
-                metadata = prefix + "." + metadata
+                if file_prefix:
+                    metadata = file_prefix + "." + metadata
 
                 item["file"] = (metadata, file_)
 
@@ -142,7 +151,8 @@ def validate_namespace_mapping(document):
             "owner",
             "group",
             "mode",
-            "umask"
+            "umask",
+            "prefix"
         )
 
         for key in entry:
@@ -161,10 +171,20 @@ def validate_namespace_mapping(document):
         else:
             validate_namespace_mapping_directory(index, entry)
 
+        validate_namespace_mapping_prefix(index, entry)
         validate_namespace_mapping_owner(index, entry)
         validate_namespace_mapping_group(index, entry)
         validate_namespace_mapping_mode(index, entry)
         validate_namespace_mapping_umask(index, entry)
+
+def validate_namespace_mapping_prefix(index, document):
+    prefix = document.get("prefix")
+
+    if prefix is None:
+        return
+
+    if not isinstance(prefix, str) and not isinstance(prefix, bool):
+        raise overlord.exceptions.InvalidSpec(f"{prefix}: invalid value type for 'namespace.mapping.{index}.prefix'")
 
 def validate_namespace_mapping_file(index, document):
     file_ = document.get("file")
