@@ -618,6 +618,9 @@ option of
 .Xr appjail-quick 1 Ns ","
 so it is not necessary to modify an existing Makejail just to copy a file or create a directory.
 .Pp
+When updating a namespace, or in other words, when applying a deployment file that contains
+an existing namespace, it is removed and rewritten. This occurs transparently in the chain.
+.Pp
 .It Sy namespace.name
 Namespace identifier.
 .Pp
