@@ -730,6 +730,11 @@ class NamespaceHandler(InternalHandler):
 
                 namespace_lock = NAMESPACES[name][pathname]
 
+                rootdir = os.path.dirname(pathname)
+
+                if not os.path.isdir(rootdir):
+                    os.makedirs(rootdir, exist_ok=True)
+
                 async with namespace_lock:
                     async with aiofiles.open(pathname, "w") as fd:
                         await fd.write(content)

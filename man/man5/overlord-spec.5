@@ -627,12 +627,11 @@ Namespace identifier.
 .It Sy namespace.mapping
 An array of dictionaries specifying the files to be created.
 .Pp
-Order is important. If you want to create a file in a subdirectory, you must first create the
-subdirectory.
-.Pp
 .It Sy namespace.mapping.[].file
 This type of entry copies metadata as a file in the namespace. The metadata and the destination
 file are separated by a colon.
+.Pp
+When the file directory does not exist, Overlord will create it.
 .Pp
 .It Sy namespace.mapping.[].directory
 This type of entry creates a directory.
