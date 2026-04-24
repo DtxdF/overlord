@@ -210,10 +210,12 @@ main()
         fi
     fi
 
-    LOCKFILE=`mktemp -t overlord` || exit $?
+    if [ "${entrypoint}" != "none" ]; then
+        LOCKFILE=`mktemp -t overlord` || exit $?
 
-    lockf -sk "${LOCKFILE}" \
-        appjail image import -a "${arch}" -t "${tag}" -n "${image}" -- "${entrypoint}" || exit $?
+        lockf -sk "${LOCKFILE}" \
+            appjail image import -a "${arch}" -t "${tag}" -n "${image}" -- "${entrypoint}" || exit $?
+    fi
 
     local image_file="${imagesdir}/${image}/${tag}-${arch}-image.appjail"
 

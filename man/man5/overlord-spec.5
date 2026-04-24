@@ -1247,6 +1247,12 @@ Where and how to obtain the
 .Xr appjail-ajspec 5
 file to then obtain the image to be extracted to the VM root partition.
 .Pp
+If set to
+.Sy none Ns ,
+it is assumed that the image is currently installed, so
+.Sy overlord
+will not attempt to download it.
+.Pp
 This parameter is only valid for the
 .Sy appjailImage
 type.
