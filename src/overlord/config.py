@@ -62,6 +62,12 @@ def get_config():
         "debug" : get_debug(),
         "compress_response" : get_compress_response(),
         "polling" : {
+            "adaptive" : {
+                "poll_window" : get_polling_adaptive_poll_window(),
+                "max_idle" : get_polling_adaptive_max_idle(),
+                "idle_penalty" : get_polling_adaptive_idle_penalty(),
+                "max_idle_penalty" : get_polling_adaptive_max_idle_penalty()
+            },
             "jail_stats" : get_polling_jail_stats(),
             "jail_info" : get_polling_jail_info(),
             "projects" : get_polling_projects(),
@@ -326,6 +332,31 @@ def get_compress_response():
 
 def get_polling():
     return get_default(CONFIG.get("polling"), overlord.default.POLLING)
+
+def get_polling_adaptive():
+    polling = get_polling()
+
+    return get_default(polling.get("adaptive"), overlord.default.POLLING["adaptive"])
+
+def get_polling_adaptive_poll_window():
+    polling_adaptive = get_polling_adaptive()
+
+    return get_default(polling_adaptive.get("poll_window"), overlord.default.POLLING["adaptive"]["poll_window"])
+
+def get_polling_adaptive_max_idle():
+    polling_adaptive = get_polling_adaptive()
+
+    return get_default(polling_adaptive.get("max_idle"), overlord.default.POLLING["adaptive"]["max_idle"])
+
+def get_polling_adaptive_idle_penalty():
+    polling_adaptive = get_polling_adaptive()
+
+    return get_default(polling_adaptive.get("idle_penalty"), overlord.default.POLLING["adaptive"]["idle_penalty"])
+
+def get_polling_adaptive_max_idle_penalty():
+    polling_adaptive = get_polling_adaptive()
+
+    return get_default(polling_adaptive.get("max_idle_penalty"), overlord.default.POLLING["adaptive"]["max_idle_penalty"])
 
 def get_polling_jail_stats():
     polling = get_polling()
@@ -1987,6 +2018,7 @@ def validate_polling(document):
         raise overlord.exceptions.InvalidSpec("'polling' is invalid.")
 
     keys = (
+        "adaptive",
         "jail_stats",
         "jail_info",
         "projects",
@@ -2003,6 +2035,7 @@ def validate_polling(document):
         if key not in keys:
             raise overlord.exceptions.InvalidSpec(f"polling.{key}: this key is invalid.")
 
+    validate_polling_adaptive(polling)
     validate_polling_jail_stats(polling)
     validate_polling_jail_info(polling)
     validate_polling_projects(polling)
@@ -2013,6 +2046,71 @@ def validate_polling(document):
     validate_polling_heartbeat(polling)
     validate_polling_skew(polling)
     validate_polling_keywords(polling)
+
+def validate_polling_adaptive(document):
+    adaptive = document.get("adaptive")
+
+    if adaptive is None:
+        return
+
+    if not isinstance(adaptive, dict):
+        raise overlord.exceptions.InvalidSpec("'polling.adaptive' is invalid.")
+
+    keys = (
+        "poll_window",
+        "max_idle",
+        "idle_penalty",
+        "max_idle_penalty"
+    )
+
+    for key in adaptive.keys():
+        if key not in keys:
+            raise overlord.exceptions.InvalidSpec(f"polling.adaptive.{key}: this key is invalid.")
+
+    validate_polling_adaptive_poll_window(adaptive)
+    validate_polling_adaptive_max_idle(adaptive)
+    validate_polling_adaptive_idle_penalty(adaptive)
+    validate_polling_adaptive_max_idle_penalty(adaptive)
+
+def validate_polling_adaptive_poll_window(document):
+    poll_window = document.get("poll_window")
+
+    if poll_window is None:
+        return
+
+    if not isinstance(poll_window, int) \
+            or poll_window < 0:
+        raise overlord.exceptions.InvalidSpec(f"{poll_window}: invalid value type for 'polling.adaptive.poll_window'")
+
+def validate_polling_adaptive_max_idle(document):
+    max_idle = document.get("max_idle")
+
+    if max_idle is None:
+        return
+
+    if not isinstance(max_idle, int) \
+            or max_idle < 0:
+        raise overlord.exceptions.InvalidSpec(f"{max_idle}: invalid value type for 'polling.adaptive.max_idle'")
+
+def validate_polling_adaptive_idle_penalty(document):
+    idle_penalty = document.get("idle_penalty")
+
+    if idle_penalty is None:
+        return
+
+    if not isinstance(idle_penalty, int) \
+            or idle_penalty < 0:
+        raise overlord.exceptions.InvalidSpec(f"{idle_penalty}: invalid value type for 'polling.adaptive.idle_penalty'")
+
+def validate_polling_adaptive_max_idle_penalty(document):
+    max_idle_penalty = document.get("max_idle_penalty")
+
+    if max_idle_penalty is None:
+        return
+
+    if not isinstance(max_idle_penalty, int) \
+            or max_idle_penalty < 1:
+        raise overlord.exceptions.InvalidSpec(f"{max_idle_penalty}: invalid value type for 'polling.adaptive.max_idle_penalty'")
 
 def validate_polling_jail_stats(document):
     interval = document.get("jail_stats")

@@ -214,6 +214,8 @@ class PingHandler(InternalHandler):
 
 class JailsHandler(InternalHandler):
     async def get(self):
+        overlord.cache.update_refresh_for("jails")
+
         self.write_template({
             "jails" : overlord.cache.get_jails()
         })
@@ -287,6 +289,9 @@ class JailLogHandler(InternalHandler):
 
 class StatsHandler(InternalHandler):
     async def get(self):
+        # These aren't exactly jail stats, but we need recent data that reflects reality.
+        overlord.cache.update_refresh_for("jail_stats")
+
         stats = {}
 
         jails = overlord.cache.get_jails()
@@ -306,8 +311,12 @@ class StatsHandler(InternalHandler):
 
 class JailStatsHandler(InternalHandler):
     async def get(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if not self.check_jail(jail):
             return
+
+        overlord.cache.update_refresh_for("jail_stats")
 
         self.write_template({
             "stats" : overlord.cache.get_jail_stats(jail)
@@ -315,14 +324,20 @@ class JailStatsHandler(InternalHandler):
 
 class JailInfoHandler(InternalHandler):
     async def get(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if not self.check_jail(jail):
             return
+
+        overlord.cache.update_refresh_for("jail_info")
         
         self.write_template({
             "info" : overlord.cache.get_jail_info(jail)
         })
 
     async def head(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if overlord.cache.check_jail(jail):
             self.set_status(200)
 
@@ -331,8 +346,12 @@ class JailInfoHandler(InternalHandler):
 
 class JailCPUSetHandler(InternalHandler):
     async def get(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if not self.check_jail(jail):
             return
+
+        overlord.cache.update_refresh_for("cpuset")
 
         self.write_template({
             "cpuset" : overlord.cache.get_jail_cpuset(jail)
@@ -340,8 +359,12 @@ class JailCPUSetHandler(InternalHandler):
 
 class JailDEVFSHandler(InternalHandler):
     async def get(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if not self.check_jail(jail):
             return
+
+        overlord.cache.update_refresh_for("devfs")
 
         self.write_template({
             "devfs" : overlord.cache.get_jail_devfs(jail)
@@ -349,8 +372,12 @@ class JailDEVFSHandler(InternalHandler):
 
 class JailExposeHandler(InternalHandler):
     async def get(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if not self.check_jail(jail):
             return
+
+        overlord.cache.update_refresh_for("expose")
 
         self.write_template({
             "expose" : overlord.cache.get_jail_expose(jail)
@@ -358,8 +385,12 @@ class JailExposeHandler(InternalHandler):
 
 class JailHealthcheckHandler(InternalHandler):
     async def get(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if not self.check_jail(jail):
             return
+
+        overlord.cache.update_refresh_for("healthcheck")
 
         self.write_template({
             "healthcheck" : overlord.cache.get_jail_healthcheck(jail)
@@ -367,8 +398,12 @@ class JailHealthcheckHandler(InternalHandler):
 
 class JailLimitsHandler(InternalHandler):
     async def get(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if not self.check_jail(jail):
             return
+
+        overlord.cache.update_refresh_for("limits")
 
         self.write_template({
             "limits" : overlord.cache.get_jail_limits(jail)
@@ -376,8 +411,12 @@ class JailLimitsHandler(InternalHandler):
 
 class JailFstabHandler(InternalHandler):
     async def get(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if not self.check_jail(jail):
             return
+
+        overlord.cache.update_refresh_for("fstab")
 
         self.write_template({
             "fstab" : overlord.cache.get_jail_fstab(jail)
@@ -385,8 +424,12 @@ class JailFstabHandler(InternalHandler):
 
 class JailLabelsHandler(InternalHandler):
     async def get(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if not self.check_jail(jail):
             return
+
+        overlord.cache.update_refresh_for("label")
 
         self.write_template({
             "labels" : overlord.cache.get_jail_label(jail)
@@ -394,8 +437,12 @@ class JailLabelsHandler(InternalHandler):
 
 class JailNATHandler(InternalHandler):
     async def get(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if not self.check_jail(jail):
             return
+
+        overlord.cache.update_refresh_for("nat")
 
         self.write_template({
             "nat" : overlord.cache.get_jail_nat(jail)
@@ -403,8 +450,12 @@ class JailNATHandler(InternalHandler):
 
 class JailVolumesHandler(InternalHandler):
     async def get(self, jail):
+        overlord.cache.update_refresh_for("jails")
+
         if not self.check_jail(jail):
             return
+
+        overlord.cache.update_refresh_for("volume")
 
         self.write_template({
             "volumes" : overlord.cache.get_jail_volume(jail)
@@ -412,12 +463,16 @@ class JailVolumesHandler(InternalHandler):
 
 class ProjectsHandler(InternalHandler):
     async def get(self):
+        overlord.cache.update_refresh_for("projects")
+
         self.write_template({
             "projects" : overlord.cache.get_projects()
         })
 
 class ProjectInfoHandler(InternalHandler):
     async def get(self, project):
+        overlord.cache.update_refresh_for("project_info")
+
         result = {}
 
         info = overlord.cache.get_project_info(project)
@@ -452,6 +507,8 @@ class ProjectInfoHandler(InternalHandler):
         })
 
     async def head(self, project):
+        overlord.cache.update_refresh_for("projects")
+
         if overlord.cache.check_project(project):
             self.set_status(200)
 

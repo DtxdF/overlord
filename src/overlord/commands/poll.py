@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -1271,16 +1271,24 @@ async def match_label(client, chain, labels):
 def poll_jails():
     check_appjail()
 
+    adaptive = {}
+
     try:
         overlord.process.init()
 
         while True:
+            interval = overlord.config.get_polling_jails() + overlord.util.get_skew()
+
+            if not check_adaptive_polling("jails", data=adaptive):
+                time.sleep(interval)
+                continue
+
             jails = overlord.jail.get_list()
 
             if jails is not None:
                 overlord.cache.gc_jails(jails)
 
-            time.sleep(overlord.config.get_polling_jails() + overlord.util.get_skew())
+            time.sleep(interval)
 
     except Exception as err:
         error = overlord.util.get_error(err)
@@ -1295,10 +1303,18 @@ def poll_jails():
 def poll_jail_info():
     check_appjail()
 
+    adaptive = {}
+
     try:
         overlord.process.init()
 
         while True:
+            interval = overlord.config.get_polling_jail_info() + overlord.util.get_skew()
+
+            if not check_adaptive_polling("jail_info", data=adaptive):
+                time.sleep(interval)
+                continue
+
             jails = overlord.cache.get_jails()
 
             for jail in jails:
@@ -1310,7 +1326,7 @@ def poll_jail_info():
 
                 overlord.cache.save_jail_info(jail, info)
 
-            time.sleep(overlord.config.get_polling_jail_info() + overlord.util.get_skew())
+            time.sleep(interval)
 
     except Exception as err:
         error = overlord.util.get_error(err)
@@ -1326,20 +1342,32 @@ def poll_jail_info():
 def poll_jail_extras(item):
     check_appjail()
 
+    adaptive = {
+        "cpuset" : {},
+        "devfs" : {},
+        "expose" : {},
+        "healthcheck" : {},
+        "limits" : {},
+        "fstab" : {},
+        "label" : {},
+        "nat" : {},
+        "volume" : {}
+    }
+
+    flags = {
+        "cpuset" : False,
+        "devfs" : False,
+        "expose" : False,
+        "healthcheck" : False,
+        "limits" : False,
+        "fstab" : False,
+        "label" : False,
+        "nat" : False,
+        "volume" : False
+    }
+
     try:
         overlord.process.init()
-
-        flags = {
-            "cpuset" : False,
-            "devfs" : False,
-            "expose" : False,
-            "healthcheck" : False,
-            "limits" : False,
-            "fstab" : False,
-            "label" : False,
-            "nat" : False,
-            "volume" : False
-        }
 
         items = item
 
@@ -1354,7 +1382,9 @@ def poll_jail_extras(item):
             jails = overlord.cache.get_jails()
 
             for jail in jails:
-                if flags.get("cpuset") and overlord.jail.status(jail) == 0:
+                if flags.get("cpuset") \
+                        and check_adaptive_polling("cpuset", data=adaptive["cpuset"]) \
+                        and overlord.jail.status(jail) == 0:
                     (rc, cpuset) = overlord.jail.get_cpuset(jail)
 
                     if rc != 0:
@@ -1363,7 +1393,8 @@ def poll_jail_extras(item):
                     else:
                         overlord.cache.save_jail_cpuset(jail, cpuset)
 
-                if flags.get("devfs"):
+                if flags.get("devfs") \
+                        and check_adaptive_polling("devfs", data=adaptive["devfs"]):
                     nros = overlord.jail.get_devfs_nros(jail)
 
                     if nros is not None:
@@ -1379,7 +1410,8 @@ def poll_jail_extras(item):
 
                         overlord.cache.save_jail_devfs(jail, data)
 
-                if flags.get("expose"):
+                if flags.get("expose") \
+                        and check_adaptive_polling("expose", data=adaptive["expose"]):
                     nros = overlord.jail.get_expose_nros(jail)
 
                     if nros is not None:
@@ -1395,7 +1427,8 @@ def poll_jail_extras(item):
 
                         overlord.cache.save_jail_expose(jail, data)
 
-                if flags.get("healthcheck"):
+                if flags.get("healthcheck") \
+                        and check_adaptive_polling("healthcheck", data=adaptive["healthcheck"]):
                     nros = overlord.jail.get_healthcheck_nros(jail)
 
                     if nros is not None:
@@ -1411,7 +1444,8 @@ def poll_jail_extras(item):
 
                         overlord.cache.save_jail_healthcheck(jail, data)
 
-                if flags.get("limits"):
+                if flags.get("limits") \
+                        and check_adaptive_polling("limits", data=adaptive["limits"]):
                     nros = overlord.jail.get_limits_nros(jail)
 
                     if nros is not None:
@@ -1427,7 +1461,8 @@ def poll_jail_extras(item):
 
                         overlord.cache.save_jail_limits(jail, data)
 
-                if flags.get("fstab"):
+                if flags.get("fstab") \
+                        and check_adaptive_polling("fstab", data=adaptive["fstab"]):
                     nros = overlord.jail.get_fstab_nros(jail)
 
                     if nros is not None:
@@ -1443,7 +1478,8 @@ def poll_jail_extras(item):
 
                         overlord.cache.save_jail_fstab(jail, data)
 
-                if flags.get("label"):
+                if flags.get("label") \
+                        and check_adaptive_polling("label", data=adaptive["label"]):
                     labels = overlord.jail.get_labels(jail)
 
                     if labels is not None:
@@ -1459,7 +1495,8 @@ def poll_jail_extras(item):
 
                         overlord.cache.save_jail_label(jail, data)
 
-                if flags.get("nat"):
+                if flags.get("nat") \
+                        and check_adaptive_polling("nat", data=adaptive["nat"]):
                     networks = overlord.jail.get_nat_networks(jail)
 
                     if networks is not None:
@@ -1475,7 +1512,8 @@ def poll_jail_extras(item):
 
                         overlord.cache.save_jail_nat(jail, data)
 
-                if flags.get("volume"):
+                if flags.get("volume") \
+                        and check_adaptive_polling("volume", data=adaptive["volume"]):
                     volumes = overlord.jail.get_volumes(jail)
 
                     if volumes is not None:
@@ -1508,10 +1546,18 @@ def poll_jail_stats():
     check_rctl()
     check_privileges()
 
+    adaptive = {}
+
     try:
         overlord.process.init()
 
         while True:
+            interval = overlord.config.get_polling_jail_stats() + overlord.util.get_skew()
+
+            if not check_adaptive_polling("jail_stats", data=adaptive):
+                time.sleep(interval)
+                continue
+
             jails = overlord.cache.get_jails()
 
             for jail in jails:
@@ -1527,7 +1573,7 @@ def poll_jail_stats():
 
                 overlord.cache.save_jail_stats(jail, stats)
 
-            time.sleep(overlord.config.get_polling_jail_stats() + overlord.util.get_skew())
+            time.sleep(interval)
 
     except Exception as err:
         error = overlord.util.get_error(err)
@@ -1542,10 +1588,18 @@ def poll_jail_stats():
 def poll_projects():
     check_director()
 
+    adaptive = {}
+
     try:
         overlord.process.init()
 
         while True:
+            interval = overlord.config.get_polling_projects() + overlord.util.get_skew()
+
+            if not check_adaptive_polling("projects", data=adaptive):
+                time.sleep(interval)
+                continue
+
             (rc, projects) = overlord.director.get_list()
 
             if rc != 0:
@@ -1554,7 +1608,7 @@ def poll_projects():
 
             overlord.cache.gc_projects(projects)
 
-            time.sleep(overlord.config.get_polling_projects() + overlord.util.get_skew())
+            time.sleep(interval)
 
     except Exception as err:
         error = overlord.util.get_error(err)
@@ -1569,10 +1623,18 @@ def poll_projects():
 def poll_project_info():
     check_director()
 
+    adaptive = {}
+
     try:
         overlord.process.init()
 
         while True:
+            interval = overlord.config.get_polling_project_info() + overlord.util.get_skew()
+
+            if not check_adaptive_polling("project_info", data=adaptive):
+                time.sleep(interval)
+                continue
+
             projects = overlord.cache.get_projects()
 
             for project in projects:
@@ -1584,7 +1646,7 @@ def poll_project_info():
 
                 overlord.cache.save_project_info(project, info)
 
-            time.sleep(overlord.config.get_polling_project_info() + overlord.util.get_skew())
+            time.sleep(interval)
 
     except Exception as err:
         error = overlord.util.get_error(err)
@@ -1594,6 +1656,46 @@ def poll_project_info():
         logger.exception("(exception:%s) %s", error_type, error_message)
 
         sys.exit(EX_SOFTWARE)
+
+def check_adaptive_polling(entity, *, data={}):
+    timestamp = overlord.cache.get_refresh_for(entity)
+
+    if timestamp is None:
+        # If we don't update the timestamp, we'll keep polling indefinitely until a user
+        # updates it for us.
+        overlord.cache.update_refresh_for(entity)
+
+        return True
+
+    if "penalty" not in data:
+        data["penalty"] = 0
+
+    penalty = data["penalty"]
+    last_update = int(time.time() - timestamp)
+    poll_window = overlord.config.get_polling_adaptive_poll_window()
+
+    if last_update < poll_window:
+        data["penalty"] = 0
+
+        return True
+
+    idle_penalty = overlord.config.get_polling_adaptive_idle_penalty()
+    max_idle = overlord.config.get_polling_adaptive_max_idle()
+    max_idle += penalty * idle_penalty
+    max_idle_penalty = overlord.config.get_polling_adaptive_max_idle_penalty()
+    max_idle = min(max_idle, max_idle_penalty)
+
+    if max_idle >= max_idle_penalty:
+        overlord.cache.update_refresh_for(entity)
+
+        return True
+
+    if last_update >= max_idle:
+        data["penalty"] += 1
+
+        return True
+
+    return False
 
 def check_appjail():
     if not overlord.jail.check_dependency():

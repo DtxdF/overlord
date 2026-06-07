@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -427,3 +427,9 @@ def check_project(project):
     projects = get_projects()
 
     return project in projects
+
+def update_refresh_for(entity):
+    return save(f"overlord_timestamp_{entity}", time.time())
+
+def get_refresh_for(entity):
+    return get(f"overlord_timestamp_{entity}")

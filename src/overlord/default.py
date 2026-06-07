@@ -165,6 +165,12 @@ VALID_KEYWORDS = {
     )
 }
 POLLING = {
+    "adaptive" : {
+        "poll_window" : 180, # 3m
+        "max_idle" : 900, # 15m
+        "idle_penalty" : 900, # 15m
+        "max_idle_penalty" : 86400 # 1d
+    },
     "jail_stats" : 12,
     "jail_info" : 8,
     "projects" : 6,

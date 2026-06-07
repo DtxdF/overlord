@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -35,6 +35,7 @@ import sys
 
 import click
 
+import overlord.cache
 import overlord.commands
 import overlord.config
 import overlord.process
@@ -132,6 +133,8 @@ async def _async_watch_projects():
                 "projects", "-d", json_data
             ]
 
+            _update_all_entities()
+
             await overlord.queue.put_cmd({
                 "args" : args
             })
@@ -169,6 +172,8 @@ async def _async_watch_vm():
                 "vm", "-d", json_data
             ]
 
+            _update_all_entities()
+
             await overlord.queue.put_cmd({
                 "args" : args
             })
@@ -181,6 +186,25 @@ async def _async_watch_vm():
         logger.exception("(exception:%s) %s:", error_type, error_message)
 
         sys.exit(EX_SOFTWARE)
+
+def _update_all_entities():
+    # It makes sense to update all the data after creating a project, but sometimes
+    # it may not actually be necessary.
+    for entity in ("projects",
+                   "project_info",
+                   "jails",
+                   "jail_info",
+                   "jail_stats",
+                   "cpuset",
+                   "devfs",
+                   "expose",
+                   "healthcheck",
+                   "limits",
+                   "fstab",
+                   "label",
+                   "nat",
+                   "volume"):
+        overlord.cache.update_refresh_for(entity)
 
 def clean(*args, **kwargs):
     if CHILD is not None:
