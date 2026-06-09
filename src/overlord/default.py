@@ -67,7 +67,9 @@ VALID_KEYWORDS = {
         "status",
         "type",
         "version",
-        "version_extra"
+        "version_extra",
+        "x11_display",
+        "xephyr_pid"
     ),
     "stats" : (
         "cputime",
