@@ -34,6 +34,7 @@ import pyaml_env
 
 import overlord.chains
 import overlord.default
+import overlord.error
 import overlord.exceptions
 
 CONFIG = {}
@@ -1062,8 +1063,8 @@ def get_namespaces():
     return get_default(metadata.get("namespaces"), overlord.default.METADATA["namespaces"])
 
 def validate(document):
-    if not isinstance(document, dict):
-        raise overlord.exceptions.InvalidSpec("The configuration is invalid.")
+    _name = "<root>"
+    overlord.error.assert_type(_name, document, dict)
 
     keys = (
         "serverid",
@@ -1095,13 +1096,10 @@ def validate(document):
         "autoscale_logs_expire_time"
     )
 
-    for key in document:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"{key}: this key is invalid.")
+    overlord.error.assert_parameter(_name, document, keys)
 
     validate_serverid(document)
     validate_port(document)
-    validate_tls_port(document)
     validate_tls(document)
     validate_debug(document)
     validate_compress_response(document)
@@ -1129,38 +1127,12 @@ def validate(document):
     validate_autoscale_logs_expire_time(document)
 
 def validate_autoscale_logs_expire_time(document):
-    autoscale_logs_expire_time = document.get("autoscale_logs_expire_time")
-
-    if autoscale_logs_expire_time is None:
-        return
-
-    if not isinstance(autoscale_logs_expire_time, int):
-        raise overlord.exceptions.InvalidSpec(f"{autoscale_logs_expire_time}: invalid value type for 'autoscale_logs_expire_time'")
-
-    if autoscale_logs_expire_time < 1:
-        raise ValueError(f"{autoscale_logs_expire_time}: invalid value for 'autoscale_logs_expire_time'")
+    overlord.error._validate1(document, "", "autoscale_logs_expire_time", int, lambda v: v >= 1, ">= 1")
 
 def validate_max_autoscale_logs(document):
-    max_autoscale_logs = document.get("max_autoscale_logs")
-
-    if max_autoscale_logs is None:
-        return
-
-    if not isinstance(max_autoscale_logs, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_autoscale_logs}: invalid value type for 'max_autoscale_logs'")
-
-    if max_autoscale_logs < 1:
-        raise ValueError(f"{max_autoscale_logs}: invalid value for 'max_autoscale_logs'")
+    overlord.error._validate1(document, "", "max_autoscale_log", int, lambda v: v >= 1, ">= 1")
 
 def validate_autodisable(document):
-    autodisable = document.get("autodisable")
-
-    if autodisable is None:
-        return
-
-    if not isinstance(autodisable, dict):
-        raise overlord.exceptions.InvalidSpec("'autodisable' is invalid.")
-
     keys = (
         "enabled",
         "failures",
@@ -1170,184 +1142,81 @@ def validate_autodisable(document):
         "strict"
     )
 
-    for key in autodisable:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"autodisable.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "autodisable", keys)
+    
+    if _value is None:
+        return
 
-    validate_autodisable_enabled(autodisable)
-    validate_autodisable_failures(autodisable)
-    validate_autodisable_interval(autodisable)
-    validate_autodisable_increase(autodisable)
-    validate_autodisable_max_increase(autodisable)
-    validate_autodisable_strict(autodisable)
+    validate_autodisable_enabled(_value)
+    validate_autodisable_failures(_value)
+    validate_autodisable_interval(_value)
+    validate_autodisable_increase(_value)
+    validate_autodisable_max_increase(_value)
+    validate_autodisable_strict(_value)
 
 def validate_autodisable_strict(document):
-    strict = document.get("strict")
-
-    if strict is None:
-        return
-
-    if not isinstance(strict, bool):
-        raise overlord.exceptions.InvalidSpec(f"{strict}: invalid value type for 'autodisable.strict'")
+    overlord.error._validate1(document, "autodisable.", "strict", bool)
 
 def validate_autodisable_max_increase(document):
-    max_increase = document.get("max_increase")
-
-    if max_increase is None:
-        return
-
-    if not isinstance(max_increase, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_increase}: invalid value type for 'autodisable.max_increase'")
-
-    if max_increase < 1:
-        raise ValueError(f"{max_increase}: invalid value for 'autodisable.max_increase'")
+    overlord.error._validate1(document, "autodisable.", "max_increase", int, lambda v: v >= 1, ">= 1")
 
 def validate_autodisable_increase(document):
-    increase = document.get("increase")
-
-    if increase is None:
-        return
-
-    if not isinstance(increase, int):
-        raise overlord.exceptions.InvalidSpec(f"{increase}: invalid value type for 'autodisable.increase'")
-
-    if increase < 1:
-        raise ValueError(f"{increase}: invalid value for 'autodisable.increase'")
+    overlord.error._validate1(document, "autodisable.", "increase", int, lambda v: v >= 1, ">= 1")
 
 def validate_autodisable_interval(document):
-    interval = document.get("interval")
-
-    if interval is None:
-        return
-
-    if not isinstance(interval, int):
-        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'autodisable.interval'")
-
-    if interval < 1:
-        raise ValueError(f"{interval}: invalid value for 'autodisable.interval'")
+    overlord.error._validate1(document, "autodisable.", "interval", int, lambda v: v >= 1, ">= 1")
 
 def validate_autodisable_failures(document):
-    failures = document.get("failures")
-
-    if failures is None:
-        return
-
-    if not isinstance(failures, int):
-        raise overlord.exceptions.InvalidSpec(f"{failures}: invalid value type for 'autodisable.failures'")
-
-    if failures < 1:
-        raise ValueError(f"{failures}: invalid value for 'autodisable.failures'")
+    overlord.error._validate1(document, "autodisable.", "failures", int, lambda v: v >= 1, ">= 1")
 
 def validate_autodisable_enabled(document):
-    enabled = document.get("enabled")
-
-    if enabled is None:
-        return
-
-    if not isinstance(enabled, bool):
-        raise overlord.exceptions.InvalidSpec(f"{enabled}: invalid value type for 'autodisable.enabled'")
+    overlord.error._validate1(document, "autodisable.", "enabled", bool)
 
 def validate_components(document):
-    components = document.get("components")
-
-    if components is None:
-        return
-
-    if not isinstance(components, str):
-        raise overlord.exceptions.InvalidSpec(f"{components}: invalid value type for 'components'")
+    overlord.error._validate1(document, "", "components", str)
 
 def validate_serverid(document):
-    serverid = document.get("serverid")
-
-    if serverid is None:
-        return
-
-    if not isinstance(serverid, str):
-        raise overlord.exceptions.InvalidSpec(f"{serverid}: invalid value type for 'serverid'")
+    overlord.error._validate1(document, "", "serverid", str)
 
 def validate_metadata(document):
-    metadata = document.get("metadata")
-
-    if metadata is None:
-        return
-
-    if not isinstance(metadata, dict):
-        raise overlord.exceptions.InvalidSpec("'metadata' is invalid.")
-
     keys = (
         "location",
         "size",
         "namespaces"
     )
 
-    for key in metadata.keys():
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"metadata.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "metadata", keys)
+    
+    if _value is None:
+        return
 
-    validate_metadata_location(metadata)
-    validate_metadata_size(metadata)
-    validate_metadata_namespaces(metadata)
+    validate_metadata_location(_value)
+    validate_metadata_size(_value)
+    validate_metadata_namespaces(_value)
 
 def validate_metadata_namespaces(document):
-    namespaces = document.get("namespaces")
-
-    if namespaces is None:
-        return
-
-    if not isinstance(namespaces, str):
-        raise overlord.exceptions.InvalidSpec(f"{namespaces}: invalid value type for 'metadata.namespaces'")
+    overlord.error._validate1(document, "metadata.", "namespaces", str)
 
 def validate_metadata_size(document):
-    size = document.get("size")
-
-    if size is None:
-        return
-
-    if not isinstance(size, int):
-        raise overlord.exceptions.InvalidSpec(f"{size}: invalid value type for 'metadata.size'")
-
-    if size < overlord.default.METADATA_MAX_SIZE:
-        raise ValueError(f"{size}: invalid value for 'metadata.size'")
+    max_size = overlord.default.METADATA_MAX_SIZE
+    overlord.error._validate1(document, "metadata.", "size", int, lambda v: v >= max_size, f">= {max_size}")
 
 def validate_metadata_location(document):
-    location = document.get("location")
-
-    if location is None:
-        return
-
-    if not isinstance(location, str):
-        raise overlord.exceptions.InvalidSpec(f"{location}: invalid value type for 'metadata.location'")
+    overlord.error._validate1(document, "metadata.", "location", str)
 
 def validate_max_watch_commands(document):
-    max_watch_commands = document.get("max_watch_commands")
-
-    if max_watch_commands is None:
-        return
-
-    if not isinstance(max_watch_commands, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_watch_commands}: invalid value type for 'max_watch_commands'")
-
-    if max_watch_commands <= 0:
-        raise ValueError(f"{max_watch_commands}: invalid value for 'max_watch_commands'.")
+    overlord.error._validate1(document, "", "max_watch_commands", int, lambda v: v > 0, f"> 0")
 
 def validate_etcd(document):
-    etcd = document.get("etcd")
+    _value = overlord.error._validate1(document, "", "etcd", dict)
 
-    if etcd is None:
+    if _value is None:
         return
 
-    if not isinstance(etcd, dict):
-        raise overlord.exceptions.InvalidSpec("'etcd' is invalid.")
+    overlord.error.assert_item(_value, validate_etcd_host)
 
-    for index, host in enumerate(etcd):
-        if not isinstance(host, str):
-            raise overlord.exceptions.InvalidSpec(f"{host}: invalid value type for 'etcd.{index}'")
-
-        validate_etcd_host(etcd, host)
-
-def validate_etcd_host(etcd, host):
-    if not isinstance(etcd[host], dict):
-        raise overlord.exceptions.InvalidSpec(f"'etcd.{host}' is invalid.")
+def validate_etcd_host(etcd, host, index):
+    overlord.error.assert_type(f"etcd.<item#{index}>", host, str)
 
     keys = (
         "port",
@@ -1358,9 +1227,10 @@ def validate_etcd_host(etcd, host):
         "api_path"
     )
 
-    for key in etcd[host]:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"etcd.{host}.{key}: this key is invalid.")
+    _value = overlord.error._validate2(etcd, "etcd.", host, keys)
+
+    if _value is None:
+        return
 
     validate_etcd_port(etcd, host)
     validate_etcd_protocol(etcd, host)
@@ -1370,110 +1240,50 @@ def validate_etcd_host(etcd, host):
     validate_etcd_api_path(etcd, host)
 
 def validate_etcd_port(etcd, host):
-    port = etcd[host].get("port")
-
-    if port is None:
-        return
-
-    if not isinstance(port, int):
-        raise overlord.exceptions.InvalidSpec(f"{port}: invalid value type for 'etcd.{host}.port'")
-
-    if port < 0 or port > 65535:
-        raise ValueError(f"{port}: invalid port.")
+    document = etcd[host]
+    overlord.error._validate1(document, f"etcd.{host}.", "port", int, lambda v: v > 0 and v < 65536, f"> 0 and < 65536")
 
 def validate_etcd_protocol(etcd, host):
-    protocol = etcd[host].get("protocol")
-
-    if protocol is None:
-        return
-
-    if not isinstance(protocol, str):
-        raise overlord.exceptions.InvalidSpec(f"{protocol}: invalid value type for 'etcd.{host}.protocol'")
+    document = etcd[host]
+    overlord.error._validate1(document, f"etcd.{host}.", "protocol", str)
 
 def validate_etcd_ca_cert(etcd, host):
-    ca_cert = etcd[host].get("ca_cert")
-
-    if ca_cert is None:
-        return
-
-    if not isinstance(ca_cert, str):
-        raise overlord.exceptions.InvalidSpec(f"{ca_cert}: invalid value type for 'etcd.{host}.ca_cert'")
+    document = etcd[host]
+    overlord.error._validate1(document, f"etcd.{host}.", "ca_cert", str)
 
 def validate_etcd_cert_key(etcd, host):
-    cert_key = etcd[host].get("cert_key")
-
-    if cert_key is None:
-        return
-
-    if not isinstance(cert_key, str):
-        raise overlord.exceptions.InvalidSpec(f"{cert_key}: invalid value type for 'etcd.{host}.cert_key'")
+    document = etcd[host]
+    overlord.error._validate1(document, f"etcd.{host}.", "cert_key", str)
 
 def validate_etcd_timeout(etcd, host):
-    timeout = etcd[host].get("timeout")
-
-    if timeout is None:
-        return
-
-    if not isinstance(timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{timeout}: invalid value type for 'etcd.{host}.timeout'")
+    document = etcd[host]
+    overlord.error._validate1(document, f"etcd.{host}.", "timeout", int)
 
 def validate_etcd_api_path(etcd, host):
-    api_path = etcd[host].get("api_path")
-
-    if api_path is None:
-        return
-
-    if not isinstance(api_path, str):
-        raise overlord.exceptions.InvalidSpec(f"{api_path}: invalid value type for 'etcd.{host}.api_path'")
+    document = etcd[host]
+    overlord.error._validate1(document, f"etcd.{host}.", "api_path", str)
 
 def validate_skydns(document):
-    skydns = document.get("skydns")
-
-    if skydns is None:
-        return
-
-    if not isinstance(skydns, dict):
-        raise overlord.exceptions.InvalidSpec("'skydns' is invalid.")
-
     keys = (
         "path",
         "zone"
     )
 
-    for key in skydns:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"skydns.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "skydns", keys)
 
-    validate_skydns_path(skydns)
-    validate_skydns_zone(skydns)
+    if _value is None:
+        return
+
+    validate_skydns_path(_value)
+    validate_skydns_zone(_value)
 
 def validate_skydns_path(document):
-    path = document.get("path")
-
-    if path is None:
-        return
-
-    if not isinstance(path, str):
-        raise overlord.exceptions.InvalidSpec(f"{path}: invalid value type for 'skydns.path'")
+    overlord.error._validate1(document, "skydns.", "path", str)
 
 def validate_skydns_zone(document):
-    zone = document.get("zone")
-
-    if zone is None:
-        return
-
-    if not isinstance(zone, str):
-        raise overlord.exceptions.InvalidSpec(f"{zone}: invalid value type for 'skydns.zone'")
+    overlord.error._validate1(document, "skydns.", "zone", str)
 
 def validate_haproxy_stats(document):
-    haproxy_stats = document.get("haproxy_stats")
-
-    if haproxy_stats is None:
-        return
-
-    if not isinstance(haproxy_stats, dict):
-        raise overlord.exceptions.InvalidSpec("'haproxy_stats' is invalid.")
-
     keys = (
         "entrypoint",
         "auth",
@@ -1488,160 +1298,71 @@ def validate_haproxy_stats(document):
         "cacert"
     )
 
-    for key in haproxy_stats:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"haproxy_stats.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "haproxy_stats", keys)
 
-    validate_haproxy_stats_entrypoint(haproxy_stats)
-    validate_haproxy_stats_auth(haproxy_stats)
-    validate_haproxy_stats_timeout(haproxy_stats)
-    validate_haproxy_stats_read_timeout(haproxy_stats)
-    validate_haproxy_stats_write_timeout(haproxy_stats)
-    validate_haproxy_stats_connect_timeout(haproxy_stats)
-    validate_haproxy_stats_pool_timeout(haproxy_stats)
-    validate_haproxy_stats_max_keepalive_connections(haproxy_stats)
-    validate_haproxy_stats_max_connections(haproxy_stats)
-    validate_haproxy_stats_keepalive_expiry(haproxy_stats)
-    validate_haproxy_stats_cacert(haproxy_stats)
+    if _value is None:
+        return
+
+    validate_haproxy_stats_entrypoint(_value)
+    validate_haproxy_stats_auth(_value)
+    validate_haproxy_stats_timeout(_value)
+    validate_haproxy_stats_read_timeout(_value)
+    validate_haproxy_stats_write_timeout(_value)
+    validate_haproxy_stats_connect_timeout(_value)
+    validate_haproxy_stats_pool_timeout(_value)
+    validate_haproxy_stats_max_keepalive_connections(_value)
+    validate_haproxy_stats_max_connections(_value)
+    validate_haproxy_stats_keepalive_expiry(_value)
+    validate_haproxy_stats_cacert(_value)
 
 def validate_haproxy_stats_entrypoint(document):
-    entrypoint = document.get("entrypoint")
-
-    if entrypoint is None:
-        raise overlord.exceptions.InvalidSpec("'haproxy_stats.entrypoint' is required but hasn't been specified.")
-
-    if not isinstance(entrypoint, str):
-        raise overlord.exceptions.InvalidSpec(f"{entrypoint}: invalid value type for 'haproxy_stats.entrypoint'")
+    overlord.error._validate1(document, "haproxy_stats.", "entrypoint", str, required=True)
 
 def validate_haproxy_stats_auth(document):
-    auth = document.get("auth")
-
-    if auth is None:
-        raise overlord.exceptions.InvalidSpec("'haproxy_stats.auth' is required but hasn't been specified.")
-
-    if not isinstance(auth, dict):
-        raise overlord.exceptions.InvalidSpec("'haproxy_stats.auth' is invalid.")
-
     keys = (
         "username",
         "password"
     )
 
-    for key in auth:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"haproxy_stats.auth.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "haproxy_stats.", "auth", keys, required=True)
 
-    validate_haproxy_stats_auth_username(auth)
-    validate_haproxy_stats_auth_password(auth)
+    validate_haproxy_stats_auth_username(_value)
+    validate_haproxy_stats_auth_password(_value)
 
 def validate_haproxy_stats_auth_username(document):
-    username = document.get("username")
-
-    if username is None:
-        raise overlord.exceptions.InvalidSpec("'haproxy_stats.auth.username' is required but hasn't been specified.")
-
-    if not isinstance(username, str):
-        raise overlord.exceptions.InvalidSpec(f"{username}: invalid value type for 'haproxy_stats.auth.username'")
+    overlord.error._validate1(document, "haproxy_stats.auth.", "username", str, required=True)
 
 def validate_haproxy_stats_auth_password(document):
-    password = document.get("password")
-
-    if password is None:
-        raise overlord.exceptions.InvalidSpec("'haproxy_stats.auth.password' is required but hasn't been specified.")
-
-    if not isinstance(password, str):
-        raise overlord.exceptions.InvalidSpec(f"{password}: invalid value type for 'haproxy_stats.auth.password'")
+    overlord.error._validate1(document, "haproxy_stats.auth.", "password", str, required=True)
 
 def validate_haproxy_stats_timeout(document):
-    timeout = document.get("timeout")
-
-    if timeout is None:
-        return
-
-    if not isinstance(timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{timeout}: invalid value type for 'haproxy_stats.timeout'")
+    overlord.error._validate1(document, "haproxy_stats.", "timeout", int)
 
 def validate_haproxy_stats_read_timeout(document):
-    read_timeout = document.get("read_timeout")
-
-    if read_timeout is None:
-        return
-
-    if not isinstance(read_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{read_timeout}: invalid value type for 'haproxy_stats.read_timeout'")
+    overlord.error._validate1(document, "haproxy_stats.", "read_timeout", int)
 
 def validate_haproxy_stats_write_timeout(document):
-    write_timeout = document.get("write_timeout")
-
-    if write_timeout is None:
-        return
-
-    if not isinstance(write_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{write_timeout}: invalid value type for 'haproxy_stats.write_timeout'")
+    overlord.error._validate1(document, "haproxy_stats.", "write_timeout", int)
 
 def validate_haproxy_stats_connect_timeout(document):
-    connect_timeout = document.get("connect_timeout")
-
-    if connect_timeout is None:
-        return
-
-    if not isinstance(connect_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{connect_timeout}: invalid value type for 'haproxy_stats.connect_timeout'")
+    overlord.error._validate1(document, "haproxy_stats.", "connect_timeout", int)
 
 def validate_haproxy_stats_pool_timeout(document):
-    pool_timeout = document.get("pool_timeout")
-
-    if pool_timeout is None:
-        return
-
-    if not isinstance(pool_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{pool_timeout}: invalid value type for 'haproxy_stats.pool_timeout'")
+    overlord.error._validate1(document, "haproxy_stats.", "pool_timeout", int)
 
 def validate_haproxy_stats_max_keepalive_connections(document):
-    max_keepalive_connections = document.get("max_keepalive_connections")
-
-    if max_keepalive_connections is None:
-        return
-
-    if not isinstance(max_keepalive_connections, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_keepalive_connections}: invalid value type for 'haproxy_stats.max_keepalive_connections'")
+    overlord.error._validate1(document, "haproxy_stats.", "max_keepalive_connections", int)
 
 def validate_haproxy_stats_max_connections(document):
-    max_connections = document.get("max_connections")
-
-    if max_connections is None:
-        return
-
-    if not isinstance(max_connections, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_connections}: invalid value type for 'haproxy_stats.max_connections'")
+    overlord.error._validate1(document, "haproxy_stats.", "max_connections", int)
 
 def validate_haproxy_stats_keepalive_expiry(document):
-    keepalive_expiry = document.get("keepalive_expiry")
-
-    if keepalive_expiry is None:
-        return
-
-    if not isinstance(keepalive_expiry, int):
-        raise overlord.exceptions.InvalidSpec(f"{keepalive_expiry}: invalid value type for 'haproxy_stats.keepalive_expiry'")
+    overlord.error._validate1(document, "haproxy_stats.", "keepalive_expiry", int)
 
 def validate_haproxy_stats_cacert(document):
-    cacert = document.get("cacert")
-
-    if cacert is None:
-        return
-
-    if not isinstance(cacert, str):
-        raise overlord.exceptions.InvalidSpec(f"{cacert}: invalid value type for 'haproxy_stats.cacert'")
+    overlord.error._validate1(document, "haproxy_stats.", "cacert", str)
 
 def validate_dataplaneapi(document):
-    dataplaneapi = document.get("dataplaneapi")
-
-    if dataplaneapi is None:
-        return
-
-    if not isinstance(dataplaneapi, dict):
-        raise overlord.exceptions.InvalidSpec("'dataplaneapi' is invalid.")
-
     keys = (
         "entrypoint",
         "auth",
@@ -1656,168 +1377,78 @@ def validate_dataplaneapi(document):
         "cacert"
     )
 
-    for key in dataplaneapi:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"dataplaneapi.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "dataplaneapi", keys)
+    
+    if _value is None:
+        return
 
-    validate_dataplaneapi_entrypoint(dataplaneapi)
-    validate_dataplaneapi_auth(dataplaneapi)
-    validate_dataplaneapi_timeout(dataplaneapi)
-    validate_dataplaneapi_read_timeout(dataplaneapi)
-    validate_dataplaneapi_write_timeout(dataplaneapi)
-    validate_dataplaneapi_connect_timeout(dataplaneapi)
-    validate_dataplaneapi_pool_timeout(dataplaneapi)
-    validate_dataplaneapi_max_keepalive_connections(dataplaneapi)
-    validate_dataplaneapi_max_connections(dataplaneapi)
-    validate_dataplaneapi_keepalive_expiry(dataplaneapi)
-    validate_dataplaneapi_cacert(dataplaneapi)
+    validate_dataplaneapi_entrypoint(_value)
+    validate_dataplaneapi_auth(_value)
+    validate_dataplaneapi_timeout(_value)
+    validate_dataplaneapi_read_timeout(_value)
+    validate_dataplaneapi_write_timeout(_value)
+    validate_dataplaneapi_connect_timeout(_value)
+    validate_dataplaneapi_pool_timeout(_value)
+    validate_dataplaneapi_max_keepalive_connections(_value)
+    validate_dataplaneapi_max_connections(_value)
+    validate_dataplaneapi_keepalive_expiry(_value)
+    validate_dataplaneapi_cacert(_value)
 
 def validate_dataplaneapi_entrypoint(document):
-    entrypoint = document.get("entrypoint")
-
-    if entrypoint is None:
-        raise overlord.exceptions.InvalidSpec("'dataplaneapi.entrypoint' is required but hasn't been specified.")
-
-    if not isinstance(entrypoint, str):
-        raise overlord.exceptions.InvalidSpec(f"{entrypoint}: invalid value type for 'dataplaneapi.entrypoint'")
+    overlord.error._validate1(document, "dataplaneapi.", "entrypoint", str)
 
 def validate_dataplaneapi_auth(document):
-    auth = document.get("auth")
-
-    if auth is None:
-        raise overlord.exceptions.InvalidSpec("'dataplaneapi.auth' is required but hasn't been specified.")
-
-    if not isinstance(auth, dict):
-        raise overlord.exceptions.InvalidSpec("'dataplaneapi.auth' is invalid.")
-
     keys = (
         "username",
         "password"
     )
 
-    for key in auth:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"dataplaneapi.auth.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "dataplaneapi.", "auth", keys, required=True)
 
-    validate_dataplaneapi_auth_username(auth)
-    validate_dataplaneapi_auth_password(auth)
+    validate_dataplaneapi_auth_username(_value)
+    validate_dataplaneapi_auth_password(_value)
 
 def validate_dataplaneapi_auth_username(document):
-    username = document.get("username")
-
-    if username is None:
-        raise overlord.exceptions.InvalidSpec("'dataplaneapi.auth.username' is required but hasn't been specified.")
-
-    if not isinstance(username, str):
-        raise overlord.exceptions.InvalidSpec(f"{username}: invalid value type for 'dataplaneapi.auth.username'")
+    overlord.error._validate1(document, "dataplaneapi.auth.", "username", str, required=True)
 
 def validate_dataplaneapi_auth_password(document):
-    password = document.get("password")
-
-    if password is None:
-        raise overlord.exceptions.InvalidSpec("'dataplaneapi.auth.password' is required but hasn't been specified.")
-
-    if not isinstance(password, str):
-        raise overlord.exceptions.InvalidSpec(f"{password}: invalid value type for 'dataplaneapi.auth.password'")
+    overlord.error._validate1(document, "dataplaneapi.auth.", "password", str, required=True)
 
 def validate_dataplaneapi_timeout(document):
-    timeout = document.get("timeout")
-
-    if timeout is None:
-        return
-
-    if not isinstance(timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{timeout}: invalid value type for 'dataplaneapi.timeout'")
+    overlord.error._validate1(document, "dataplaneapi.", "timeout", int)
 
 def validate_dataplaneapi_read_timeout(document):
-    read_timeout = document.get("read_timeout")
-
-    if read_timeout is None:
-        return
-
-    if not isinstance(read_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{read_timeout}: invalid value type for 'dataplaneapi.read_timeout'")
+    overlord.error._validate1(document, "dataplaneapi.", "read_timeout", int)
 
 def validate_dataplaneapi_write_timeout(document):
-    write_timeout = document.get("write_timeout")
-
-    if write_timeout is None:
-        return
-
-    if not isinstance(write_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{write_timeout}: invalid value type for 'dataplaneapi.write_timeout'")
+    overlord.error._validate1(document, "dataplaneapi.", "write_timeout", int)
 
 def validate_dataplaneapi_connect_timeout(document):
-    connect_timeout = document.get("connect_timeout")
-
-    if connect_timeout is None:
-        return
-
-    if not isinstance(connect_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{connect_timeout}: invalid value type for 'dataplaneapi.connect_timeout'")
+    overlord.error._validate1(document, "dataplaneapi.", "connect_timeout", int)
 
 def validate_dataplaneapi_pool_timeout(document):
-    pool_timeout = document.get("pool_timeout")
-
-    if pool_timeout is None:
-        return
-
-    if not isinstance(pool_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{pool_timeout}: invalid value type for 'dataplaneapi.pool_timeout'")
+    overlord.error._validate1(document, "dataplaneapi.", "pool_timeout", int)
 
 def validate_dataplaneapi_max_keepalive_connections(document):
-    max_keepalive_connections = document.get("max_keepalive_connections")
-
-    if max_keepalive_connections is None:
-        return
-
-    if not isinstance(max_keepalive_connections, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_keepalive_connections}: invalid value type for 'dataplaneapi.max_keepalive_connections'")
+    overlord.error._validate1(document, "dataplaneapi.", "max_keepalive_connections", int)
 
 def validate_dataplaneapi_max_connections(document):
-    max_connections = document.get("max_connections")
-
-    if max_connections is None:
-        return
-
-    if not isinstance(max_connections, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_connections}: invalid value type for 'dataplaneapi.max_connections'")
+    overlord.error._validate1(document, "dataplaneapi.", "max_connections", int)
 
 def validate_dataplaneapi_keepalive_expiry(document):
-    keepalive_expiry = document.get("keepalive_expiry")
-
-    if keepalive_expiry is None:
-        return
-
-    if not isinstance(keepalive_expiry, int):
-        raise overlord.exceptions.InvalidSpec(f"{keepalive_expiry}: invalid value type for 'dataplaneapi.keepalive_expiry'")
+    overlord.error._validate1(document, "dataplaneapi.", "keepalive_expiry", int)
 
 def validate_dataplaneapi_cacert(document):
-    cacert = document.get("cacert")
-
-    if cacert is None:
-        return
-
-    if not isinstance(cacert, str):
-        raise overlord.exceptions.InvalidSpec(f"{cacert}: invalid value type for 'dataplaneapi.cacert'")
+    overlord.error._validate1(document, "dataplaneapi.", "cacert", str)
 
 def validate_execution_time(document):
-    execution_time = document.get("execution_time")
-
-    if execution_time is None:
-        return
-
-    if not isinstance(execution_time, int):
-        raise overlord.exceptions.InvalidSpec(f"{execution_time}: invalid value type for 'execution_time'")
+    overlord.error._validate1(document, "", "execution_time", int)
 
 def validate_beanstalkd_addr(document):
-    beanstalkd_addr = document.get("beanstalkd_addr")
+    beanstalkd_addr = overlord.error._validate1(document, "", "beanstalkd_addr", str)
 
     if beanstalkd_addr is None:
         return
-
-    if not isinstance(beanstalkd_addr, str):
-        raise overlord.exceptions.InvalidSpec(f"{beanstalkd_addr}: invalid value type for 'beanstalkd_addr'")
 
     parsed = beanstalkd_addr.split(":", 1)
 
@@ -1834,189 +1465,85 @@ def validate_beanstalkd_addr(document):
     document["beanstalkd_addr"] = addr
 
 def validate_beanstalkd_secret(document):
-    beanstalkd_secret = document.get("beanstalkd_secret")
-
-    if beanstalkd_secret is None:
-        return
-
-    if not isinstance(beanstalkd_secret, str):
-        raise overlord.exceptions.InvalidSpec(f"{beanstalkd_secret}: invalid value type for 'beanstalkd_secret'")
+    overlord.error._validate1(document, "", "beanstalkd_secret", str)
 
 def validate_director(document):
-    director = document.get("director")
-
-    if director is None:
-        return
-
-    if not isinstance(director, dict):
-        raise overlord.exceptions.InvalidSpec("'director' is invalid.")
-
     keys = (
         "logs"
     )
 
-    for key in director.keys():
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"director.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "director", keys)
+    
+    if _value is None:
+        return
 
-    validate_director_logs(director)
+    validate_director_logs(_value)
 
 def validate_director_logs(document):
-    logs = document.get("logs")
-
-    if logs is None:
-        return
-
-    if not isinstance(logs, str):
-        raise overlord.exceptions.InvalidSpec(f"{logs}: invalid value type for 'director.logs'")
+    overlord.error._validate1(document, "director.", "logs", str)
 
 def validate_appjail(document):
-    appjail = document.get("appjail")
-
-    if appjail is None:
-        return
-
-    if not isinstance(appjail, dict):
-        raise overlord.exceptions.InvalidSpec("'appjail' is invalid.")
-
     keys = (
         "jails",
         "logs",
         "images"
     )
 
-    for key in appjail.keys():
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"appjail.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "appjail", keys)
+    
+    if _value is None:
+        return
 
-    validate_appjail_logs(appjail)
-    validate_appjail_images(appjail)
-    validate_appjail_jails(appjail)
+    validate_appjail_logs(_value)
+    validate_appjail_images(_value)
+    validate_appjail_jails(_value)
 
 def validate_appjail_jails(document):
-    jails = document.get("jails")
-
-    if jails is None:
-        return
-
-    if not isinstance(jails, str):
-        raise overlord.exceptions.InvalidSpec(f"{jails}: invalid value type for 'appjail.jails'")
+    overlord.error._validate1(document, "appjail.", "jails", str)
 
 def validate_appjail_images(document):
-    images = document.get("images")
-
-    if images is None:
-        return
-
-    if not isinstance(images, str):
-        raise overlord.exceptions.InvalidSpec(f"{images}: invalid value type for 'appjail.images'")
+    overlord.error._validate1(document, "appjail.", "images", str)
 
 def validate_appjail_logs(document):
-    logs = document.get("logs")
-
-    if logs is None:
-        return
-
-    if not isinstance(logs, str):
-        raise overlord.exceptions.InvalidSpec(f"{logs}: invalid value type for 'appjail.logs'")
+    overlord.error._validate1(document, "appjail.", "logs", str)
 
 def validate_port(document):
-    port = document.get("port")
-
-    if port is None:
-        return
-
-    if not isinstance(port, int):
-        raise overlord.exceptions.InvalidSpec(f"{port}: invalid value type for 'port'")
-
-    if port < 0 or port > 65535:
-        raise ValueError(f"{port}: invalid port.")
-
-def validate_tls_port(document):
-    tls_port = document.get("tls_port")
-
-    if tls_port is None:
-        return
-
-    if not isinstance(tls_port, int):
-        raise overlord.exceptions.InvalidSpec(f"{tls_port}: invalid value type for 'tls_port'")
-
-    if tls_port < 0 or tls_port > 65535:
-        raise ValueError(f"{tls_port}: invalid tls_port.")
+    overlord.error._validate1(document, "", "port", int, lambda v: v > 0 and v < 65536, "> 0 and < 65536")
 
 def validate_tls(document):
-    tls = document.get("tls")
-
-    if tls is None:
-        return
-
-    if not isinstance(tls, dict):
-        raise overlord.exceptions.InvalidSpec("'tls' is invalid.")
-
     keys = (
         "keyfile",
         "certfile",
         "port"
     )
 
-    for key in tls.keys():
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"tls.{key}: this key is invalid.")
-
-    port = tls.get("port")
-
-    if port is None:
+    _value = overlord.error._validate2(document, "", "tls", keys)
+    
+    if _value is None:
         return
 
-    if not isinstance(port, int):
-        raise overlord.exceptions.InvalidSpec(f"{port}: invalid value type for 'tls.port'")
+    overlord.error._validate1(_value, "tls.", "port", int, lambda v: v > 0 and v < 65536, "> 0 and < 65536")
 
-    if port < 0 or port > 65535:
-        raise ValueError(f"{port}: invalid port.")
-
-    keyfile = tls.get("keyfile")
-    certfile = tls.get("certfile")
+    keyfile = _value.get("keyfile")
+    certfile = _value.get("certfile")
 
     if keyfile is None and certfile is None:
         return
 
     if keyfile is None and certfile is not None \
             or keyfile is not None and certfile is None:
-        raise overlord.exceptions.InvalidSpec("tls.keyfile and tls.certfile must be specified at the same time.")
+        raise overlord.exceptions.InvalidSpec("'tls.keyfile' and 'tls.certfile' must be specified at the same time.")
 
-    if not isinstance(keyfile, str):
-        raise overlord.exceptions.InvalidSpec(f"{keyfile}: invalid value type for 'tls.keyfile'")
-
-    if not isinstance(certfile, str):
-        raise overlord.exceptions.InvalidSpec(f"{certfile}: invalid value type for 'tls.certfile'")
+    overlord.error.assert_type("tls.keyfile", keyfile, str)
+    overlord.error.assert_type("tls.certfile", certfile, str)
 
 def validate_debug(document):
-    debug = document.get("debug")
-
-    if debug is None:
-        return
-
-    if not isinstance(debug, bool):
-        raise overlord.exceptions.InvalidSpec(f"{debug}: invalid value type for 'debug'")
+    overlord.error._validate1(document, "", "debug", bool)
 
 def validate_compress_response(document):
-    compress_response = document.get("compress_response")
-
-    if compress_response is None:
-        return
-
-    if not isinstance(compress_response, bool):
-        raise overlord.exceptions.InvalidSpec(f"{compress_response}: invalid value type for 'compress_response'")
+    overlord.error._validate1(document, "", "compress_response", bool)
 
 def validate_polling(document):
-    polling = document.get("polling")
-
-    if polling is None:
-        return
-
-    if not isinstance(polling, dict):
-        raise overlord.exceptions.InvalidSpec("'polling' is invalid.")
-
     keys = (
         "adaptive",
         "jail_stats",
@@ -2031,31 +1558,24 @@ def validate_polling(document):
         "keywords"
     )
 
-    for key in polling.keys():
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "polling", keys)
 
-    validate_polling_adaptive(polling)
-    validate_polling_jail_stats(polling)
-    validate_polling_jail_info(polling)
-    validate_polling_projects(polling)
-    validate_polling_jails(polling)
-    validate_polling_jail_extras(polling)
-    validate_polling_project_info(polling)
-    validate_polling_autoscale(polling)
-    validate_polling_heartbeat(polling)
-    validate_polling_skew(polling)
-    validate_polling_keywords(polling)
-
-def validate_polling_adaptive(document):
-    adaptive = document.get("adaptive")
-
-    if adaptive is None:
+    if _value is None:
         return
 
-    if not isinstance(adaptive, dict):
-        raise overlord.exceptions.InvalidSpec("'polling.adaptive' is invalid.")
+    validate_polling_adaptive(_value)
+    validate_polling_jail_stats(_value)
+    validate_polling_jail_info(_value)
+    validate_polling_projects(_value)
+    validate_polling_jails(_value)
+    validate_polling_jail_extras(_value)
+    validate_polling_project_info(_value)
+    validate_polling_autoscale(_value)
+    validate_polling_heartbeat(_value)
+    validate_polling_skew(_value)
+    validate_polling_keywords(_value)
 
+def validate_polling_adaptive(document):
     keys = (
         "poll_window",
         "max_idle",
@@ -2063,187 +1583,77 @@ def validate_polling_adaptive(document):
         "max_idle_penalty"
     )
 
-    for key in adaptive.keys():
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.adaptive.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "polling.", "adaptive", keys)
 
-    validate_polling_adaptive_poll_window(adaptive)
-    validate_polling_adaptive_max_idle(adaptive)
-    validate_polling_adaptive_idle_penalty(adaptive)
-    validate_polling_adaptive_max_idle_penalty(adaptive)
+    if _value is None:
+        return
+
+    validate_polling_adaptive_poll_window(_value)
+    validate_polling_adaptive_max_idle(_value)
+    validate_polling_adaptive_idle_penalty(_value)
+    validate_polling_adaptive_max_idle_penalty(_value)
 
 def validate_polling_adaptive_poll_window(document):
-    poll_window = document.get("poll_window")
-
-    if poll_window is None:
-        return
-
-    if not isinstance(poll_window, int) \
-            or poll_window < 0:
-        raise overlord.exceptions.InvalidSpec(f"{poll_window}: invalid value type for 'polling.adaptive.poll_window'")
+    overlord.error._validate1(document, "polling.adaptive.", "poll_window", int, lambda v: v >= 0, ">= 0")
 
 def validate_polling_adaptive_max_idle(document):
-    max_idle = document.get("max_idle")
-
-    if max_idle is None:
-        return
-
-    if not isinstance(max_idle, int) \
-            or max_idle < 0:
-        raise overlord.exceptions.InvalidSpec(f"{max_idle}: invalid value type for 'polling.adaptive.max_idle'")
+    overlord.error._validate1(document, "polling.adaptive.", "max_idle", int, lambda v: v >= 0, ">= 0")
 
 def validate_polling_adaptive_idle_penalty(document):
-    idle_penalty = document.get("idle_penalty")
-
-    if idle_penalty is None:
-        return
-
-    if not isinstance(idle_penalty, int) \
-            or idle_penalty < 0:
-        raise overlord.exceptions.InvalidSpec(f"{idle_penalty}: invalid value type for 'polling.adaptive.idle_penalty'")
+    overlord.error._validate1(document, "polling.adaptive.", "idle_penalty", int, lambda v: v >= 0, ">= 0")
 
 def validate_polling_adaptive_max_idle_penalty(document):
-    max_idle_penalty = document.get("max_idle_penalty")
-
-    if max_idle_penalty is None:
-        return
-
-    if not isinstance(max_idle_penalty, int) \
-            or max_idle_penalty < 1:
-        raise overlord.exceptions.InvalidSpec(f"{max_idle_penalty}: invalid value type for 'polling.adaptive.max_idle_penalty'")
+    overlord.error._validate1(document, "polling.adaptive.", "max_idle_penalty", int, lambda v: v > 0, "> 0")
 
 def validate_polling_jail_stats(document):
-    interval = document.get("jail_stats")
-
-    if interval is None:
-        return
-
-    if not isinstance(interval, int):
-        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.stats'")
-
-    if interval < 0:
-        raise ValueError(f"{interval}: invalid value for 'polling.stats'")
+    overlord.error._validate1(document, "polling.", "jail_stats", int, lambda v: v >= 0, ">= 0")
 
 def validate_polling_jail_info(document):
-    interval = document.get("jail_info")
-
-    if interval is None:
-        return
-
-    if not isinstance(interval, int):
-        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.info'")
-
-    if interval < 0:
-        raise ValueError(f"{interval}: invalid value for 'polling.info'")
+    overlord.error._validate1(document, "polling.", "jail_info", int, lambda v: v >= 0, ">= 0")
 
 def validate_polling_projects(document):
-    interval = document.get("projects")
-
-    if interval is None:
-        return
-
-    if not isinstance(interval, int):
-        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.projects'")
-
-    if interval < 0:
-        raise ValueError(f"{interval}: invalid value for 'polling.projects'")
+    overlord.error._validate1(document, "polling.", "projects", int, lambda v: v >= 0, ">= 0")
 
 def validate_polling_jails(document):
-    interval = document.get("jails")
-
-    if interval is None:
-        return
-
-    if not isinstance(interval, int):
-        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.jails'")
-
-    if interval < 0:
-        raise ValueError(f"{interval}: invalid value for 'polling.jails'")
+    overlord.error._validate1(document, "polling.", "jails", int, lambda v: v >= 0, ">= 0")
 
 def validate_polling_jail_extras(document):
-    interval = document.get("jail_extras")
-
-    if interval is None:
-        return
-
-    if not isinstance(interval, int):
-        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.jail_extras'")
-
-    if interval < 0:
-        raise ValueError(f"{interval}: invalid value for 'polling.jail_extras'")
+    overlord.error._validate1(document, "polling.", "jail_extras", int, lambda v: v >= 0, ">= 0")
 
 def validate_polling_project_info(document):
-    interval = document.get("project_info")
-
-    if interval is None:
-        return
-
-    if not isinstance(interval, int):
-        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.project_info'")
-
-    if interval < 0:
-        raise ValueError(f"{interval}: invalid value for 'polling.project_info'")
+    overlord.error._validate1(document, "polling.", "project_info", int, lambda v: v >= 0, ">= 0")
 
 def validate_polling_autoscale(document):
-    interval = document.get("autoscale")
-
-    if interval is None:
-        return
-
-    if not isinstance(interval, int):
-        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.autoscale'")
-
-    if interval < 0:
-        raise ValueError(f"{interval}: invalid value for 'polling.autoscale'")
+    overlord.error._validate1(document, "polling.", "autoscale", int, lambda v: v >= 0, ">= 0")
 
 def validate_polling_heartbeat(document):
-    interval = document.get("heartbeat")
-
-    if interval is None:
-        return
-
-    if not isinstance(interval, int):
-        raise overlord.exceptions.InvalidSpec(f"{interval}: invalid value type for 'polling.heartbeat'")
-
-    if interval < 0:
-        raise ValueError(f"{interval}: invalid value for 'polling.heartbeat'")
+    overlord.error._validate1(document, "polling.", "heartbeat", int, lambda v: v >= 0, ">= 0")
 
 def validate_polling_skew(document):
-    skew = document.get("skew")
+    _prefix = "polling."
+    _name = "skew"
+    _value = document.get(_name)
 
-    if skew is None:
+    if _value is None:
         return
 
-    if not isinstance(skew, list):
-        raise overlord.exceptions.InvalidSpec(f"{skew}: invalid value type for 'polling.skew'")
+    overlord.error.assert_type(f"{_prefix}{_name}", _value, list)
+    overlord.error.assert_len(f"{_prefix}{_name}", _value, 2)
 
-    if len(skew) != 2:
-        raise overlord.exceptions.InvalidSpec(f"{skew}: invalid value length for 'polling.skew'")
+    begin = _value[0]
 
-    begin = skew[0]
+    overlord.error.assert_type(f"{_prefix}{_name}.<item#0>", begin, int)
+    overlord.error.assert_value(f"{_prefix}{_name}.<item#0>", lambda v: v >= 0, begin, ">= 0")
 
-    if not isinstance(begin, int) \
-            or begin < 0:
-        raise overlord.exceptions.InvalidSpec(f"{skew}: invalid value for 'polling.skew.0'")
+    end = _value[1]
 
-    end = skew[1]
-
-    if not isinstance(end, int) \
-            or end < 0:
-        raise overlord.exceptions.InvalidSpec(f"{skew}: invalid value for 'polling.skew.1'")
+    overlord.error.assert_type(f"{_prefix}{_name}.<item#1>", end, int)
+    overlord.error.assert_value(f"{_prefix}{_name}.<item#1>", lambda v: v >= 0, end, ">= 0")
 
     if begin > end:
-        raise overlord.exceptions.InvalidSpec(f"{skew}: 'polling.skew.1' must be greater than 'polling.skew.0'")
+        raise overlord.exceptions.InvalidSpec(f"{_prefix}{_name}: '{_prefix}{_name}.<item#0>' is greater than '{_prefix}{_name}.<item#1>'.")
 
 def validate_polling_keywords(document):
-    keywords = document.get("keywords")
-
-    if keywords is None:
-        return
-
-    if not isinstance(keywords, dict):
-        raise overlord.exceptions.InvalidSpec("'polling.keywords' is invalid.")
-
     keys = (
         "jail",
         "stats",
@@ -2257,220 +1667,63 @@ def validate_polling_keywords(document):
         "fstab"
     )
 
-    for key in keywords.keys():
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.keywords.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "polling.", "keywords", keys)
 
-    validate_polling_keywords_jail(keywords)
-    validate_polling_keywords_stats(keywords)
-    validate_polling_keywords_devfs(keywords)
-    validate_polling_keywords_expose(keywords)
-    validate_polling_keywords_healthcheck(keywords)
-    validate_polling_keywords_label(keywords)
-    validate_polling_keywords_limits(keywords)
-    validate_polling_keywords_nat(keywords)
-    validate_polling_keywords_volume(keywords)
-    validate_polling_keywords_fstab(keywords)
+    if _value is None:
+        return
+
+    validate_polling_keywords_jail(_value)
+    validate_polling_keywords_stats(_value)
+    validate_polling_keywords_devfs(_value)
+    validate_polling_keywords_expose(_value)
+    validate_polling_keywords_healthcheck(_value)
+    validate_polling_keywords_label(_value)
+    validate_polling_keywords_limits(_value)
+    validate_polling_keywords_nat(_value)
+    validate_polling_keywords_volume(_value)
+    validate_polling_keywords_fstab(_value)
 
 def validate_polling_keywords_jail(document):
-    jail = document.get("jail")
-
-    if jail is None:
-        return
-
-    if not isinstance(jail, list):
-        raise overlord.exceptions.InvalidSpec("'polling.keywords.jail' is invalid.")
-
-    for index, entry in enumerate(jail):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.jail.{index}'")
-
     keys = overlord.default.VALID_KEYWORDS["jail"]
-
-    for key in jail:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.keywords.jail.{key}: this key is invalid.")
+    overlord.error._validate2(document, "polling.keywords.", "jail", keys, type_=list)
 
 def validate_polling_keywords_stats(document):
-    stats = document.get("stats")
-
-    if stats is None:
-        return
-
-    if not isinstance(stats, list):
-        raise overlord.exceptions.InvalidSpec("'polling.keywords.stats' is invalid.")
-
-    for index, entry in enumerate(stats):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.stats.{index}'")
-
     keys = overlord.default.VALID_KEYWORDS["stats"]
-
-    for key in stats:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.keywords.stats.{key}: this key is invalid.")
+    overlord.error._validate2(document, "polling.keywords.", "stats", keys, type_=list)
 
 def validate_polling_keywords_devfs(document):
-    devfs = document.get("devfs")
-
-    if devfs is None:
-        return
-
-    if not isinstance(devfs, list):
-        raise overlord.exceptions.InvalidSpec("'polling.keywords.devfs' is invalid.")
-
-    for index, entry in enumerate(devfs):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.devfs.{index}'")
-
     keys = overlord.default.VALID_KEYWORDS["devfs"]
-
-    for key in devfs:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.keywords.devfs.{key}: this key is invalid.")
+    overlord.error._validate2(document, "polling.keywords.", "devfs", keys, type_=list)
 
 def validate_polling_keywords_expose(document):
-    expose = document.get("expose")
-
-    if expose is None:
-        return
-
-    if not isinstance(expose, list):
-        raise overlord.exceptions.InvalidSpec("'polling.keywords.expose' is invalid.")
-
-    for index, entry in enumerate(expose):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.expose.{index}'")
-
     keys = overlord.default.VALID_KEYWORDS["expose"]
-
-    for key in expose:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.keywords.expose.{key}: this key is invalid.")
+    overlord.error._validate2(document, "polling.keywords.", "expose", keys, type_=list)
 
 def validate_polling_keywords_healthcheck(document):
-    healthcheck = document.get("healthcheck")
-
-    if healthcheck is None:
-        return
-
-    if not isinstance(healthcheck, list):
-        raise overlord.exceptions.InvalidSpec("'polling.keywords.healthcheck' is invalid.")
-
-    for index, entry in enumerate(healthcheck):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.healthcheck.{index}'")
-
     keys = overlord.default.VALID_KEYWORDS["healthcheck"]
-
-    for key in healthcheck:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.keywords.healthcheck.{key}: this key is invalid.")
+    overlord.error._validate2(document, "polling.keywords.", "healthcheck", keys, type_=list)
 
 def validate_polling_keywords_label(document):
-    label = document.get("label")
-
-    if label is None:
-        return
-
-    if not isinstance(label, list):
-        raise overlord.exceptions.InvalidSpec("'polling.keywords.label' is invalid.")
-
-    for index, entry in enumerate(label):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.label.{index}'")
-
     keys = overlord.default.VALID_KEYWORDS["label"]
-
-    for key in label:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.keywords.label.{key}: this key is invalid.")
+    overlord.error._validate2(document, "polling.keywords.", "label", keys, type_=list)
 
 def validate_polling_keywords_limits(document):
-    limits = document.get("limits")
-
-    if limits is None:
-        return
-
-    if not isinstance(limits, list):
-        raise overlord.exceptions.InvalidSpec("'polling.keywords.limits' is invalid.")
-
-    for index, entry in enumerate(limits):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.limits.{index}'")
-
     keys = overlord.default.VALID_KEYWORDS["limits"]
-
-    for key in limits:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.keywords.limits.{key}: this key is invalid.")
+    overlord.error._validate2(document, "polling.keywords.", "limits", keys, type_=list)
 
 def validate_polling_keywords_nat(document):
-    nat = document.get("nat")
-
-    if nat is None:
-        return
-
-    if not isinstance(nat, list):
-        raise overlord.exceptions.InvalidSpec("'polling.keywords.nat' is invalid.")
-
-    for index, entry in enumerate(nat):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.nat.{index}'")
-
     keys = overlord.default.VALID_KEYWORDS["nat"]
-
-    for key in nat:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.keywords.nat.{key}: this key is invalid.")
+    overlord.error._validate2(document, "polling.keywords.", "nat", keys, type_=list)
 
 def validate_polling_keywords_volume(document):
-    volume = document.get("volume")
-
-    if volume is None:
-        return
-
-    if not isinstance(volume, list):
-        raise overlord.exceptions.InvalidSpec("'polling.keywords.volume' is invalid.")
-
-    for index, entry in enumerate(volume):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'polling.keywords.volume.{index}'")
-
     keys = overlord.default.VALID_KEYWORDS["volume"]
-
-    for key in volume:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.keywords.volume.{key}: this key is invalid.")
+    overlord.error._validate2(document, "polling.keywords.", "volume", keys, type_=list)
 
 def validate_polling_keywords_fstab(document):
-    fstab = document.get("fstab")
-
-    if fstab is None:
-        return
-
-    if not isinstance(fstab, list):
-        raise overlord.exceptions.InvalidSpec("'polling.keywords.fstab' is invalid.")
-
-    for index, entry in enumerate(fstab):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"'polling.keywords.fstab.{index}'")
-
     keys = overlord.default.VALID_KEYWORDS["fstab"]
-
-    for key in fstab:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"polling.keywords.fstab.{key}: this key is invalid.")
+    overlord.error._validate2(document, "polling.keywords.", "fstab", keys, type_=list)
 
 def validate_memcache(document):
-    memcache = document.get("memcache")
-
-    if memcache is None:
-        return
-
-    if not isinstance(memcache, dict):
-        raise overlord.exception.InvalidSpec("'memcache' is invalid.")
-
     keys = (
         "connections",
         "max_pool_size",
@@ -2483,162 +1736,70 @@ def validate_memcache(document):
         "no_delay"
     )
 
-    for key in memcache:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "memcache", keys)
 
-    validate_memcache_connections(memcache)
-    validate_memcache_max_pool_size(memcache)
-    validate_memcache_pool_idle_timeout(memcache)
-    validate_memcache_retry_attempts(memcache)
-    validate_memcache_retry_timeout(memcache)
-    validate_memcache_dead_timeout(memcache)
-    validate_memcache_connect_timeout(memcache)
-    validate_memcache_timeout(memcache)
-    validate_memcache_no_delay(memcache)
+    if _value is None:
+        return
+
+    validate_memcache_connections(_value)
+    validate_memcache_max_pool_size(_value)
+    validate_memcache_pool_idle_timeout(_value)
+    validate_memcache_retry_attempts(_value)
+    validate_memcache_retry_timeout(_value)
+    validate_memcache_dead_timeout(_value)
+    validate_memcache_connect_timeout(_value)
+    validate_memcache_timeout(_value)
+    validate_memcache_no_delay(_value)
 
 def validate_memcache_no_delay(document):
-    no_delay = document.get("no_delay")
-
-    if no_delay is None:
-        return
-
-    if not isinstance(no_delay, bool):
-        raise overlord.exceptions.InvalidSpec(f"{no_delay}: invalid value type for 'memcache.no_delay'")
+    overlord.error._validate1(document, "memcache.", "no_delay", bool)
 
 def validate_memcache_timeout(document):
-    timeout = document.get("timeout")
-
-    if timeout is None:
-        return
-
-    if not isinstance(timeout, int) \
-            or timeout < 1:
-        raise overlord.exceptions.InvalidSpec(f"{timeout}: invalid value type for 'memcache.timeout'")
+    overlord.error._validate1(document, "memcache.", "timeout", int, lambda v: v > 0, "> 0")
 
 def validate_memcache_connect_timeout(document):
-    connect_timeout = document.get("connect_timeout")
-
-    if connect_timeout is None:
-        return
-
-    if not isinstance(connect_timeout, int) \
-            or connect_timeout < 1:
-        raise overlord.exceptions.InvalidSpec(f"{connect_timeout}: invalid value type for 'memcache.connect_timeout'")
+    overlord.error._validate1(document, "memcache.", "connect_timeout", int, lambda v: v > 0, "> 0")
 
 def validate_memcache_dead_timeout(document):
-    dead_timeout = document.get("dead_timeout")
-
-    if dead_timeout is None:
-        return
-
-    if not isinstance(dead_timeout, int) \
-            or dead_timeout < 1:
-        raise overlord.exceptions.InvalidSpec(f"{dead_timeout}: invalid value type for 'memcache.dead_timeout'")
+    overlord.error._validate1(document, "memcache.", "dead_timeout", int, lambda v: v > 0, "> 0")
 
 def validate_memcache_retry_timeout(document):
-    retry_timeout = document.get("retry_timeout")
-
-    if retry_timeout is None:
-        return
-
-    if not isinstance(retry_timeout, int) \
-            or retry_timeout < 1:
-        raise overlord.exceptions.InvalidSpec(f"{retry_timeout}: invalid value type for 'memcache.retry_timeout'")
+    overlord.error._validate1(document, "memcache.", "retry_timeout", int, lambda v: v > 0, "> 0")
 
 def validate_memcache_retry_attempts(document):
-    retry_attempts = document.get("retry_attempts")
-
-    if retry_attempts is None:
-        return
-
-    if not isinstance(retry_attempts, int) \
-            or retry_attempts < 1:
-        raise overlord.exceptions.InvalidSpec(f"{retry_attempts}: invalid value type for 'memcache.retry_attempts'")
+    overlord.error._validate1(document, "memcache.", "retry_attempts", int, lambda v: v > 0, "> 0")
 
 def validate_memcache_pool_idle_timeout(document):
-    pool_idle_timeout = document.get("pool_idle_timeout")
-
-    if pool_idle_timeout is None:
-        return
-
-    if not isinstance(pool_idle_timeout, int) \
-            or pool_idle_timeout < 0:
-        raise overlord.exceptions.InvalidSpec(f"{pool_idle_timeout}: invalid value type for 'memcache.pool_idle_timeout'")
+    overlord.error._validate1(document, "memcache.", "pool_idle_timeout", int, lambda v: v >= 0, ">= 0")
 
 def validate_memcache_max_pool_size(document):
-    max_pool_size = document.get("max_pool_size")
-
-    if max_pool_size is None:
-        return
-
-    if not isinstance(max_pool_size, int) \
-            or max_pool_size < 1:
-        raise overlord.exceptions.InvalidSpec(f"{max_pool_size}: invalid value type for 'memcache.max_pool_size'")
+    overlord.error._validate1(document, "memcache.", "max_pool_size", int, lambda v: v > 0, "> 0")
 
 def validate_memcache_connections(document):
-    connections = document.get("connections")
-
-    if connections is None:
-        return
-
-    if not isinstance(connections, list):
-        raise overlord.exceptions.InvalidSpec("'memcache.connections' is invalid.")
-
-    for index, connection in enumerate(connections):
-        if not isinstance(connection, str):
-            raise overlord.exceptions.InvalidSpec(f"{connection}: invalid value type for 'memcache.connections.{index}'")
+    overlord.error._validate2(document, "memcache.", "connections", type_=list)
 
 def validate_secret_key(document):
-    secret_key = document.get("secret_key")
-
-    if secret_key is None:
-        return
-
-    if not isinstance(secret_key, str):
-        raise overlord.exceptions.InvalidSpec(f"{secret_key}: invalid value type for 'secret_key'")
+    overlord.error._validate1(document, "", "secret_key", str)
 
 def validate_secret_keyfile(document):
-    secret_keyfile = document.get("secret_keyfile")
-
-    if secret_keyfile is None:
-        return
-
-    if not isinstance(secret_keyfile, str):
-        raise overlord.exceptions.InvalidSpec(f"{secret_keyfile}: invalid value type for 'secret_keyfile'")
+    overlord.error._validate1(document, "", "secret_keyfile", str)
 
 def validate_log_config(document):
-    log_config = document.get("log_config")
-
-    if log_config is None:
-        return
-
-    if not isinstance(log_config, dict):
-        raise overlord.exceptions.InvalidSpec("'log_config' is invalid.")
-
-    logging.config.dictConfig(log_config)
+    _value = overlord.error._validate1(document, "", "log_config", dict)
+    logging.config.dictConfig(_value)
 
 def validate_chains(document):
-    chains = document.get("chains")
+    _value = overlord.error._validate1(document, "", "chains", dict)
 
-    if chains is None:
+    if _value is None:
         return
 
-    if not isinstance(chains, dict):
-        raise overlord.exceptions.InvalidSpec("'chains' is invalid.")
+    overlord.error.assert_item(_value, validate_chain)
 
-    for index, chain in enumerate(chains):
-        if not isinstance(chain, str):
-            raise overlord.exceptions.InvalidSpec(f"{chain}: invalid value type for 'chains.{index}'")
-
-        if not overlord.chains.check_chain_name(chain):
-            raise overlord.exceptions.InvalidSpec(f"'chains.{chain}': chain name is invalid.")
-
-        validate_chain(chains, chain)
-
-def validate_chain(chains, chain):
-    if not isinstance(chains[chain], dict):
-        raise overlord.exceptions.InvalidSpec(f"'chains.{chain}' is invalid.")
+def validate_chain(chains, chain, index):
+    overlord.error.assert_type(f"chains.<item#{index}>", chain, str)
+    overlord.error.assert_value(f"chains.<item#{index}>",
+        overlord.chains.check_chain_name, chain, overlord.chains.REGEX_CHAIN_NAME)
 
     keys = (
         "entrypoint",
@@ -2656,9 +1817,10 @@ def validate_chain(chains, chain):
         "retry"
     )
 
-    for key in chains[chain]:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"chains.{chain}.{key}: this key is invalid.")
+    _value = overlord.error._validate2(chains, "chains.", chain, keys)
+
+    if _value is None:
+        return
 
     validate_chain_entrypoint(chains, chain)
     validate_chain_access_token(chains, chain)
@@ -2675,13 +1837,7 @@ def validate_chain(chains, chain):
     validate_chain_retry(chains, chain)
 
 def validate_chain_retry(chains, chain):
-    retry = chains[chain].get("retry")
-
-    if retry is None:
-        return
-
-    if not isinstance(retry, dict):
-        raise overlord.exceptions.InvalidSpec("'retry' is invalid.")
+    document = chains[chain]
 
     keys = (
         "total",
@@ -2691,9 +1847,10 @@ def validate_chain_retry(chains, chain):
         "backoff_jitter"
     )
 
-    for key in retry:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"chain.{chain}.retry.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, f"chains.{chain}.", "retry", keys)
+
+    if _value is None:
+        return
 
     validate_chain_retry_total(chains, chain)
     validate_chain_retry_max_backoff_wait(chains, chain)
@@ -2702,187 +1859,125 @@ def validate_chain_retry(chains, chain):
     validate_chain_retry_backoff_jitter(chains, chain)
 
 def validate_chain_retry_total(chains, chain):
-    total = chains[chain]["retry"].get("total")
+    document = chains[chain]["retry"]
+    _name = "total"
+    _value = document.get(_name)
 
-    if total is None:
+    if _value is None:
         return
 
-    if isinstance(total, int):
-        total = float(total)
+    if isinstance(_value, int):
+        _value = float(_value)
 
-    if not isinstance(total, float):
-        raise overlord.exceptions.InvalidSpec(f"{total}: invalid value type for 'chain.{chain}.retry.total'")
+    overlord.error.assert_type(f"chains.{chain}.retry.{_name}", _value, float)
 
 def validate_chain_retry_max_backoff_wait(chains, chain):
-    max_backoff_wait = chains[chain]["retry"].get("max_backoff_wait")
+    document = chains[chain]["retry"]
+    _name = "max_backoff_wait"
+    _value = document.get(_name)
 
-    if max_backoff_wait is None:
+    if _value is None:
         return
 
-    if isinstance(max_backoff_wait, int):
-        max_backoff_wait = float(max_backoff_wait)
+    if isinstance(_value, int):
+        _value = float(_value)
 
-    if not isinstance(max_backoff_wait, float):
-        raise overlord.exceptions.InvalidSpec(f"{max_backoff_wait}: invalid value type for 'chain.{chain}.retry.max_backoff_wait'")
+    overlord.error.assert_type(f"chains.{chain}.retry.{_name}", _value, float)
 
 def validate_chain_retry_backoff_factor(chains, chain):
-    backoff_factor = chains[chain]["retry"].get("backoff_factor")
+    document = chains[chain]["retry"]
+    _name = "backoff_factor"
+    _value = document.get(_name)
 
-    if backoff_factor is None:
+    if _value is None:
         return
 
-    if isinstance(backoff_factor, int):
-        backoff_factor = float(backoff_factor)
+    if isinstance(_value, int):
+        _value = float(_value)
 
-    if not isinstance(backoff_factor, float):
-        raise overlord.exceptions.InvalidSpec(f"{backoff_factor}: invalid value type for 'chain.{chain}.retry.backoff_factor'")
+    overlord.error.assert_type(f"chains.{chain}.retry.{_name}", _value, float)
 
 def validate_chain_retry_backoff_jitter(chains, chain):
-    backoff_jitter = chains[chain]["retry"].get("backoff_jitter")
+    document = chains[chain]["retry"]
+    _name = "backoff_jitter"
+    _value = document.get(_name)
 
-    if backoff_jitter is None:
+    if _value is None:
         return
 
-    if isinstance(backoff_jitter, int):
-        backoff_jitter = float(backoff_jitter)
+    if isinstance(_value, int):
+        _value = float(_value)
 
-    if not isinstance(backoff_jitter, float):
-        raise overlord.exceptions.InvalidSpec(f"{backoff_jitter}: invalid value type for 'chain.{chain}.retry.backoff_jitter'")
+    overlord.error.assert_type(f"chains.{chain}.retry.{_name}", _value, float)
 
 def validate_chain_retry_respect_retry_after_header(chains, chain):
-    respect_retry_after_header = chains[chain]["retry"].get("respect_retry_after_header")
+    document = chains[chain]["retry"]
+    _name = "respect_retry_after_header"
+    _value = document.get(_name)
 
-    if respect_retry_after_header is None:
+    if _value is None:
         return
 
-    if not isinstance(respect_retry_after_header, bool):
-        raise overlord.exceptions.InvalidSpec(f"{respect_retry_after_header}: invalid value type for 'chains.{chain}.retry.respect_retry_after_header'")
+    overlord.error.assert_type(f"chains.{chain}.retry.{_name}", _value, bool)
 
 def validate_chain_cacert(chains, chain):
-    cacert = chains[chain].get("cacert")
-
-    if cacert is None:
-        return
-
-    if not isinstance(cacert, str):
-        raise overlord.exceptions.InvalidSpec(f"{cacert}: invalid value type for 'chain.{chain}.cacert'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "cacert", str)
 
 def validate_chain_disable(chains, chain):
-    disable = chains[chain].get("disable")
-
-    if disable is None:
-        return
-
-    if not isinstance(disable, bool):
-        raise overlord.exceptions.InvalidSpec(f"{disable}: invalid value type for 'chains.{chain}.disable'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "disable", bool)
 
 def validate_chain_entrypoint(chains, chain):
-    entrypoint = chains[chain].get("entrypoint")
-
-    if entrypoint is None:
-        raise overlord.exceptions.InvalidSpec(f"'chains.{chain}.entrypoint' is required but hasn't been specified.")
-
-    if not isinstance(entrypoint, str):
-        raise overlord.exceptions.InvalidSpec(f"{entrypoint}: invalid value type for 'chains.{chain}.entrypoint'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "entrypoint", str, required=True)
 
 def validate_chain_access_token(chains, chain):
-    access_token = chains[chain].get("access_token")
-
-    if access_token is None:
-        raise overlord.exceptions.InvalidSpec(f"'chains.{chain}.access_token' is required but hasn't been specified.")
-
-    if not isinstance(access_token, str):
-        raise overlord.exceptions.InvalidSpec(f"{access_token}: invalid value type for 'chains.{chain}.access_token'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "access_token", str, required=True)
 
 def validate_chain_timeout(chains, chain):
-    timeout = chains[chain].get("timeout")
-
-    if timeout is None:
-        return
-
-    if not isinstance(timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{timeout}: invalid value type for 'chains.{chain}.timeout'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "timeout", int)
 
 def validate_chain_read_timeout(chains, chain):
-    read_timeout = chains[chain].get("read_timeout")
-
-    if read_timeout is None:
-        return
-
-    if not isinstance(read_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{read_timeout}: invalid value type for 'chains.{chain}.read_timeout'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "read_timeout", int)
 
 def validate_chain_write_timeout(chains, chain):
-    write_timeout = chains[chain].get("write_timeout")
-
-    if write_timeout is None:
-        return
-
-    if not isinstance(write_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{write_timeout}: invalid value type for 'chains.{chain}.write_timeout'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "write_timeout", int)
 
 def validate_chain_connect_timeout(chains, chain):
-    connect_timeout = chains[chain].get("connect_timeout")
-
-    if connect_timeout is None:
-        return
-
-    if not isinstance(connect_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{connect_timeout}: invalid value type for 'chains.{chain}.connect_timeout'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "connect_timeout", int)
 
 def validate_chain_pool_timeout(chains, chain):
-    pool_timeout = chains[chain].get("pool_timeout")
-
-    if pool_timeout is None:
-        return
-
-    if not isinstance(pool_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{pool_timeout}: invalid value type for 'chains.{chain}.pool_timeout'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "pool_timeout", int)
 
 def validate_chain_max_keepalive_connections(chains, chain):
-    max_keepalive_connections = chains[chain].get("max_keepalive_connections")
-
-    if max_keepalive_connections is None:
-        return
-
-    if not isinstance(max_keepalive_connections, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_keepalive_connections}: invalid value type for 'chains.{chain}.max_keepalive_connections'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "max_keepalive_connections", int)
 
 def validate_chain_max_connections(chains, chain):
-    max_connections = chains[chain].get("max_connections")
-
-    if max_connections is None:
-        return
-
-    if not isinstance(max_connections, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_connections}: invalid value type for 'chains.{chain}.max_connections'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "max_connections", int)
 
 def validate_chain_keepalive_expiry(chains, chain):
-    keepalive_expiry = chains[chain].get("keepalive_expiry")
-
-    if keepalive_expiry is None:
-        return
-
-    if not isinstance(keepalive_expiry, int):
-        raise overlord.exceptions.InvalidSpec(f"{keepalive_expiry}: invalid value type for 'chains.{chain}.keepalive_expiry'")
+    document = chains[chain]
+    overlord.error._validate1(document, f"chains.{chain}.", "keepalive_expiry", int)
 
 def validate_labels(document):
-    labels = document.get("labels")
+    _value = overlord.error._validate1(document, "", "labels", list)
 
-    if labels is None:
+    if _value is None:
         return
 
-    if not isinstance(labels, list):
-        raise overlord.exceptions.InvalidSpec("'labels' is invalid.")
+    overlord.error.assert_len("labels", _value, -1, lambda l, dl: dl > 0, "> 0")
+    overlord.error.assert_item(_value, validate_label)
 
-    for index, entry in enumerate(labels):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'labels.{index}'")
-
-        if not overlord.chains.check_chain_label(entry):
-            raise overlord.exceptions.InvalidSpec(f"'labels.{index}.{entry}': invalid label.")
-
-    length = len(labels)
-
-    if length < 1:
-        raise overlord.exceptions.InvalidSpec("'labels': at least one label must be specified.")
+def validate_label(labels, label, index):
+    overlord.error.assert_type(f"labels.<item#{index}>", label, str)
+    overlord.error.assert_value(f"labels.<item#{index}>",
+        overlord.chains.check_chain_label, label, overlord.chains.REGEX_LABEL)

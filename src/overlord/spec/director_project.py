@@ -31,6 +31,7 @@ import copy
 
 import humanfriendly
 
+import overlord.chains
 import overlord.metadata
 import overlord.exceptions
 
@@ -175,8 +176,8 @@ def get_reserve_port():
 def validate(document):
     global CONFIG
 
-    if not isinstance(document, dict):
-        raise overlord.exceptions.InvalidSpec("The document is invalid.")
+    _name = "<root:directorProject>"
+    overlord.error.assert_type(_name, document, dict)
 
     keys = (
         "kind",
@@ -195,9 +196,7 @@ def validate(document):
         "reserve_port"
     )
 
-    for key in document:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"{key}: this key is invalid.")
+    overlord.error.assert_parameter(_name, document, keys)
 
     validate_projectName(document)
     validate_project(document)
@@ -212,31 +211,22 @@ def validate(document):
     CONFIG = document
 
 def validate_reserve_port(document):
-    reserve_port = document.get("reserve_port")
+    _value = overlord.error._validate1(document, "", "reserve_port", dict)
 
-    if reserve_port is None:
+    if _value is None:
         return
 
-    if not isinstance(reserve_port, dict):
-        raise overlord.exceptions.InvalidSpec("'reserve_port' is invalid.")
+    overlord.error.assert_item(_value, validate_reserve_port_item)
 
-    for interface, network in reserve_port.items():
-        if not isinstance(interface, str):
-            raise overlord.exceptions.InvalidSpec(f"Invalid interface name (reserve_port.{interface}).")
+def validate_reserve_port_item(reserve_port, interface, index):
+    overlord.error.assert_type(f"reserve_port.<item#{index}>", interface, str)
 
-        if network is not None \
-                and not isinstance(network, str):
-            raise overlord.exceptions.InvalidSpec(f"Invalid network address (reserve_port.{network}).")
+    network = reserve_port.get(interface)
+
+    if network is not None:
+        overlord.error.assert_type(f"reserve_port.{interface}", network, str)
 
 def validate_autoScale(document):
-    autoScale = document.get("autoScale")
-
-    if autoScale is None:
-        return
-
-    if not isinstance(autoScale, dict):
-        raise overlord.exceptions.InvalidSpec("'autoScale' is invalid.")
-
     keys = (
         "replicas",
         "type",
@@ -248,168 +238,117 @@ def validate_autoScale(document):
         "load-balancer"
     )
 
-    for key in autoScale:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"autoScale.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "autoScale", keys)
+    
+    if _value is None:
+        return
 
-    validate_autoScale_replicas(autoScale)
-    validate_autoScale_type(autoScale)
-    validate_autoScale_rules(autoScale)
-    validate_autoScale_economy(autoScale)
-    validate_autoScale_labels(autoScale)
-    validate_autoScale_metadata(autoScale)
-    validate_autoScale_load_balancer(autoScale)
+    validate_autoScale_replicas(_value)
+    validate_autoScale_type(_value)
+    validate_autoScale_rules(_value)
+    validate_autoScale_economy(_value)
+    validate_autoScale_labels(_value)
+    validate_autoScale_metadata(_value)
+    validate_autoScale_load_balancer(_value)
 
 def validate_autoScale_load_balancer(document):
-    load_balancer = document.get("load-balancer")
-
-    if load_balancer is None:
-        return
-
-    if not isinstance(load_balancer, dict):
-        raise overlord.exceptions.InvalidSpec("'autoScale.load-balancer' is invalid.")
-
     keys = ("frontend", "backend")
 
-    for key in load_balancer:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"autoScale.load-balancer.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "autoScale.", "load-balancer", keys)
+    
+    if _value is None:
+        return
 
-    for type, options in load_balancer.items():
-        name = options.get("name")
+    overlord.error.assert_item(_value, validate_autoScale_load_balancer_item)
 
-        if name is None:
-            raise overlord.exceptions.InvalidSpec(f"'autoScale.load-balancer.{type}.name' is required but hasn't been specified.")
+def validate_autoScale_load_balancer_item(data, type_, index):
+    _prefix = "autoScale.load-balancer"
 
-        if not isinstance(name, str):
-            raise overlord.exceptions.InvalidSpec(f"{name}: invalid value type for 'autoScale.load-balancer.{type}.name'")
+    overlord.error.assert_type(f"{_prefix}.<item#{index}>", type_, str)
 
-        rules_obj = options.get("rules")
+    _prefix = f"{_prefix}.{type_}"
 
-        if rules_obj is None:
-            raise overlord.exceptions.InvalidSpec(f"'autoScale.load-balancer.{type}.rules' is required but hasn't been specified.")
+    document = data[type_]
 
-        if not isinstance(rules_obj, dict):
-            raise overlord.exceptions.InvalidSpec(f"'autoScale.load-balancer.{type}.rules' is invalid.")
+    name = overlord.error._validate1(document, f"{_prefix}.", "name", str, required=True)
 
-        if len(rules_obj) == 0:
-            raise overlord.exceptions.InvalidSpec(f"'autoScale.load-balancer.{type}.rules': at least one rule must be specified.")
+    keys = ("or", "and")
+    rules_obj = overlord.error._validate2(document, f"{_prefix}.", "rules", keys, required=True)
+    overlord.error.assert_len(f"{_prefix}.rules", rules_obj, -1, lambda l, dl: dl > 0, "> 0")
 
-        keys = ("or", "and")
+    index1 = 0
+    
+    for rule_type, rules in rules_obj.items():
+        overlord.error.assert_type(f"{_prefix}.rules.<item#{index1}>", rule_type, str)
+        overlord.error.assert_type(f"{_prefix}.rules.{rule_type}", rules, dict)
 
-        for key in rules_obj:
-            if key not in keys:
-                raise overlord.exceptions.InvalidSpec(f"autoScale.load-balancer.{type}.rules.{key}: this key is invalid.")
+        index2 = 0
 
-        for rule_type, rules in rules_obj.items():
-            for rule_name, rule_obj in rules.items():
-                if not isinstance(rule_name, str) \
-                        or not isinstance(rule_obj, dict):
-                    raise overlord.exceptions.InvalidSpec(f"Invalid rule name (autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}) or value (autoScale.load-balancer.{type}.rules.{rule_type}.{rule_obj}).")
+        for rule_name, rule_obj in rules.items():
+            overlord.error.assert_type(f"{_prefix}.rules.{rule_type}.<item#{index2}>", rule_name, str)
+            keys = ("value", "each")
+            rule_obj = overlord.error._validate2(rules, f"{_prefix}.rules.{rule_type}.", rule_name, keys)
 
-                if "value" not in rule_obj:
-                    raise overlord.exceptions.InvalidSpec(f"'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value' is required but hasn't been specified.")
+            value = overlord.error._validate1(rule_obj, f"{_prefix}.rules.{rule_type}.{rule_name}.",
+                "value", (int, str, tuple, list), required=True, multiple=True)
 
-                value = rule_obj["value"]
+            if isinstance(value, list):
+                overlord.error.assert_len(f"{_prefix}.rules.{rule_type}.{rule_name}.value", value, 2)
 
-                if not isinstance(value, str) \
-                        and not isinstance(value, list):
-                    raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value'")
+                begin = value[0]
 
-                if isinstance(value, list):
-                    if len(value) != 2:
-                        raise overlord.exceptions.InvalidSpec(f"{value}: invalid value length for 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value'")
+                overlord.error.assert_type(f"{_prefix}.rules.{rule_type}.{rule_name}.value.<item#0>", begin, int)
+                overlord.error.assert_value(f"{_prefix}.rules.{rule_type}.{rule_name}.value.<item#0>", lambda v: v >= 0, begin, ">= 0")
 
-                    begin = value[0]
+                end = value[1]
 
-                    if not isinstance(begin, int) \
-                            or begin < 0:
-                        raise overlord.exceptions.InvalidSpec(f"{value}: invalid value for 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value.0'")
+                overlord.error.assert_type(f"{_prefix}.rules.{rule_type}.{rule_name}.value.<item#1>", end, int)
+                overlord.error.assert_value(f"{_prefix}.rules.{rule_type}.{rule_name}.value.<item#1>", lambda v: v >= 0, end, ">= 0")
 
-                    end = value[1]
+                if begin > end:
+                    raise overlord.exceptions.InvalidSpec(f"{_prefix}.rules.{rule_type}.{rule_name}.value: '{_prefix}.rules.{rule_type}.{rule_name}.value.<item#0>' is greater than '{_prefix}.rules.{rule_type}.{rule_name}.value.<item#1>'.")
 
-                    if not isinstance(end, int) \
-                            or end < 0:
-                        raise overlord.exceptions.InvalidSpec(f"{value}: invalid value for 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value.1'")
+            if "each" in rule_obj:
+                overlord.error._validate1(document, f"{_prefix}.rules.{rule_type}.{rule_name}.", "each", int)
 
-                    if begin > end:
-                        raise overlord.exceptions.InvalidSpec(f"{value}: 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value.1' must be greater than 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.value.0'")
+            index2 += 1
 
-                if "each" in rule_obj:
-                    each_value = rule_obj["each"]
-
-                    if not isinstance(each_value, int):
-                        raise overlord.exceptions.InvalidSpec(f"{each_value}: invalid value type for 'autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.each'")
-
-                keys = ("value", "each")
-
-                for key in rule_obj:
-                    if key not in keys:
-                        raise overlord.exceptions.InvalidSpec(f"autoScale.load-balancer.{type}.rules.{rule_type}.{rule_name}.{key}: this key is invalid.")
+        index1 += 1
 
 def validate_autoScale_replicas(document):
-    replicas = document.get("replicas")
-
-    if replicas is None:
-        return
-
-    if not isinstance(replicas, dict):
-        raise overlord.exceptions.InvalidSpec("'autoScale.replicas' is invalid.")
-
     keys = ("min", "max")
 
-    for key in replicas:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"autoScale.replicas.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "autoScale.", "replicas", keys)
+    
+    if _value is None:
+        return
 
-    validate_autoScale_replicas_min(replicas)
-    validate_autoScale_replicas_max(replicas)
+    validate_autoScale_replicas_min(_value)
+    validate_autoScale_replicas_max(_value)
 
 def validate_autoScale_replicas_min(document):
-    min = document.get("min")
-
-    if min is None:
-        return
-
-    if not isinstance(min, int) \
-            or min < 1:
-        raise overlord.exceptions.InvalidSpec(f"{min}: invalid value type for 'autoScale.replicas.min'")
+    overlord.error._validate1(document, "autoScale.replicas.", "min", int, lambda v: v > 0, "> 0")
 
 def validate_autoScale_replicas_max(document):
-    max = document.get("max")
-
-    if max is None:
-        return
-
-    if not isinstance(max, int) \
-            or max < 1:
-        raise overlord.exceptions.InvalidSpec(f"{max}: invalid value type for 'autoScale.replicas.max'")
+    overlord.error._validate1(document, "autoScale.replicas.", "max", int, lambda v: v > 0, "> 0")
 
 def validate_autoScale_type(document):
-    type = document.get("type")
+    type_ = overlord.error._validate1(document, "autoScale.", "type", str)
 
-    if type is None:
+    if type_ is None:
         return
 
-    if not isinstance(type, str):
-        raise overlord.exceptions.InvalidSpec(f"{type}: invalid value type for 'autoScale.type'")
-
-    if type == "any-jail" \
-            or type == "any-project" \
-            or type == "average":
+    if type_ == "any-jail" \
+            or type_ == "any-project" \
+            or type_ == "average":
         pass # ignore
 
-    elif type == "percent-jail" \
-            or type == "percent-project":
-        value = document.get("value")
+    elif type_ == "percent-jail" \
+            or type_ == "percent-project":
+        overlord.error._validate1(document, "autoScale.", "value", int, required=True)
 
-        if value is None:
-            raise overlord.exceptions.InvalidSpec("'autoScale.value' is required but hasn't been specified.")
-
-        if not isinstance(value, int):
-            raise overlord.exceptions.InvalidSpec(f"{value}: invalid value type for 'autoScale.value'")
     else:
-        raise overlord.exceptions.InvalidSpec(f"{type}: invalid scale type.")
+        raise overlord.exceptions.InvalidSpec(f"autoScale.type: invalid scale type: '{type_}'.")
 
 def validate_autoScale_economy(document):
     return _validate_autoScale_rules("economy", document)
@@ -418,13 +357,10 @@ def validate_autoScale_rules(document):
     return _validate_autoScale_rules("rules", document)
 
 def _validate_autoScale_rules(rules_type, document):
-    rules = document.get(rules_type)
+    rules = overlord.error._validate1(document, "autoScale.", rules_type, dict)
 
     if rules is None:
         return
-
-    if not isinstance(rules, dict):
-        raise overlord.exceptions.InvalidSpec(f"'autoScale.{rules_type}' is invalid.")
 
     for rule, value in rules.items():
         if rule == "datasize" \
@@ -472,55 +408,35 @@ def _validate_autoScale_rules(rules_type, document):
             raise overlord.exceptions.InvalidSpec(f"autoScale.{rules_type}.{rule}: invalid resource.")
 
 def validate_autoScale_labels(document):
-    labels = document.get("labels")
+    _value = overlord.error._validate1(document, "autoScale.", "labels", list)
 
-    if labels is None:
+    if _value is None:
         return
 
-    if not isinstance(labels, list):
-        raise overlord.exceptions.InvalidSpec("'autoScale.labels' is invalid.")
+    overlord.error.assert_len("deployIn.labels", _value, -1, lambda l, dl: dl > 0, "> 0")
+    overlord.error.assert_item(_value, validate_autoScale_label)
 
-    for index, entry in enumerate(labels):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'autoScale.labels.{index}'")
-
-        if not overlord.chains.check_chain_label(entry):
-            raise overlord.exceptions.InvalidSpec(f"'autoScale.labels.{index}.{entry}': invalid label.")
-
-    length = len(labels)
-
-    if length < 1:
-        raise overlord.exceptions.InvalidSpec("'autoScale.labels': at least one label must be specified.")
+def validate_autoScale_label(labels, label, index):
+    overlord.error.assert_type(f"autoScale.labels.<item#{index}>", label, str)
+    overlord.error.assert_value(f"autoScale.labels.<item#{index}>",
+        overlord.chains.check_chain_label, label, overlord.chains.REGEX_LABEL)
 
 def validate_autoScale_metadata(document):
-    metadata = document.get("metadata")
+    _value = overlord.error._validate1(document, "autoScale.", "metadata", list)
 
-    if metadata is None:
+    if _value is None:
         return
 
-    if not isinstance(metadata, list):
-        raise overlord.exceptions.InvalidSpec("'autoScale.metadata' is invalid.")
+    overlord.error.assert_len("autoScale.metadata", _value, -1, lambda l, dl: dl > 0, "> 0")
+    overlord.error.assert_item(_value, validate_autoScale_metadata_item)
 
-    for index, entry in enumerate(metadata):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'autoScale.metadata.{index}'")
-
-        if not overlord.metadata.check_keyname(entry):
-            raise overlord.exceptions.InvalidSpec(f"'autoScale.metadata.{index}.{entry}': invalid metadata.")
-
-    length = len(metadata)
-
-    if length < 1:
-        raise overlord.exceptions.InvalidSpec("'autoScale.metadata': at least one metadata must be specified.")
+def validate_autoScale_metadata_item(metadata, name, index):
+    overlord.error.assert_type(f"autoScale.metadata.<item#{index}>", name, str)
+    overlord.error.assert_value(f"autoScale.metadata.<item#{index}>",
+        overlord.metadata.check_keyname, name, overlord.metadata.REGEX_KEY)
 
 def validate_projectName(document):
-    projectName = document.get("projectName")
-
-    if projectName is None:
-        raise overlord.exceptions.InvalidSpec("'projectName' is required but hasn't been specified.")
-
-    if not isinstance(projectName, str):
-        raise overlord.exceptions.InvalidSpec(f"{projectName}: invalid value type for 'projectName'")
+    overlord.error._validate1(document, "", "projectName", str, required=True)
 
 def validate_project(document):
     projectFile = document.get("projectFile")
@@ -533,86 +449,89 @@ def validate_project(document):
         raise overlord.exceptions.InvalidSpec("Only 'projectFile' or 'projectFromMetadata' should be specified, but not both.")
 
     elif projectFile is not None:
-        if not isinstance(projectFile, str):
-            raise overlord.exceptions.InvalidSpec(f"{projectFile}: invalid value type for 'projectFile'")
+        overlord.error.assert_type("projectFile", projectFile, str)
 
     elif projectFromMetadata is not None:
-        if not isinstance(projectFromMetadata, str):
-            raise overlord.exceptions.InvalidSpec(f"{projectFromMetadata}: invalid value type for 'projectFromMetadata'")
+        overlord.error.assert_type("projectFromMetadata", projectFromMetadata, str)
 
 def validate_environment(document):
-    environment = document.get("environment")
+    _value = overlord.error._validate1(document, "", "environment", dict)
 
-    if environment is None:
+    if _value is None:
         return
 
-    if not isinstance(environment, dict):
-        raise overlord.exceptions.InvalidSpec("'environment' is invalid.")
+    overlord.error.assert_item(_value, validate_environment_item)
 
-    for env_name, env_value in environment.items():
-        if not isinstance(env_name, str) \
-                or not isinstance(env_value, str):
-            raise overlord.exceptions.InvalidSpec(f"Invalid environment name (environment.{env_name}) or value (environment.{env_value}).")
+def validate_environment_item(environment, name, index):
+    overlord.error.assert_type(f"environment.<item#{index}>", name, str)
+    overlord.error.assert_type(f"environment.{name}", environment[name], str)
 
 def validate_datacentersEnvironment(document):
-    datacentersEnvironment = document.get("datacentersEnvironment")
+    _value = overlord.error._validate1(document, "", "datacentersEnvironment", dict)
 
-    if datacentersEnvironment is None:
+    if _value is None:
         return
 
-    if not isinstance(datacentersEnvironment, dict):
-        raise overlord.exceptions.InvalidSpec("'datacentersEnvironment' is invalid.")
+    overlord.error.assert_item(_value, validate_datacentersEnvironment_item)
 
-    for datacenter, environment in datacentersEnvironment.items():
-        if not isinstance(datacenter, str):
-            raise overlord.exceptions.InvalidSpec(f"{datacenter}: invalid value type for 'datacentersEnvironment.{index}'")
+def validate_datacentersEnvironment_item(datacentersEnvironment, datacenter, index):
+    overlord.error.assert_type(f"datacentersEnvironment.<item#{index}>", datacenter, str)
 
-        for env_name, env_value in environment.items():
-            if not isinstance(env_name, str) \
-                    or not isinstance(env_value, str):
-                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (datacentersEnvironment.{datacentersEnvironment}.{env_name}) or value (datacentersEnvironment.{datacentersEnvironment}.{env_value}).")
+    environment = overlord.error._validate1(datacentersEnvironment, "datacentersEnvironment.", datacenter, dict, required=True)
+
+    index = 0
+
+    for name, value in environment.items():
+        overlord.error.assert_type(f"datacentersEnvironment.{datacenter}.<item#{index}>", name, str)
+        overlord.error.assert_type(f"datacentersEnvironment.{datacenter}.{name}", value, str)
+
+        index += 1
 
 def validate_chainsEnvironment(document):
-    chainsEnvironment = document.get("chainsEnvironment")
+    _value = overlord.error._validate1(document, "", "chainsEnvironment", dict)
 
-    if chainsEnvironment is None:
+    if _value is None:
         return
 
-    if not isinstance(chainsEnvironment, dict):
-        raise overlord.exceptions.InvalidSpec("'chainsEnvironment' is invalid.")
+    overlord.error.assert_item(_value, validate_chainsEnvironment_item)
 
-    for datacenter, environment in chainsEnvironment.items():
-        if not isinstance(datacenter, str):
-            raise overlord.exceptions.InvalidSpec(f"{datacenter}: invalid value type for 'chainsEnvironment.{index}'")
+def validate_chainsEnvironment_item(chainsEnvironment, chain, index):
+    overlord.error.assert_type(f"chainsEnvironment.<item#{index}>", chain, str)
+    overlord.error.assert_value(f"chainsEnvironment.{chain}",
+        overlord.chains.check_chain_name, chain, overlord.chains.REGEX_CHAIN_NAME)
 
-        for env_name, env_value in environment.items():
-            if not isinstance(env_name, str) \
-                    or not isinstance(env_value, str):
-                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (chainsEnvironment.{chainsEnvironment}.{env_name}) or value (chainsEnvironment.{chainsEnvironment}.{env_value}).")
+    environment = overlord.error._validate1(chainsEnvironment, "chainsEnvironment.", chain, dict, required=True)
+
+    index = 0
+
+    for name, value in environment.items():
+        overlord.error.assert_type(f"chainsEnvironment.{chain}.<item#{index}>", name, str)
+        overlord.error.assert_type(f"chainsEnvironment.{chain}.{name}", value, str)
+
+        index += 1
 
 def validate_labelsEnvironment(document):
-    labelsEnvironment = document.get("labelsEnvironment")
+    _value = overlord.error._validate1(document, "", "labelsEnvironment", dict)
 
-    if labelsEnvironment is None:
+    if _value is None:
         return
 
-    if not isinstance(labelsEnvironment, dict):
-        raise overlord.exceptions.InvalidSpec("'labelsEnvironment' is invalid.")
+    overlord.error.assert_item(_value, validate_labelsEnvironment_item)
 
-    for datacenter, environment in labelsEnvironment.items():
-        if not isinstance(datacenter, str):
-            raise overlord.exceptions.InvalidSpec(f"{datacenter}: invalid value type for 'labelsEnvironment.{index}'")
+def validate_labelsEnvironment_item(labelsEnvironment, label, index):
+    overlord.error.assert_type(f"labelsEnvironment.<item#{index}>", label, str)
+    overlord.error.assert_value(f"labelsEnvironment.<item#{index}>",
+        overlord.chains.check_chain_label, label, overlord.chains.REGEX_LABEL)
 
-        for env_name, env_value in environment.items():
-            if not isinstance(env_name, str) \
-                    or not isinstance(env_value, str):
-                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (labelsEnvironment.{labelsEnvironment}.{env_name}) or value (labelsEnvironment.{labelsEnvironment}.{env_value}).")
+    environment = overlord.error._validate1(labelsEnvironment, "labelsEnvironment.", label, dict, required=True)
+
+    index = 0
+
+    for name, value in environment.items():
+        overlord.error.assert_type(f"labelsEnvironment.{label}.<item#{index}>", name, str)
+        overlord.error.assert_type(f"labelsEnvironment.{label}.{name}", value, str)
+
+        index += 1
 
 def validate_environFromMetadata(document):
-    environFromMetadata = document.get("environFromMetadata")
-
-    if environFromMetadata is None:
-        return
-
-    if not isinstance(environFromMetadata, str):
-        raise overlord.exceptions.InvalidSpec(f"{environFromMetadata}: invalid value type for 'environFromMetadata'")
+    overlord.error._validate1(document, "", "environmentFromMetadata", str)

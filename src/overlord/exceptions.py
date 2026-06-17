@@ -42,6 +42,9 @@ class InvalidChain(Exception):
 class InvalidKind(InvalidSpec):
     pass
 
+class RequiredParameter(InvalidSpec):
+    pass
+
 class KindNotDefined(Exception):
     pass
 

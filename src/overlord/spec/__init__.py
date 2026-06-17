@@ -33,6 +33,7 @@ import pyaml_env
 
 import overlord.chains
 import overlord.default
+import overlord.error
 import overlord.exceptions
 import overlord.spec.director_project
 import overlord.spec.metadata
@@ -276,8 +277,7 @@ def get_maximumDeployments():
     return get_default(CONFIG.get("maximumDeployments"), overlord.default.MAXIMUM_DEPLOYMENTS)
 
 def validate(document):
-    if not isinstance(document, dict):
-        raise overlord.exceptions.InvalidSpec("The document is invalid.")
+    overlord.error.assert_type("<root>", document, dict)
 
     validate_kind(document)
     validate_datacenters(document)
@@ -285,10 +285,11 @@ def validate(document):
     validate_maximumDeployments(document)
 
 def validate_kind(document):
-    kind = document.get("kind")
+    _name = "kind"
+    kind = document.get(_name)
 
     if kind is None:
-        raise overlord.exceptions.InvalidSpec("'kind' is required but hasn't been specified.")
+        overlord.error.assert_required(_name)
 
     if kind == OverlordKindTypes.PROJECT.value:
         overlord.spec.director_project.validate(document)
@@ -306,28 +307,15 @@ def validate_kind(document):
         overlord.spec.app_config.validate(document)
 
     else:
-        raise overlord.exceptions.InvalidKind(f"{kind}: Unknown value for 'kind'.")
+        raise overlord.exceptions.InvalidKind(f"kind: unknown value '{kind}'.")
 
 def validate_datacenters(document):
-    datacenters = document.get("datacenters")
+    _value = overlord.error._validate1(document, "", "datacenters", dict, required=True)
 
-    if datacenters is None:
-        raise overlord.exceptions.InvalidSpec("'datacenters' is required but hasn't been specified.")
+    overlord.error.assert_item(_value, validate_datacenter)
 
-    if not isinstance(datacenters, dict):
-        raise overlord.exceptions.InvalidSpec("'datacenters' is invalid.")
-
-    for index, name in enumerate(datacenters):
-        if not isinstance(name, str):
-            raise overlord.exceptions.InvalidSpec(f"{name}: invalid value type for 'datacenters.{index}'")
-
-        validate_datacenter(datacenters, name)
-
-def validate_datacenter(datacenters, name):
-    datacenter = datacenters[name]
-
-    if not isinstance(datacenter, dict):
-        raise overlord.exceptions.InvalidSpec(f"'datacenters.{name}' is invalid.")
+def validate_datacenter(datacenters, datacenter, index):
+    overlord.error.assert_type(f"datacenters.<item#{index}>", datacenter, str)
 
     keys = (
         "entrypoint",
@@ -343,216 +331,122 @@ def validate_datacenter(datacenters, name):
         "cacert"
     )
 
-    for key in datacenter:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"datacenters.{name}.{key}: this key is invalid.")
+    _value = overlord.error._validate2(datacenters, "datacenters.", datacenter, keys)
 
-    validate_datacenter_entrypoint(datacenters, name)
-    validate_datacenter_access_token(datacenters, name)
-    validate_datacenter_timeout(datacenters, name)
-    validate_datacenter_read_timeout(datacenters, name)
-    validate_datacenter_write_timeout(datacenters, name)
-    validate_datacenter_connect_timeout(datacenters, name)
-    validate_datacenter_pool_timeout(datacenters, name)
-    validate_datacenter_max_keepalive_connections(datacenters, name)
-    validate_datacenter_max_connections(datacenters, name)
-    validate_datacenter_keepalive_expiry(datacenters, name)
-    validate_datacenter_cacert(datacenters, name)
-
-def validate_datacenter_cacert(datacenters, name):
-    cacert = datacenters[name].get("cacert")
-
-    if cacert is None:
+    if _value is None:
         return
 
-    if not isinstance(cacert, str):
-        raise overlord.exceptions.InvalidSpec(f"{cacert}: invalid value type for 'datacenters.{name}.cacert'")
+    validate_datacenter_entrypoint(datacenters, datacenter)
+    validate_datacenter_access_token(datacenters, datacenter)
+    validate_datacenter_timeout(datacenters, datacenter)
+    validate_datacenter_read_timeout(datacenters, datacenter)
+    validate_datacenter_write_timeout(datacenters, datacenter)
+    validate_datacenter_connect_timeout(datacenters, datacenter)
+    validate_datacenter_pool_timeout(datacenters, datacenter)
+    validate_datacenter_max_keepalive_connections(datacenters, datacenter)
+    validate_datacenter_max_connections(datacenters, datacenter)
+    validate_datacenter_keepalive_expiry(datacenters, datacenter)
+    validate_datacenter_cacert(datacenters, datacenter)
 
-def validate_datacenter_entrypoint(datacenters, name):
-    entrypoint = datacenters[name].get("entrypoint")
+def validate_datacenter_cacert(datacenters, datacenter):
+    document = datacenters[datacenter]
+    overlord.error._validate1(document, f"datacenters.{datacenter}.", "cacert", str)
 
-    if entrypoint is None:
-        raise overlord.exceptions.InvalidSpec(f"'datacenters.{name}.entrypoint' is required but hasn't been specified.")
+def validate_datacenter_entrypoint(datacenters, datacenter):
+    document = datacenters[datacenter]
+    overlord.error._validate1(document, f"datacenters.{datacenter}.", "entrypoint", str)
 
-    if not isinstance(entrypoint, str):
-        raise overlord.exceptions.InvalidSpec(f"{entrypoint}: invalid value type for 'datacenters.{name}.entrypoint'")
+def validate_datacenter_access_token(datacenters, datacenter):
+    document = datacenters[datacenter]
+    overlord.error._validate1(document, f"datacenters.{datacenter}.", "access_token", str)
 
-def validate_datacenter_access_token(datacenters, name):
-    access_token = datacenters[name].get("access_token")
+def validate_datacenter_timeout(datacenters, datacenter):
+    document = datacenters[datacenter]
+    overlord.error._validate1(document, f"datacenters.{datacenter}.", "timeout", int)
 
-    if access_token is None:
-        raise overlord.exceptions.InvalidSpec(f"'datacenters.{name}.access_token' is required but hasn't been specified.")
+def validate_datacenter_read_timeout(datacenters, datacenter):
+    document = datacenters[datacenter]
+    overlord.error._validate1(document, f"datacenters.{datacenter}.", "read_timeout", int)
 
-    if not isinstance(access_token, str):
-        raise overlord.exceptions.InvalidSpec(f"{access_token}: invalid value type for 'datacenters.{name}.access_token'")
+def validate_datacenter_write_timeout(datacenters, datacenter):
+    document = datacenters[datacenter]
+    overlord.error._validate1(document, f"datacenters.{datacenter}.", "write_timeout", int)
 
-def validate_datacenter_timeout(datacenters, name):
-    timeout = datacenters[name].get("timeout")
+def validate_datacenter_connect_timeout(datacenters, datacenter):
+    document = datacenters[datacenter]
+    overlord.error._validate1(document, f"datacenters.{datacenter}.", "connect_timeout", int)
 
-    if timeout is None:
-        return
+def validate_datacenter_pool_timeout(datacenters, datacenter):
+    document = datacenters[datacenter]
+    overlord.error._validate1(document, f"datacenters.{datacenter}.", "pool_timeout", int)
 
-    if not isinstance(timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{timeout}: invalid value type for 'datacenters.{name}.timeout'")
+def validate_datacenter_max_keepalive_connections(datacenters, datacenter):
+    document = datacenters[datacenter]
+    overlord.error._validate1(document, f"datacenters.{datacenter}.", "max_keepalive_connections", int)
 
-def validate_datacenter_read_timeout(datacenters, name):
-    read_timeout = datacenters[name].get("read_timeout")
+def validate_datacenter_max_connections(datacenters, datacenter):
+    document = datacenters[datacenter]
+    overlord.error._validate1(document, f"datacenters.{datacenter}.", "max_connections", int)
 
-    if read_timeout is None:
-        return
-
-    if not isinstance(read_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{read_timeout}: invalid value type for 'datacenters.{name}.read_timeout'")
-
-def validate_datacenter_write_timeout(datacenters, name):
-    write_timeout = datacenters[name].get("write_timeout")
-
-    if write_timeout is None:
-        return
-
-    if not isinstance(write_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{write_timeout}: invalid value type for 'datacenters.{name}.write_timeout'")
-
-def validate_datacenter_connect_timeout(datacenters, name):
-    connect_timeout = datacenters[name].get("connect_timeout")
-
-    if connect_timeout is None:
-        return
-
-    if not isinstance(connect_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{connect_timeout}: invalid value type for 'datacenters.{name}.connect_timeout'")
-
-def validate_datacenter_pool_timeout(datacenters, name):
-    pool_timeout = datacenters[name].get("pool_timeout")
-
-    if pool_timeout is None:
-        return
-
-    if not isinstance(pool_timeout, int):
-        raise overlord.exceptions.InvalidSpec(f"{pool_timeout}: invalid value type for 'datacenters.{name}.pool_timeout'")
-
-def validate_datacenter_max_keepalive_connections(datacenters, name):
-    max_keepalive_connections = datacenters[name].get("max_keepalive_connections")
-
-    if max_keepalive_connections is None:
-        return
-
-    if not isinstance(max_keepalive_connections, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_keepalive_connections}: invalid value type for 'datacenters.{name}.max_keepalive_connections'")
-
-def validate_datacenter_max_connections(datacenters, name):
-    max_connections = datacenters[name].get("max_connections")
-
-    if max_connections is None:
-        return
-
-    if not isinstance(max_connections, int):
-        raise overlord.exceptions.InvalidSpec(f"{max_connections}: invalid value type for 'datacenters.{name}.max_connections'")
-
-def validate_datacenter_keepalive_expiry(datacenters, name):
-    keepalive_expiry = datacenters[name].get("keepalive_expiry")
-
-    if keepalive_expiry is None:
-        return
-
-    if not isinstance(keepalive_expiry, int):
-        raise overlord.exceptions.InvalidSpec(f"{keepalive_expiry}: invalid value type for 'datacenters.{name}.keepalive_expiry'")
+def validate_datacenter_keepalive_expiry(datacenters, datacenter):
+    document = datacenters[datacenter]
+    overlord.error._validate1(document, f"datacenters.{datacenter}.", "keepalive_expiry", int)
 
 def validate_deployIn(document):
-    deployIn = document.get("deployIn")
-
-    if deployIn is None:
-        raise overlord.exceptions.InvalidSpec("'deployIn' is required but hasn't been specified.")
-
-    if not isinstance(deployIn, dict):
-        raise overlord.exceptions.InvalidSpec("'deployIn' is invalid.")
-
     keys = (
         "entrypoints",
         "labels",
         "exclude"
     )
 
-    if len(deployIn) == 0:
-        raise overlord.exceptions.InvalidSpec(f"'deployIn': at least one type of deployment must be specified.")
+    _value = overlord.error._validate2(document, "", "deployIn", keys, required=True)
 
-    for key in deployIn:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"deployIn.{key}: this key is invalid.")
+    overlord.error.assert_len("deployIn", _value, -1, lambda l, dl: dl > 0, "> 0")
 
-    validate_deployIn_entrypoints(deployIn)
-    validate_deployIn_labels(deployIn)
-    validate_deployIn_exclude(deployIn)
+    validate_deployIn_entrypoints(_value)
+    validate_deployIn_labels(_value)
+    validate_deployIn_exclude(_value)
 
 def validate_deployIn_entrypoints(document):
-    entrypoints = document.get("entrypoints")
+    _value = overlord.error._validate1(document, "deployIn.", "entrypoints", list)
 
-    if entrypoints is None:
+    if _value is None:
         return
 
-    if not isinstance(entrypoints, list):
-        raise overlord.exceptions.InvalidSpec("'deployIn.entrypoints' is invalid.")
+    overlord.error.assert_len("deployIn.entrypoints", _value, -1, lambda l, dl: dl > 0, "> 0")
+    overlord.error.assert_item(_value, validate_deployIn_entrypoint)
 
-    for index, entry in enumerate(entrypoints):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'deployIn.entrypoints.{index}'")
-
-        # Check for invalid chains.
-        overlord.chains.get_chain(entry)
-
-    length = len(entrypoints)
-
-    if length < 1:
-        raise overlord.exceptions.InvalidSpec(f"'deployIn.entrypoints': at least one entrypoint must be specified.")
+def validate_deployIn_entrypoint(entrypoints, entrypoint, index):
+    overlord.error.assert_type(f"deployIn.entrypoints.<item#{index}>", entrypoint, str)
+    overlord.chains.get_chain(entrypoint)
 
 def validate_deployIn_labels(document):
-    labels = document.get("labels")
+    _value = overlord.error._validate1(document, "deployIn.", "labels", list)
 
-    if labels is None:
+    if _value is None:
         return
 
-    if not isinstance(labels, list):
-        raise overlord.exceptions.InvalidSpec("'deployIn.labels' is invalid.")
+    overlord.error.assert_len("deployIn.labels", _value, -1, lambda l, dl: dl > 0, "> 0")
+    overlord.error.assert_item(_value, validate_deployIn_label)
 
-    for index, entry in enumerate(labels):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'deployIn.labels.{index}'")
-
-        if not overlord.chains.check_chain_label(entry):
-            raise overlord.exceptions.InvalidSpec(f"'deployIn.labels.{index}.{entry}': invalid label.")
-
-    length = len(labels)
-
-    if length < 1:
-        raise overlord.exceptions.InvalidSpec("'deployIn.labels': at least one label must be specified.")
+def validate_deployIn_label(labels, label, index):
+    overlord.error.assert_type(f"deployIn.labels.<item#{index}>", label, str)
+    overlord.error.assert_value(f"deployIn.labels.<item#{index}>",
+        overlord.chains.check_chain_label, label, overlord.chains.REGEX_LABEL)
 
 def validate_deployIn_exclude(document):
-    exclude = document.get("exclude")
+    _value = overlord.error._validate1(document, "deployIn.", "exclude", list)
 
-    if exclude is None:
+    if _value is None:
         return
 
-    if not isinstance(exclude, list):
-        raise overlord.exceptions.InvalidSpec("'deployIn.exclude' is invalid.")
+    overlord.error.assert_len("deployIn.exclude", _value, -1, lambda l, dl: dl > 0, "> 0")
+    overlord.error.assert_item(_value, validate_deployIn_exclude_item)
 
-    for index, entry in enumerate(exclude):
-        if not isinstance(entry, str):
-            raise overlord.exceptions.InvalidSpec(f"{entry}: invalid value type for 'deployIn.exclude.{index}'")
-
-        if not overlord.chains.check_chain_label(entry):
-            raise overlord.exceptions.InvalidSpec(f"'deployIn.exclude.{index}.{entry}': invalid label.")
-
-    length = len(exclude)
-
-    if length < 1:
-        raise overlord.exceptions.InvalidSpec("'deployIn.exclude': at least one label must be specified.")
+def validate_deployIn_exclude_item(labels, label, index):
+    overlord.error.assert_type(f"deployIn.exclude.<item#{index}>", label, str)
+    overlord.error.assert_value(f"deployIn.exclude.<item#{index}>",
+        overlord.chains.check_chain_label, label, overlord.chains.REGEX_LABEL)
 
 def validate_maximumDeployments(document):
-    maximumDeployments = document.get("maximumDeployments")
-    
-    if maximumDeployments is None:
-        return
-
-    if not isinstance(maximumDeployments, int) \
-            or maximumDeployments < 0:
-        raise overlord.exceptions.InvalidSpec(f"{maximumDeployments}: invalid value type for 'maximumDeployments'")
+    overlord.error._validate1(document, "", "maximumDeployments", int, lambda v: v >= 0, f">= 0")

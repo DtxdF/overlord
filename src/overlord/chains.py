@@ -31,11 +31,14 @@ import re
 
 import overlord.exceptions
 
+REGEX_CHAIN_NAME = r"^[a-zA-Z0-9_][a-zA-Z0-9_-]*$"
+REGEX_LABEL = r"^[a-z][a-z0-9]*((\.|-)?[a-z][a-z0-9]*)*$"
+
 def check_chain_name(name):
-    return re.match(r"^[a-zA-Z0-9_][a-zA-Z0-9_-]*$", name) is not None
+    return re.match(REGEX_CHAIN_NAME, name) is not None
 
 def check_chain_label(label):
-    return re.match(r"^[a-z][a-z0-9]*((\.|-)?[a-z][a-z0-9]*)*$", label) is not None
+    return re.match(REGEX_LABEL, label) is not None
 
 def get_chain(chain):
     chain_list = []

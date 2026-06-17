@@ -98,8 +98,8 @@ def get_poweroff():
 def validate(document):
     global CONFIG
 
-    if not isinstance(document, dict):
-        raise overlord.exceptions.InvalidSpec("The document is invalid.")
+    _name = "<root:vmJail>"
+    overlord.error.assert_type(_name, document, dict)
 
     keys = (
         "kind",
@@ -126,9 +126,7 @@ def validate(document):
         "poweroff"
     )
 
-    for key in document:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"{key}: this key is invalid.")
+    overlord.error.assert_parameter(_name, document, keys)
 
     validate_vmName(document)
     validate_makejail(document)
@@ -151,38 +149,15 @@ def validate(document):
     CONFIG = document
 
 def validate_poweroff(document):
-    poweroff = document.get("poweroff")
-
-    if poweroff is None:
-        return
-
-    if not isinstance(poweroff, bool):
-        raise overlord.exceptions.InvalidSpec(f"{poweroff}: invalid value type for 'poweroff'")
+    overlord.error._validate1(document, "", "poweroff", bool)
 
 def validate_datastore(document):
-    datastore = document.get("datastore")
-
-    if datastore is None:
-        return
-
-    if not isinstance(datastore, str):
-        raise overlord.exceptions.InvalidSpec(f"{datastore}: invalid value type for 'datastore'")
+    overlord.error._validate1(document, "", "datastore", str)
 
 def validate_overwrite(document):
-    overwrite = document.get("overwrite")
-
-    if overwrite is None:
-        return
-
-    if not isinstance(overwrite, bool):
-        raise overlord.exceptions.InvalidSpec(f"{overwrite}: invalid value type for 'overwrite'")
+    overlord.error._validate1(document, "", "overwrite", bool)
 
 def validate_cloud_init(document):
-    cloud_init = document.get("cloud-init")
-
-    if cloud_init is None:
-        return
-
     keys = (
         "flags",
         "meta-data",
@@ -190,152 +165,87 @@ def validate_cloud_init(document):
         "user-data"
     )
 
-    for key in cloud_init:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"cloud-init.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "cloud-init", keys)
 
-    validate_cloud_init_flags(cloud_init)
-    validate_cloud_init_meta_data(cloud_init)
-    validate_cloud_init_network_config(cloud_init)
-    validate_cloud_init_user_data(cloud_init)
+    if _value is None:
+        return
+
+    validate_cloud_init_flags(_value)
+    validate_cloud_init_meta_data(_value)
+    validate_cloud_init_network_config(_value)
+    validate_cloud_init_user_data(_value)
 
 def validate_cloud_init_user_data(document):
-    user_data = document.get("user-data")
-
-    if user_data is None:
-        return
-
-    if not isinstance(user_data, dict):
-        raise overlord.exceptions.InvalidSpec("'cloud-init.user-data' is invalid.")
+    overlord.error._validate1(document, "cloud-init.", "user-data", dict)
 
 def validate_cloud_init_network_config(document):
-    network_config = document.get("network-config")
-
-    if network_config is None:
-        return
-
-    if not isinstance(network_config, dict):
-        raise overlord.exceptions.InvalidSpec("'cloud-init.network-config' is invalid.")
+    overlord.error._validate1(document, "cloud-init.", "network-config", dict)
 
 def validate_cloud_init_meta_data(document):
-    meta_data = document.get("meta-data")
-
-    if meta_data is None:
-        return
-
-    if not isinstance(meta_data, dict):
-        raise overlord.exceptions.InvalidSpec("'cloud-init.meta-data' is invalid.")
+    overlord.error._validate1(document, "cloud-init.", "meta-data", dict)
 
 def validate_cloud_init_flags(document):
-    flags = document.get("flags")
-
-    if flags is None:
-        return
-
-    if not isinstance(flags, str):
-        raise overlord.exceptions.InvalidSpec(f"{flags}: invalid value type for 'cloud-init.flags'")
+    overlord.error._validate1(document, "cloud-init.", "flags", str)
 
 def validate_options(document):
-    options = document.get("options")
+    _value = overlord.error._validate1(document, "", "options", list)
 
-    if options is None:
+    if _value is None:
         return
 
-    if not isinstance(options, list):
-        raise overlord.exceptions.InvalidSpec("'options' is invalid.")
+    overlord.error.assert_item(_value, validate_options_item)
 
-    for index, entry in enumerate(options):
-        for opt_name, opt_value in entry.items():
-            if not isinstance(opt_name, str):
-                raise overlord.exceptions.InvalidSpec(f"Invalid option name (options.{index}.{opt_name}).")
+def validate_options_item(options, entry, index):
+    opt_index = 0
 
-            if opt_value is not None \
-                    and not isinstance(opt_value, str):
-                raise overlord.exceptions.InvalidSpec(f"Invalid option value (options.{index}.{opt_value}).")
+    for opt_name, opt_value in entry.items():
+        overlord.error.assert_type(f"options.<item#{index}>.<item#{opt_index}>", opt_name, str)
+
+        if opt_value is not None:
+            overlord.error.assert_type(f"options.<item#{index}>.{opt_name}", opt_value, str)
+
+        opt_index += 1
 
 def validate_script_environment(document):
-    environment = document.get("script-environment")
-
-    if environment is None:
-        return
-
-    if not isinstance(environment, list):
-        raise overlord.exceptions.InvalidSpec("'script-environment' is invalid.")
-
-    for index, entry in enumerate(environment):
-        for env_name, env_value in entry.items():
-            if not isinstance(env_name, str) \
-                    or not isinstance(env_value, str):
-                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (script-environment.{index}.{env_name}) or value (script-environment.{index}.{env_value}).")
+    _validate_environment(document, "", "script-environment")
 
 def validate_start_environment(document):
-    environment = document.get("start-environment")
-
-    if environment is None:
-        return
-
-    if not isinstance(environment, list):
-        raise overlord.exceptions.InvalidSpec("'start-environment' is invalid.")
-
-    for index, entry in enumerate(environment):
-        for env_name, env_value in entry.items():
-            if not isinstance(env_name, str) \
-                    or not isinstance(env_value, str):
-                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (start-environment.{index}.{env_name}) or value (start-environment.{index}.{env_value}).")
+    _validate_environment(document, "", "start-environment")
 
 def validate_start_arguments(document):
-    arguments = document.get("start-arguments")
-
-    if arguments is None:
-        return
-
-    if not isinstance(arguments, list):
-        raise overlord.exceptions.InvalidSpec("'start-arguments' is invalid.")
-
-    for index, entry in enumerate(arguments):
-        for arg_name, arg_value in entry.items():
-            if not isinstance(arg_name, str) \
-                    or not isinstance(arg_value, str):
-                raise overlord.exceptions.InvalidSpec(f"Invalid arguments name (start-arguments.{index}.{arg_name}) or value (start-arguments.{index}.{arg_value}).")
+    _validate_environment(document, "", "start-arguments")
 
 def validate_build_environment(document):
-    environment = document.get("build-environment")
-
-    if environment is None:
-        return
-
-    if not isinstance(environment, list):
-        raise overlord.exceptions.InvalidSpec("'build-environment' is invalid.")
-
-    for index, entry in enumerate(environment):
-        for env_name, env_value in entry.items():
-            if not isinstance(env_name, str) \
-                    or not isinstance(env_value, str):
-                raise overlord.exceptions.InvalidSpec(f"Invalid environment name (build-environment.{index}.{env_name}) or value (build-environment.{index}.{env_value}).")
+    _validate_environment(document, "", "build-environment")
 
 def validate_build_arguments(document):
-    arguments = document.get("build-arguments")
+    _validate_environment(document, "", "build-arguments")
 
-    if arguments is None:
+def _validate_environment(document, prefix, name):
+    _value = overlord.error._validate1(document, prefix, name, list)
+
+    if _value is None:
         return
 
-    if not isinstance(arguments, list):
-        raise overlord.exceptions.InvalidSpec("'build-arguments' is invalid.")
+    overlord.error.assert_item(_value, _validate_environment_item, {
+        "prefix" : prefix,
+        "name" : name
+    })
 
-    for index, entry in enumerate(arguments):
-        for arg_name, arg_value in entry.items():
-            if not isinstance(arg_name, str) \
-                    or not isinstance(arg_value, str):
-                raise overlord.exceptions.InvalidSpec(f"Invalid arguments name (build-arguments.{index}.{arg_name}) or value (build-arguments.{index}.{arg_value}).")
+def _validate_environment_item(environment, entry, index, data):
+    prefix = data["prefix"]
+    document_name = data["name"]
+
+    env_index = 0
+
+    for name, value in entry.items():
+        overlord.error.assert_type(f"{prefix}{document_name}.<item#{index}>.<item#{env_index}>", name, str)
+        overlord.error.assert_type(f"{prefix}{document_name}.<item#{index}>.{name}", value, str)
+
+        env_index += 1
 
 def validate_vmName(document):
-    vmName = document.get("vmName")
-
-    if vmName is None:
-        raise overlord.exceptions.InvalidSpec("'vmName' is required but hasn't been specified.")
-
-    if not isinstance(vmName, str):
-        raise overlord.exceptions.InvalidSpec(f"{vmName}: invalid value type for 'vmName'")
+    overlord.error._validate1(document, "", "vmName", str)
 
 def validate_makejail(document):
     makejail = document.get("makejail")
@@ -348,36 +258,24 @@ def validate_makejail(document):
         raise overlord.exceptions.InvalidSpec("Only 'makejail' or 'makejailFromMetadata' should be specified, but not both.")
 
     elif makejail is not None:
-        if not isinstance(makejail, str):
-            raise overlord.exceptions.InvalidSpec(f"{makejail}: invalid value type for 'makejail'")
+        overlord.error.assert_type("makejail", makejail, str)
 
     elif makejailFromMetadata is not None:
-        if not isinstance(makejailFromMetadata, str):
-            raise overlord.exceptions.InvalidSpec(f"{makejailFromMetadata}: invalid value type for 'makejailFromMetadata'")
+        overlord.error.assert_type("makejailFromMetadata", makejailFromMetadata, str)
 
 def validate_template(document):
-    template = document.get("template")
+    _value = overlord.error._validate1(document, "", "template", dict)
 
-    if template is None:
-        raise overlord.exceptions.InvalidSpec("'template' is required but hasn't been specified.")
+    if _value is None:
+        return
 
-    if not isinstance(template, dict):
-        raise overlord.exceptions.InvalidSpec("'template' is invalid.")
+    overlord.error.assert_item(_value, validate_template_item)
 
-    for param_name, param_value in template.items():
-        if not isinstance(param_name, str) \
-                or not isinstance(param_value, str):
-            raise overlord.exceptions.InvalidSpec(f"Invalid parameter name (template.{param_name}) or value (template.{param_value}).")
+def validate_template_item(template, name, index):
+    overlord.error.assert_type(f"template.<item#{index}>", name, str)
+    overlord.error.assert_type(f"template.{name}", template[name], str)
 
 def validate_diskLayout(document):
-    diskLayout = document.get("diskLayout")
-
-    if diskLayout is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout' is required but hasn't been specified.")
-
-    if not isinstance(diskLayout, dict):
-        raise overlord.exceptions.InvalidSpec("'diskLayout' is invalid.")
-
     keys = (
         "driver",
         "size",
@@ -386,150 +284,91 @@ def validate_diskLayout(document):
         "fstab"
     )
 
-    for key in diskLayout:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"diskLayout.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "", "diskLayout", keys)
 
-    validate_diskLayout_driver(diskLayout)
-    validate_diskLayout_size(diskLayout)
-    validate_diskLayout_from(diskLayout)
-    validate_diskLayout_disk(diskLayout)
-    validate_diskLayout_fstab(diskLayout)
-
-def validate_diskLayout_fstab(document):
-    fstab = document.get("fstab")
-
-    if fstab is None:
+    if _value is None:
         return
 
-    if not isinstance(fstab, list):
-        raise overlord.exceptions.InvalidSpec("'diskLayout.fstab' is invalid.")
+    validate_diskLayout_driver(_value)
+    validate_diskLayout_size(_value)
+    validate_diskLayout_from(_value)
+    validate_diskLayout_disk(_value)
+    validate_diskLayout_fstab(_value)
 
-    if len(fstab) == 0:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.fstab' is required but hasn't been specified.")
+def validate_diskLayout_fstab(document):
+    _value = overlord.error._validate1(document, "diskLayout.", "fstab", list)
 
-    for index, entry in enumerate(fstab):
-        keys = (
-            "device",
-            "mountpoint",
-            "type",
-            "options",
-            "dump",
-            "pass"
-        )
+    if _value is None:
+        return
 
-        for key in entry:
-            if key not in keys:
-                raise overlord.exceptions.InvalidSpec(f"diskLayout.fstab.{index}.{key}: this key is invalid.")
+    overlord.error.assert_len("diskLayout.fstab", _value, -1, lambda l, dl: dl > 0, "> 0")
+    overlord.error.assert_item(_value, validate_diskLayout_fstab_item)
 
-        validate_diskLayout_fstab_device(index, entry)
-        validate_diskLayout_fstab_mountpoint(index, entry)
-        validate_diskLayout_fstab_type(index, entry)
-        validate_diskLayout_fstab_options(index, entry)
-        validate_diskLayout_fstab_dump(index, entry)
-        validate_diskLayout_fstab_pass(index, entry)
+def validate_diskLayout_fstab_item(fstab, entry, index):
+    _name = f"diskLayout.fstab.<item#{index}>"
+
+    keys = (
+        "device",
+        "mountpoint",
+        "type",
+        "options",
+        "dump",
+        "pass"
+    )
+
+    overlord.error.assert_type(_name, entry, dict)
+    overlord.error.assert_parameter(_name, entry, keys)
+
+    validate_diskLayout_fstab_device(index, entry)
+    validate_diskLayout_fstab_mountpoint(index, entry)
+    validate_diskLayout_fstab_type(index, entry)
+    validate_diskLayout_fstab_options(index, entry)
+    validate_diskLayout_fstab_dump(index, entry)
+    validate_diskLayout_fstab_pass(index, entry)
 
 def validate_diskLayout_fstab_device(index, document):
-    device = document.get("device")
-
-    if device is None:
-        raise overlord.exceptions.InvalidSpec(f"'diskLayout.fstab.{index}.device' is required but hasn't been specified.")
-
-    if not isinstance(device, str):
-        raise overlord.exceptions.InvalidSpec(f"{device}: invalid value type for 'diskLayout.fstab.{index}.device'")
+    overlord.error._validate1(document, f"diskLayout.fstab.<item#{index}>.", "device", str, required=True)
 
 def validate_diskLayout_fstab_mountpoint(index, document):
-    mountpoint = document.get("mountpoint")
-
-    if mountpoint is None:
-        raise overlord.exceptions.InvalidSpec(f"'diskLayout.fstab.{index}.mountpoint' is required but hasn't been specified.")
-
-    if not isinstance(mountpoint, str):
-        raise overlord.exceptions.InvalidSpec(f"{mountpoint}: invalid value type for 'diskLayout.fstab.{index}.mountpoint'")
+    overlord.error._validate1(document, f"diskLayout.fstab.<item#{index}>.", "mountpoint", str, required=True)
 
 def validate_diskLayout_fstab_type(index, document):
-    type = document.get("type")
-
-    if type is None:
-        raise overlord.exceptions.InvalidSpec(f"'diskLayout.fstab.{index}.type' is required but hasn't been specified.")
-
-    if not isinstance(type, str):
-        raise overlord.exceptions.InvalidSpec(f"{type}: invalid value type for 'diskLayout.fstab.{index}.type'")
+    overlord.error._validate1(document, f"diskLayout.fstab.<item#{index}>.", "type", str, required=True)
 
 def validate_diskLayout_fstab_options(index, document):
-    options = document.get("options")
-
-    if options is None:
-        raise overlord.exceptions.InvalidSpec(f"'diskLayout.fstab.{index}.options' is required but hasn't been specified.")
-
-    if not isinstance(options, str):
-        raise overlord.exceptions.InvalidSpec(f"{options}: invalid value type for 'diskLayout.fstab.{index}.options'")
+    overlord.error._validate1(document, f"diskLayout.fstab.<item#{index}>.", "options", str, required=True)
 
 def validate_diskLayout_fstab_dump(index, document):
-    dump = document.get("dump")
-
-    if dump is None:
-        raise overlord.exceptions.InvalidSpec(f"'diskLayout.fstab.{index}.dump' is required but hasn't been specified.")
-
-    if not isinstance(dump, int):
-        raise overlord.exceptions.InvalidSpec(f"{dump}: invalid value type for 'diskLayout.fstab.{index}.dump'")
-
-    if dump < 0:
-        raise ValueError(f"{dump}: invalid value for 'diskLayout.fstab.{index}.dump'")
+    dump = overlord.error._validate1(document, f"diskLayout.fstab.<item#{index}>.", "dump", int, required=True)
+    overlord.error.assert_value(f"diskLayout.fstab.<item#{index}>.dump", lambda v: v >= 0, dump, ">= 0")
 
 def validate_diskLayout_fstab_pass(index, document):
-    pass_ = document.get("pass")
-
-    if pass_ is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.fstab.{index}.pass' is required but hasn't been specified.")
-
-    if not isinstance(pass_, int):
-        raise overlord.exceptions.InvalidSpec(f"{pass_}: invalid value type for 'diskLayout.fstab.{index}.pass'")
-
-    if pass_ < 0:
-        raise ValueError(f"{pass_}: invalid value for 'diskLayout.fstab.{index}.pass'")
+    pass_ = overlord.error._validate1(document, f"diskLayout.fstab.<item#{index}>.", "pass", int, required=True)
+    overlord.error.assert_value(f"diskLayout.fstab.<item#{index}>.pass", lambda v: v >= 0, pass_, ">= 0")
 
 def validate_diskLayout_driver(document):
-    driver = document.get("driver")
-
-    if driver is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.driver' is required but hasn't been specified.")
-
-    if not isinstance(driver, str):
-        raise overlord.exceptions.InvalidSpec(f"{driver}: invalid value type for 'diskLayout.driver'")
+    driver = overlord.error._validate1(document, f"diskLayout.", "driver", str, required=True)
 
     if driver != "virtio-blk" \
             and driver != "nvme" \
             and driver != "ahci-hd":
-         raise overlord.exceptions.InvalidSpec(f"{driver}: invalid value for 'diskLayout.driver'")
+        raise overlord.exceptions.InvalidSpec(f"diskLayout.driver: invalid driver: '{driver}'")
 
 def validate_diskLayout_size(document):
-    size = document.get("size")
-
-    if size is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.size' is required but hasn't been specified.")
-
-    if not isinstance(size, str):
-        raise overlord.exceptions.InvalidSpec(f"{size}: invalid value type for 'diskLayout.size'")
+    overlord.error._validate1(document, "diskLayout.", "driver", str, required=True)
 
 def validate_diskLayout_from(document):
-    from_ = document.get("from")
-
-    if from_ is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from' is required but hasn't been specified.")
-
-    if not isinstance(from_, dict):
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from' is invalid.")
+    from_ = overlord.error._validate1(document, "diskLayout.", "from", dict, required=True)
 
     if "type" not in from_:
-        raise overlord.exceptions.InvalidSpec("diskLayout.from.type: type is required but hasn't been specified.")
+        overlord.error.assert_required("diskLayout.from.type")
 
     validate_diskLayout_from_type(from_)
 
 def validate_diskLayout_from_type(document):
-    type = document.get("type")
+    type_ = document.get("type")
 
-    if type == "components":
+    if type_ == "components":
         keys = (
             "type",
             "components",
@@ -538,7 +377,7 @@ def validate_diskLayout_from_type(document):
             "downloadURL"
         )
 
-    elif type == "appjailImage":
+    elif type_ == "appjailImage":
         keys = (
             "type",
             "entrypoint",
@@ -547,7 +386,7 @@ def validate_diskLayout_from_type(document):
             "imageTag"
         )
 
-    elif type == "pkgbase":
+    elif type_ == "pkgbase":
         keys = (
             "type",
             "osVersion",
@@ -557,241 +396,138 @@ def validate_diskLayout_from_type(document):
             "fingerprints"
         )
 
-    elif type == "iso":
+    elif type_ == "iso":
         keys = (
             "type",
             "isoFile",
             "installed"
         )
 
-    elif type == "img":
+    elif type_ == "img":
         keys = (
             "type",
             "imgFile"
         )
 
     else:
-        raise overlord.exceptions.InvalidSpec(f"{type}: invalid value for 'diskLayout.from.type'")
+        raise overlord.exceptions.InvalidSpec(f"diskLayout.from.type: invalid type: '{type_}'")
 
-    for key in document:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"diskLayout.from.{key}: this key is invalid.")
+    overlord.error._validate2(document, "diskLayout.", "from", keys)
 
-    if type == "components":
+    if type_ == "components":
         validate_diskLayout_from_components(document)
         validate_diskLayout_from_osVersion(document)
         validate_diskLayout_from_osArch(document)
         validate_diskLayout_from_downloadURL(document)
 
-    elif type == "appjailImage":
+    elif type_ == "appjailImage":
         validate_diskLayout_from_entrypoint(document)
         validate_diskLayout_from_imageName(document)
         validate_diskLayout_from_imageArch(document)
         validate_diskLayout_from_imageTag(document)
 
-    elif type == "pkgbase":
+    elif type_ == "pkgbase":
         validate_diskLayout_from_osVersion(document)
         validate_diskLayout_from_osArch(document)
         validate_diskLayout_from_packages(document)
         validate_diskLayout_from_pkgConf(document)
         validate_diskLayout_from_fingerprints(document)
 
-    elif type == "iso":
+    elif type_ == "iso":
         validate_diskLayout_from_isoFile(document)
         validate_diskLayout_from_installed(document)
 
-    elif type == "img":
+    elif type_ == "img":
         validate_diskLayout_from_imgFile(document)
         validate_diskLayout_from_installed(document)
 
 def validate_diskLayout_from_fingerprints(document):
-    fingerprints = document.get("fingerprints")
-
-    if fingerprints is None:
-        return
-
-    if not isinstance(fingerprints, str):
-        raise overlord.exceptions.InvalidSpec(f"{fingerprints}: invalid value type for 'diskLayout.from.fingerprints'")
+    overlord.error._validate1(document, "diskLayout.from.", "fingerprints", str)
 
 def validate_diskLayout_from_pkgConf(document):
-    pkgConf = document.get("pkgConf")
-
-    if pkgConf is None:
-        return
-
-    if not isinstance(pkgConf, str):
-        raise overlord.exceptions.InvalidSpec(f"{pkgConf}: invalid value type for 'diskLayout.from.pkgConf'")
+    overlord.error._validate1(document, "diskLayout.from.", "pkgConf", str)
 
 def validate_diskLayout_from_packages(document):
-    packages = document.get("packages")
+    _value = overlord.error._validate1(document, "diskLayout.from.", "packages", list, required=True)
+    overlord.error.assert_item(_value, validate_diskLayout_fstab_item)
 
-    if packages is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.packages' is required but hasn't been specified.")
-
-    if not isinstance(packages, list):
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.packages' is invalid.")
-
-    for index, package in enumerate(packages):
-        if not isinstance(package, str):
-            raise overlord.exceptions.InvalidSpec(f"{package}: invalid value type for 'diskLayout.from.packages.{index}'")
+def validate_diskLayout_from_packages_item(packages, package, index):
+    overlord.error.assert_type(f"diskLayout.from.packages.<item#{index}>", package, str)
 
 def validate_diskLayout_from_imgFile(document):
-    imgFile = document.get("imgFile")
-
-    if imgFile is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.imgFile' is required but hasn't been specified.")
-
-    if not isinstance(imgFile, str):
-        raise overlord.exceptions.InvalidSpec(f"{imgFile}: invalid value type for 'diskLayout.from.imgFile'")
+    overlord.error._validate1(document, "diskLayout.from.", "imgFile", str)
 
 def validate_diskLayout_from_installed(document):
-    installed = document.get("installed")
-
-    if installed is None:
-        return
-
-    if not isinstance(installed, bool):
-        raise overlord.exceptions.InvalidSpec(f"{installed}: invalid value type for 'diskLayout.from.installed'")
+    overlord.error._validate1(document, "diskLayout.from.", "installed", bool)
 
 def validate_diskLayout_from_isoFile(document):
-    isoFile = document.get("isoFile")
-
-    if isoFile is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.isoFile' is required but hasn't been specified.")
-
-    if not isinstance(isoFile, str):
-        raise overlord.exceptions.InvalidSpec(f"{isoFile}: invalid value type for 'diskLayout.from.isoFile'")
+    overlord.error._validate1(document, "diskLayout.from.", "isoFile", str, required=True)
 
 def validate_diskLayout_from_imageTag(document):
-    imageTag = document.get("imageTag")
-
-    if imageTag is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.imageTag' is required but hasn't been specified.")
-
-    if not isinstance(imageTag, str):
-        raise overlord.exceptions.InvalidSpec(f"{imageTag}: invalid value type for 'diskLayout.from.imageTag'")
+    overlord.error._validate1(document, "diskLayout.from.", "imageTag", str, required=True)
 
 def validate_diskLayout_from_imageArch(document):
-    imageArch = document.get("imageArch")
-
-    if imageArch is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.imageArch' is required but hasn't been specified.")
-
-    if not isinstance(imageArch, str):
-        raise overlord.exceptions.InvalidSpec(f"{imageArch}: invalid value type for 'diskLayout.from.imageArch'")
+    overlord.error._validate1(document, "diskLayout.from.", "imageArch", str, required=True)
 
 def validate_diskLayout_from_imageName(document):
-    imageName = document.get("imageName")
-
-    if imageName is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.imageName' is required but hasn't been specified.")
-
-    if not isinstance(imageName, str):
-        raise overlord.exceptions.InvalidSpec(f"{imageName}: invalid value type for 'diskLayout.from.imageName'")
+    overlord.error._validate1(document, "diskLayout.from.", "imageName", str, required=True)
 
 def validate_diskLayout_from_components(document):
-    components = document.get("components")
+    _value = overlord.error._validate1(document, "diskLayout.from.", "components", list, required=True)
+    overlord.error.assert_item(_value, validate_diskLayout_from_components_item)
 
-    if components is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.components' is required but hasn't been specified.")
-
-    if not isinstance(components, list):
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.components' is invalid.")
-
-    for index, component in enumerate(components):
-        if not isinstance(component, str):
-            raise overlord.exceptions.InvalidSpec(f"{component}: invalid value type for 'diskLayout.from.components.{index}'")
+def validate_diskLayout_from_components_item(components, component, index):
+    overlord.error.assert_type(f"diskLayout.from.components.<item#{index}>", component, str)
 
 def validate_diskLayout_from_osVersion(document):
-    osVersion = document.get("osVersion")
-
-    if osVersion is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.osVersion' is required but hasn't been specified.")
-
-    if not isinstance(osVersion, str):
-        raise overlord.exceptions.InvalidSpec(f"{osVersion}: invalid value type for 'diskLayout.from.osVersion'")
+    overlord.error._validate1(document, "diskLayout.from.", "osVersion", str, required=True)
 
 def validate_diskLayout_from_osArch(document):
-    osArch = document.get("osArch")
-
-    if osArch is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.osArch' is required but hasn't been specified.")
-
-    if not isinstance(osArch, str):
-        raise overlord.exceptions.InvalidSpec(f"{osArch}: invalid value type for 'diskLayout.from.osArch'")
+    overlord.error._validate1(document, "diskLayout.from.", "osArch", str, required=True)
 
 def validate_diskLayout_from_downloadURL(document):
-    downloadURL = document.get("downloadURL")
-
-    if downloadURL is None:
-        return
-
-    if not isinstance(downloadURL, str):
-        raise overlord.exceptions.InvalidSpec(f"{downloadURL}: invalid value type for 'diskLayout.from.downloadURL'")
+    overlord.error._validate1(document, "diskLayout.from.", "downloadURL", str)
 
 def validate_diskLayout_from_entrypoint(document):
-    entrypoint = document.get("entrypoint")
-
-    if entrypoint is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.from.entrypoint' is required but hasn't been specified.")
-
-    if not isinstance(entrypoint, str):
-        raise overlord.exceptions.InvalidSpec(f"{entrypoint}: invalid value type for 'diskLayout.from.entrypoint'")
+    overlord.error._validate1(document, "diskLayout.from.", "entrypoint", str, required=True)
 
 def validate_diskLayout_disk(document):
-    disk = document.get("disk")
-
-    if disk is None:
-        return
-
-    if not isinstance(disk, dict):
-        raise overlord.exceptions.InvalidSpec("'diskLayout.disk' is invalid.")
-
     keys = (
         "scheme",
         "partitions",
         "bootcode"
     )
 
-    for key in disk:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"diskLayout.disk.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "diskLayout.", "disk", keys)
 
-    validate_diskLayout_disk_scheme(disk)
-    validate_diskLayout_disk_partitions(disk)
-    validate_diskLayout_disk_bootcode(disk)
+    if _value is None:
+        return
+
+    validate_diskLayout_disk_scheme(_value)
+    validate_diskLayout_disk_partitions(_value)
+    validate_diskLayout_disk_bootcode(_value)
 
 def validate_diskLayout_disk_scheme(document):
-    scheme = document.get("scheme")
-
-    if scheme is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.disk.scheme' is required but hasn't been specified.")
-
-    if not isinstance(scheme, str):
-        raise overlord.exceptions.InvalidSpec(f"{scheme}: invalid value type for 'diskLayout.disk.scheme'")
+    scheme = overlord.error._validate1(document, "diskLayout.disk.", "scheme", str, required=True)
 
     if scheme != "gpt":
-        raise overlord.exceptions.InvalidSpec(f"{scheme}: invalid value for 'diskLayout.disk.scheme'")
+        raise overlord.exceptions.InvalidSpec(f"diskLayout.disk.scheme: invalid scheme: '{scheme}'.")
 
 def validate_diskLayout_disk_partitions(document):
-    partitions = document.get("partitions")
+    _value = overlord.error._validate1(document, "diskLayout.disk.", "partitions", list)
 
-    if partitions is None:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.disk.partitions' is required but hasn't been specified.")
+    if _value is None:
+        return
 
-    if not isinstance(partitions, list):
-        raise overlord.exceptions.InvalidSpec("'diskLayout.disk.partitions' is invalid.")
+    overlord.error.assert_len("diskLayout.disk.partitions", _value, -1, lambda l, dl: dl > 0, "> 0")
+    overlord.error.assert_item(_value, validate_diskLayout_disk_partitions_item)
 
-    if len(partitions) == 0:
-        raise overlord.exceptions.InvalidSpec("'diskLayout.disk.partitions' is required but hasn't been specified.")
-
-    for index, partition in enumerate(partitions):
-        if not isinstance(partition, dict):
-            raise overlord.exceptions.InvalidSpec(f"'diskLayout.disk.partitions.{index}' is invalid.")
-
-        validate_diskLayout_disk_partition(index, partition)
+def validate_diskLayout_disk_partitions_item(partitions, partition, index):
+    validate_diskLayout_disk_partition(index, partition)
 
 def validate_diskLayout_disk_partition(index, partition):
+    _name = f"diskLayout.disk.partitions.<item#{index}>"
+
     keys = (
         "type",
         "alignment",
@@ -801,9 +537,8 @@ def validate_diskLayout_disk_partition(index, partition):
         "format"
     )
 
-    for key in partition:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"diskLayout.disk.partitions.{index}.{key}: this key is invalid.")
+    overlord.error.assert_type(_name, partition, dict)
+    overlord.error.assert_parameter(_name, partition, keys)
 
     validate_diskLayout_disk_partition_type(index, partition)
     validate_diskLayout_disk_partition_alignment(index, partition)
@@ -813,113 +548,61 @@ def validate_diskLayout_disk_partition(index, partition):
     validate_diskLayout_disk_partition_format(index, partition)
 
 def validate_diskLayout_disk_partition_type(index, partition):
-    type = partition.get("type")
-
-    if type is None:
-        raise overlord.exceptions.InvalidSpec(f"'diskLayout.disk.partitions.{index}.type' is required but hasn't been specified.")
-
-    if not isinstance(type, str):
-        raise overlord.exceptions.InvalidSpec(f"{type}: invalid value type for 'diskLayout.disk.partition.{index}.type'")
+    overlord.error._validate1(partition, f"diskLayout.disk.partitions.<item#{index}>.", "type", str, required=True)
 
 def validate_diskLayout_disk_partition_alignment(index, partition):
-    alignment = partition.get("alignment")
-
-    if alignment is None:
-        return
-
-    if not isinstance(alignment, str):
-        raise overlord.exceptions.InvalidSpec(f"{alignment}: invalid value type for 'diskLayout.disk.partition.{index}.alignment'")
+    overlord.error._validate1(partition, f"diskLayout.disk.partitions.<item#{index}>.", "alignment", str)
 
 def validate_diskLayout_disk_partition_start(index, partition):
-    start = partition.get("start")
-
-    if start is None:
-        return
-
-    if not isinstance(start, str):
-        raise overlord.exceptions.InvalidSpec(f"{start}: invalid value type for 'diskLayout.disk.partition.{index}.start'")
+    overlord.error._validate1(partition, f"diskLayout.disk.partitions.<item#{index}>.", "start", str)
 
 def validate_diskLayout_disk_partition_size(index, partition):
-    size = partition.get("size")
-
-    if size is None:
-        return
-
-    if not isinstance(size, str):
-        raise overlord.exceptions.InvalidSpec(f"{size}: invalid value type for 'diskLayout.disk.partition.{index}.size'")
+    overlord.error._validate1(partition, f"diskLayout.disk.partitions.<item#{index}>.", "size", str)
 
 def validate_diskLayout_disk_partition_label(index, partition):
-    label = partition.get("label")
-
-    if label is None:
-        return
-
-    if not isinstance(label, str):
-        raise overlord.exceptions.InvalidSpec(f"{label}: invalid value type for 'diskLayout.disk.partition.{index}.label'")
+    overlord.error._validate1(partition, f"diskLayout.disk.partitions.<item#{index}>.", "label", str)
 
 def validate_diskLayout_disk_partition_format(index, partition):
-    format = partition.get("format")
-
-    if format is None:
-        return
-
-    if not isinstance(format, dict):
-        raise overlord.exceptions.InvalidSpec(f"'diskLayout.disk.partitions.{index}.format' is invalid.")
-
     keys = (
         "flags",
         "script"
     )
 
-    for key in format:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"diskLayout.disk.partitions.{index}.{key}: this key is invalid.")
+    format_ = overlord.error._validate2(partition, f"diskLayout.disk.partitions.<item#{index}>.", "format", keys)
 
-    if "flags" in format and "script" in format:
-        raise overlord.exceptions.InvalidSpec("Only 'flags' or 'script' should be specified, but not both.")
-
-    elif "flags" in format:
-        flags = format.get("flags")
-
-        if not isinstance(flags, str):
-            raise overlord.exceptions.InvalidSpec(f"{flags}: invalid value type for 'diskLayout.disk.partition.{index}.format.flags'")
-
-    elif "script" in format:
-        script = format.get("script")
-
-        if not isinstance(script, str):
-            raise overlord.exceptions.InvalidSpec(f"{script}: invalid value type for 'diskLayout.disk.partition.{index}.format.script'")
-
-def validate_diskLayout_disk_bootcode(document):
-    bootcode = document.get("bootcode")
-
-    if bootcode is None:
+    if format_ is None:
         return
 
-    if not isinstance(bootcode, dict):
-        raise overlord.exceptions.InvalidSpec("'diskLayout.disk.bootcode' is invalid.")
+    if "flags" in format_ and "script" in format_:
+        raise overlord.exceptions.InvalidSpec("Only 'flags' or 'script' should be specified, but not both.")
 
+    elif "flags" in format_:
+        flags = format_.get("flags")
+
+        overlord.error.assert_type(f"diskLayout.disk.partitions.<item#{index}>.format.flags", flags, str)
+
+    elif "script" in format_:
+        script = format_.get("script")
+
+        overlord.error.assert_type(f"diskLayout.disk.partitions.<item#{index}>.format.script", script, str)
+
+def validate_diskLayout_disk_bootcode(document):
     keys = (
         "bootcode",
         "partcode",
         "index"
     )
 
-    for key in bootcode:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"diskLayout.disk.bootcode.{key}: this key is invalid.")
+    _value = overlord.error._validate2(document, "diskLayout.disk.", "bootcode", keys)
 
-    validate_diskLayout_disk_bootcode_bootcode(bootcode)
-    validate_diskLayout_disk_bootcode_partcode(bootcode)
-
-def validate_diskLayout_disk_bootcode_bootcode(document):
-    bootcode = document.get("bootcode")
-
-    if bootcode is None:
+    if _value is None:
         return
 
-    if not isinstance(bootcode, str):
-        raise overlord.exceptions.InvalidSpec(f"{bootcode}: invalid value type for 'diskLayout.disk.bootcode.bootcode'")
+    validate_diskLayout_disk_bootcode_bootcode(_value)
+    validate_diskLayout_disk_bootcode_partcode(_value)
+
+def validate_diskLayout_disk_bootcode_bootcode(document):
+    overlord.error._validate1(document, "diskLayout.disk.bootcode.", "bootcode", str)
 
 def validate_diskLayout_disk_bootcode_partcode(document):
     partcode = document.get("partcode")
@@ -932,42 +615,25 @@ def validate_diskLayout_disk_bootcode_partcode(document):
             or (partcode is not None and index is None):
         raise overlord.exceptions.InvalidSpec(f"Both 'diskLayout.disk.bootcode.partcode' and 'diskLayout.disk.bootcode.index' must be specified at the same time.")
 
-    if not isinstance(partcode, str):
-        raise overlord.exceptions.InvalidSpec(f"{partcode}: invalid value type for 'diskLayout.disk.bootcode.partcode'")
-
-    if not isinstance(index, int):
-        raise overlord.exceptions.InvalidSpec(f"{index}: invalid value type for 'diskLayout.disk.bootcode.index'")
-
-    if index < 0:
-        raise ValueError(f"{index}: invalid value for 'diskLayout.disk.bootcode.index'")
+    overlord.error.assert_type("diskLayout.disk.bootcode.partcode", partcode, str)
+    overlord.error.assert_type("diskLayout.disk.bootcode.index", index, int)
+    overlord.error.assert_value("diskLayout.disk.bootcode.index", lambda v: v >= 0, index, ">= 0")
 
 def validate_script(document):
-    script = document.get("script")
-
-    if script is None:
-        return
-
-    if not isinstance(script, str):
-        raise overlord.exceptions.InvalidSpec(f"{script}: invalid value type for 'script'")
+    overlord.error._validate1(document, "", "script", str)
 
 def validate_metadataPrefix(document):
-    metadataPrefix = document.get("metadataPrefix")
-
-    if metadataPrefix is None:
-        return
-
-    if not isinstance(metadataPrefix, str):
-        raise overlord.exceptions.InvalidSpec(f"{metadataPrefix}: invalid value type for 'metadataPrefix'")
+    overlord.error._validate1(document, "", "metadataPrefix", str)
 
 def validate_metadata(document):
-    metadata = document.get("metadata")
+    _value = overlord.error._validate1(document, "", "metadata", list)
 
-    if metadata is None:
+    if _value is None:
         return
 
-    if not isinstance(metadata, list):
-        raise overlord.exceptions.InvalidSpec("'metadata' is invalid.")
+    overlord.error.assert_item(_value, validate_metadata_item)
 
-    for index, name in enumerate(metadata):
-        if not isinstance(name, str):
-            raise overlord.exceptions.InvalidSpec(f"{metadata}: invalid value type for 'metadata.{index}'")
+def validate_metadata_item(metadata, name, index):
+    overlord.error.assert_type(f"metadata.<item#{index}>", name, str)
+    overlord.error.assert_value(f"metadata.<item#{index}>",
+        overlord.metadata.check_keyname, name, overlord.metadata.REGEX_KEY)

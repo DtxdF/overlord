@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -27,7 +27,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import overlord.exceptions
+import overlord.error
 
 CONFIG = {}
 
@@ -43,8 +43,8 @@ def get_appConfig():
 def validate(document):
     global CONFIG
 
-    if not isinstance(document, dict):
-        raise overlord.exceptions.InvalidSpec("The document is invalid.")
+    _name = "<root:appConfig>"
+    overlord.error.assert_type(_name, document, dict)
 
     keys = (
         "kind",
@@ -56,9 +56,7 @@ def validate(document):
         "appConfig"
     )
 
-    for key in document:
-        if key not in keys:
-            raise overlord.exceptions.InvalidSpec(f"{key}: this key is invalid.")
+    overlord.error.assert_parameter(_name, document, keys)
 
     validate_appName(document)
     validate_appFrom(document)
@@ -67,33 +65,19 @@ def validate(document):
     CONFIG = document
 
 def validate_appName(document):
-    appName = document.get("appName")
-
-    if appName is None:
-        raise overlord.exceptions.InvalidSpec("'appName' is required but hasn't been specified.")
-
-    if not isinstance(appName, str):
-        raise overlord.exceptions.InvalidSpec(f"{appName}: invalid value type for 'appName'")
+    overlord.error._validate1(document, "", "appName", str, required=True)
 
 def validate_appFrom(document):
-    appFrom = document.get("appFrom")
-
-    if appFrom is None:
-        raise overlord.exceptions.InvalidSpec("'appFrom' is required but hasn't been specified.")
-
-    if not isinstance(appFrom, str):
-        raise overlord.exceptions.InvalidSpec(f"{appFrom}: invalid value type for 'appFrom'")
+    overlord.error._validate1(document, "", "appFrom", str, required=True)
 
 def validate_appConfig(document):
-    appConfig = document.get("appConfig")
+    _value = overlord.error._validate1(document, "", "appConfig", dict)
 
-    if appConfig is None:
+    if _value is None:
         return
 
-    if not isinstance(appConfig, dict):
-        raise overlord.exceptions.InvalidSpec("'appConfig' is invalid.")
+    overlord.error.assert_item(_value, validate_appConfig_item)
 
-    for appConfig_name, appConfig_value in appConfig.items():
-        if not isinstance(appConfig_name, str) \
-                or not isinstance(appConfig_value, str):
-            raise overlord.exceptions.InvalidSpec(f"Invalid appConfig name (appConfig.{appConfig_name}) or value (appConfig.{appConfig_value}).")
+def validate_appConfig_item(appConfig, parameter, index):
+    overlord.error.assert_type(f"appConfig.<item#{index}>", parameter, str)
+    overlord.error.assert_type(f"appConfig.{parameter}", appConfig[parameter], str)
