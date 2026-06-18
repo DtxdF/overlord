@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import enum
+import os
 
 import pyaml_env
 
@@ -51,6 +52,11 @@ class OverlordKindTypes(enum.Enum):
 
 def load(file):
     global CONFIG
+
+    file = os.path.realpath(file)
+
+    os.environ["OVERLORD_WRKDIR"] = os.path.dirname(file)
+    os.environ["OVERLORD_FILE"] = file
 
     document = pyaml_env.parse_config(file, default_value="")
 

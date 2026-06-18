@@ -27,6 +27,8 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import pyaml_env
+
 import overlord.error
 import overlord.exceptions
 import overlord.metadata
@@ -96,7 +98,8 @@ def validate(document):
         "maximumDeployments",
         "metadata",
         "metadataPrefix",
-        "namespace"
+        "namespace",
+        "include"
     )
 
     overlord.error.assert_parameter(_name, document, keys)
@@ -201,12 +204,31 @@ def validate_metadataPrefix(document):
     overlord.error._validate1(document, "", "metadataPrefix", str)
 
 def validate_metadata(document):
-    _value = overlord.error._validate1(document, "", "metadata", dict)
+    metadata = document.get("metadata")
 
-    if _value is None:
-        return
+    if metadata is None:
+        metadata = {}
 
-    overlord.error.assert_item(_value, validate_metadata_item)
+    overlord.error.assert_type("metadata", document, dict)
+
+    include = document.get("include")
+
+    if include is None:
+        include = []
+
+    overlord.error.assert_type("include", include, list)
+
+    for index, file_ in enumerate(include):
+        overlord.error.assert_type(f"include.<item#{index}>", file_, str)
+
+        data = pyaml_env.parse_config(file_, default_value="")
+
+        overlord.error.assert_type(f"include.<item#{index}:metadata>", data, dict)
+
+        metadata.update(data)
+
+    if len(metadata) > 0:
+        overlord.error.assert_item(metadata, validate_metadata_item)
 
 def validate_metadata_item(metadata, name, index):
     overlord.error.assert_type(f"metadata.<item#{index}>", name, str)
