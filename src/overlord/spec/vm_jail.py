@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# Copyright (c) 2025-2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -449,7 +449,7 @@ def validate_diskLayout_from_pkgConf(document):
 
 def validate_diskLayout_from_packages(document):
     _value = overlord.error._validate1(document, "diskLayout.from.", "packages", list, required=True)
-    overlord.error.assert_item(_value, validate_diskLayout_fstab_item)
+    overlord.error.assert_item(_value, validate_diskLayout_from_packages_item)
 
 def validate_diskLayout_from_packages_item(packages, package, index):
     overlord.error.assert_type(f"diskLayout.from.packages.<item#{index}>", package, str)
