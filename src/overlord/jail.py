@@ -454,13 +454,13 @@ def _read(jail, namespace, keyword):
         with open(key) as fd:
             value = fd.read()
 
-            if value[-1] == "\n":
+            if len(value) > 0 and value[-1] == "\n":
                 value = value[:-1]
 
             if len(value) == 0:
                 value = None
 
-    except:
+    except Exception as err:
         error = overlord.util.get_error(err)
         error_type = error.get("type")
         error_message = error.get("message")
