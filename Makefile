@@ -51,6 +51,7 @@ install-files:
 	${MKDIR} -m 755 -p "${DESTDIR}${PREFIX}/share/overlord/files/pkgbase"
 
 	${INSTALL} -m 444 files/pkgbase/base.conf "${DESTDIR}${PREFIX}/share/overlord/files/pkgbase"
+	${INSTALL} -m 444 files/pkgbase/ports.conf "${DESTDIR}${PREFIX}/share/overlord/files/pkgbase"
 
 uninstall: uninstall-overlord uninstall-libexec uninstall-manpages uninstall-files
 
