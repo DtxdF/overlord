@@ -218,8 +218,6 @@ def write_template(jail_path, template_name, template):
     vm_template = []
 
     for param_name, param_value in template.items():
-        param_value = shlex.quote(param_value)
-
         vm_template.append(f"{param_name}={param_value}")
 
     vm_template = "\n".join(vm_template)
